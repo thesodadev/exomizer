@@ -1,5 +1,5 @@
 ;
-; Tiny Exomizer-Decruncher especially for 4K-Intros and such V1.1
+; Tiny Exomizer-Decruncher especially for 4K-Intros and such V1.2
 ;
 ; by Wolfram Sang (Ninja/The Dreams) in 2004 based on the original
 ; decruncher which is copyright (c) 2002, 2003 by Magnus Lind.
@@ -44,11 +44,15 @@
 ;     The first byte is the "bitbuf_val". The other two are the "dest_addr".
 ;  4) Edit the compile-options. Edit the binclude at the end.
 ;  5) Assemble.
-; The resulting file is up to 138 bytes smaller than the standard decruncher.
+; The resulting file is up to 141 bytes smaller than the standard decruncher.
 ; Note that it must be started with RUN because of ZP-settings. After
 ; decrunching IRQs are disabled. $01 is not touched (except for full_ram
 ; option).
 ; For further suggestions or comments, contact me: ninja@the-dreams.de
+;
+; Version history:
+;  1.1 - first public release
+;  1.2 - 3 bytes shorter
 
 ; -------------------------------------------------------------------
 ; initialization for the assembler
@@ -81,9 +85,9 @@ zp_bits_hi    = $66            ; [undefined, but likely 0]
 
 zp_bit_cnt    = $62            ; [$ff]
 
-zp_len_lo     = $63            ; [undefined]
+; change these only if you really know what you're doing!
 
-; be very careful when changing these!
+zp_len_lo     = $4a            ; $4A = LSR A [undefined]
 
 zp_src_lo     = $78            ; $78 = SEI
 zp_src_hi     = zp_src_lo + 1  ; [undefined]
@@ -158,20 +162,16 @@ shortcut:
               bcs copy_next
              elseif
               ldy #0
-              beq begin
+              beq next1
              endif
 
 ; -------------------------------------------------------------------
 ; get bits
 
-get_bit1:
-             if illegals_ok
-              inx
 get_bits:
+             if illegals_ok
               stx zp_bit_cnt
              elseif
-              lda #1
-get_bits:
               sta zp_bit_cnt
              endif
 
@@ -232,18 +232,17 @@ copy_start:
 ; decruncher entry point, needs calculated tables
 ; y must be #0 when entering
 
-begin:
-              jsr get_bit1
-              sta zp_len_lo
-              bne literal_start
-; -------------------------------------------------------------------
-; count zero bits + 1 to get length table index
-; y = 0 when entering
-
 next1:
+             if illegals_ok
+              inx
+             elseif
+              lda #1
+             endif
               iny
-              jsr get_bit1
+              jsr get_bits
               beq next1
+              dey
+              beq literal_start
 
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len)
@@ -289,15 +288,15 @@ size123:
 ; -------------------------------------------------------------------
 ; prepare zp_dest
 
-literal_start:
-              sec
-              lda zp_dest_lo
-              sbc zp_len_lo
+              lda zp_len_lo
+literal_start = * - 1
+              sbc zp_dest_lo
+              eor #$ff
               sta zp_dest_lo
-              bcs noborrow
+              bcc noborrow
               dec zp_dest_hi
 noborrow:
-              cpy #$01
+              cpy #1
               bcc get_byte
 ; -------------------------------------------------------------------
 ; calulate absolute offset (zp_src)

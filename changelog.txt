@@ -1,4 +1,4 @@
-2004-08-XX
+2004-09-XX
 ----------
 1.1.5 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
 + new faster sequence matching algorithm that also handles long rle-sequences
@@ -13,6 +13,7 @@
   works as expected. Thanks to Csabo / LOD for reporting this bug.
 + improvment: Now the exobasic tool can regenerate the system color table
   in its c16/plus4 trampoline.
++ contrib/exo-4k.asm by Ninja/The Dreams updated to v1.2
 + updates to the exomizer-1.1.5.txt file.
 + updates to the exobasic-1.0b2.txt file.
 
