@@ -1,8 +1,14 @@
+2003-04-??
+----------
+1.1.2beta2
++ documentation fixes, Thanks to Ninja/The Dreams for pointing them out to me.
++ faster 'pull' decruncher.
+
 2003-03-29
 ----------
 1.1.2beta1 released to testers win32 only, no source
 + portability: It now builds and runs on cygwin, mingw32 and djgpp targets too.
-  Thanks to Rafal Szyja for helping me testing this.
+  Thanks to Rafal Szyja for helping me to test this.
 + bugfix: better handling of files with really long rle sequences. Bug reported
   by 6R6/Nostalgia.
 + new 'pull' oriented decruncher that uses a circular buffer. This is more

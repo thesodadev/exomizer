@@ -1,8 +1,8 @@
-#ifndef ALREADY_INCLUDED_SFX_H
-#define ALREADY_INCLUDED_SFX_H
+#ifndef ALREADY_INCLUDED_VEC_H
+#define ALREADY_INCLUDED_VEC_H
 
 /*
- * Copyright (c) 2002, 2003 Magnus Lind.
+ * Copyright (c) 2003 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -28,22 +28,37 @@
  *
  */
 
-#include "output.h"
-typedef
-void sfx1_set_new_load_f(output_ctx out,        /* IN/OUT */
-                         unsigned short int load);      /* IN */
+#include <string.h>
+#include "membuf.h"
 
-typedef
-void sfx2_add_stages_f(output_ctx out,  /* IN/OUT */
-                       unsigned short int start);       /* IN */
-struct sfx_decruncher {
-    sfx1_set_new_load_f *load;
-    sfx2_add_stages_f *stages;
-    const char *text;
+#define STATIC_VEC_INIT(EL_SIZE) {(EL_SIZE), STATIC_MEMBUF_INIT}
+
+struct vec {
+    size_t elsize;
+    struct membuf buf;
 };
-extern struct sfx_decruncher sfx_c64[];
-extern struct sfx_decruncher sfx_c64ne[];
-extern struct sfx_decruncher sfx_c264[];
-extern struct sfx_decruncher sfx_c264ne[];
+
+struct vec_iterator {
+    struct vec *vec;
+    int pos;
+};
+
+typedef int cb_cmp(const void *a, const void *b);
+typedef int cb_free(void *a);
+
+void vec_init(struct vec *p, size_t elsize);
+void vec_clear(struct vec *p, cb_free * f);
+void vec_free(struct vec *p, cb_free * f);
+
+int vec_count(struct vec *p);
+void *vec_get(struct vec *p, int index);
+void *vec_push(struct vec *p, const void *in);
+
+void *vec_find(struct vec *p, cb_cmp * f, const void *key);
+int vec_insert_uniq(struct vec *p, cb_cmp * f, const void *in, void **out);
+
+void vec_get_iterator(struct vec *p, struct vec_iterator *i);
+void *vec_iterator_next(struct vec_iterator *i);
+
 
 #endif

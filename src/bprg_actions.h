@@ -1,8 +1,8 @@
-#ifndef ALREADY_INCLUDED_SFX_H
-#define ALREADY_INCLUDED_SFX_H
+#ifndef ALREADY_INCLUDED_BPRG_ACTIONS_H
+#define ALREADY_INCLUDED_BPRG_ACTIONS_H
 
 /*
- * Copyright (c) 2002, 2003 Magnus Lind.
+ * Copyright (c) 2003 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -28,22 +28,12 @@
  *
  */
 
-#include "output.h"
-typedef
-void sfx1_set_new_load_f(output_ctx out,        /* IN/OUT */
-                         unsigned short int load);      /* IN */
+#include "bprg.h"
 
-typedef
-void sfx2_add_stages_f(output_ctx out,  /* IN/OUT */
-                       unsigned short int start);       /* IN */
-struct sfx_decruncher {
-    sfx1_set_new_load_f *load;
-    sfx2_add_stages_f *stages;
-    const char *text;
-};
-extern struct sfx_decruncher sfx_c64[];
-extern struct sfx_decruncher sfx_c64ne[];
-extern struct sfx_decruncher sfx_c264[];
-extern struct sfx_decruncher sfx_c264ne[];
+void
+bprg_renumber(struct bprg_ctx *ctx);
+
+void
+bprg_link_patch(struct bprg_ctx *ctx);
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef ALREADY_INCLUDED_SFX_H
-#define ALREADY_INCLUDED_SFX_H
+#ifndef ALREADY_INCLUDED_MEMBUF_H
+#define ALREADY_INCLUDED_MEMBUF_H
 
 /*
  * Copyright (c) 2002, 2003 Magnus Lind.
@@ -28,22 +28,25 @@
  *
  */
 
-#include "output.h"
-typedef
-void sfx1_set_new_load_f(output_ctx out,        /* IN/OUT */
-                         unsigned short int load);      /* IN */
+#define STATIC_MEMBUF_INIT {0, 0, 0}
 
-typedef
-void sfx2_add_stages_f(output_ctx out,  /* IN/OUT */
-                       unsigned short int start);       /* IN */
-struct sfx_decruncher {
-    sfx1_set_new_load_f *load;
-    sfx2_add_stages_f *stages;
-    const char *text;
+struct membuf {
+    void *buf;
+    int len;
+    int size;
 };
-extern struct sfx_decruncher sfx_c64[];
-extern struct sfx_decruncher sfx_c64ne[];
-extern struct sfx_decruncher sfx_c264[];
-extern struct sfx_decruncher sfx_c264ne[];
+
+void membuf_init(struct membuf *sb);
+void membuf_clear(struct membuf *sb);
+void membuf_free(struct membuf *sb);
+void membuf_new(struct membuf **sbp);
+void membuf_delete(struct membuf **sbp);
+int membuf_memlen(struct membuf *sb);
+void *membuf_memcpy(struct membuf *sb, const void *mem, int memlen);
+void *membuf_append(struct membuf *sb, const void *mem, int memlen);
+void membuf_atleast(struct membuf *sb, int size);
+void membuf_atmost(struct membuf *sb, int size);
+int membuf_get_size(struct membuf *sb);
+void *membuf_get(struct membuf *sb);
 
 #endif

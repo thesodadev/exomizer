@@ -416,7 +416,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v1.1.2b1, Copyright (c) 2002, 2003 Magnus Lind. (magli143@telia.com)\n"
+         "Exomizer v1.1.2b2, Copyright (c) 2002, 2003 Magnus Lind. (magli143@telia.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -473,12 +473,14 @@ void print_usage(const char *appl, enum log_level level)
          "  -q           enable quiet mode, display output is reduced to one line\n"
          "  -4           the decruncher targets the c16/+4 computers instead of the c64,\n"
          "               must be combined with -s\n"
+         "  -n           turn off the decrunch effect shown by the decruncher, must be\n"
+         "               combined with -s\n"
          "  -m <offset>  limits the maximum offset size to <offset>, default is 65535\n"
-         "  --           treat all args to the right as non-options\n"
-         "  -?           displays this help screen\n"
-         "  -v           displays version and the usage license\n"));
+         "  --           treat all args to the right as non-options\n"));
     LOG(level,
-        (" All infiles are merged into the outfile. They are loaded in the order\n"
+        ("  -?           displays this help screen\n"
+         "  -v           displays version and the usage license\n"
+         " All infiles are merged into the outfile. They are loaded in the order\n"
          " they are given on the command-line, from left to right.\n"));
 }
 
@@ -499,14 +501,23 @@ main(int argc, char *argv[])
     encode_match_data emd;
     encode_match_priv optimal_priv;
     search_nodep snp;
-    struct sfx_decruncher *sfx_decr = sfx_c64;
+
+#define DECR_TARGET_C64  0
+#define DECR_TARGET_C264 1
+#define DECR_TYPE_STANDARD 0
+#define DECR_TYPE_NO_EFFECT 1
+
+    struct sfx_decruncher *decr_matrix[2][2] = {
+        {sfx_c64, sfx_c64ne}, {sfx_c264, sfx_c264ne}};
+    int decr_target = DECR_TARGET_C64;
+    int decr_type = DECR_TYPE_STANDARD;
 
     /* init logging */
     LOG_INIT_CONSOLE(LOG_NORMAL);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     outload = -1;
-    while ((c = getflag(argc, argv, "m:4qrl:s:o:v")) != -1)
+    while ((c = getflag(argc, argv, "m:4qrnl:s:o:v")) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch (c)
@@ -553,11 +564,14 @@ main(int argc, char *argv[])
         case 'o':
             outfile = flagarg;
             break;
+        case 'n':
+            decr_type = DECR_TYPE_NO_EFFECT;
+            break;
         case 'v':
             print_license();
             exit(1);
         case '4':
-            sfx_decr = sfx_c16plus4;
+            decr_target = DECR_TARGET_C264;
             break;
         default:
             if (flagflag != '?')
@@ -597,11 +611,19 @@ main(int argc, char *argv[])
         print_usage(argv[0], LOG_ERROR);
         exit(1);
     }
-    if (sfx_decr == sfx_c16plus4 && outstart == -1)
+    if (decr_target == DECR_TARGET_C264 && outstart == -1)
 
     {
         LOG(LOG_ERROR,
             ("error: the -4 option must be combined with -s.\n"));
+        print_usage(argv[0], LOG_ERROR);
+        exit(1);
+    }
+    if (decr_type == DECR_TYPE_NO_EFFECT && outstart == -1)
+
+    {
+        LOG(LOG_ERROR,
+            ("error: the -n option must be combined with -s.\n"));
         print_usage(argv[0], LOG_ERROR);
         exit(1);
     }
@@ -630,7 +652,7 @@ main(int argc, char *argv[])
     {
         LOG(LOG_NORMAL,
             ("self-decompressing %s executable, jmp address $%04X\n",
-             sfx_decr->text, outstart));
+             decr_matrix[decr_target][decr_type]->text, outstart));
     }
 
     LOG(LOG_NORMAL,
@@ -658,7 +680,8 @@ main(int argc, char *argv[])
     LOG(LOG_NORMAL,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
-    do_output(ctx, snp, emd, sfx_decr, outfile, load, len, outstart);
+    do_output(ctx, snp, emd, decr_matrix[decr_target][decr_type],
+              outfile, load, len, outstart);
 
     LOG(LOG_NORMAL, (" Generating file, done.\n"));
 

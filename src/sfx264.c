@@ -270,4 +270,4 @@ void stages(output_ctx out,     /* IN/OUT */
     /* set the pos behind everything */
     output_set_pos(out, stages_end);
 }
-struct sfx_decruncher sfx_c16plus4[1] = { {&load, &stages, "c16/+4"} };
+struct sfx_decruncher sfx_c264[1] = {{&load, &stages, "c16/+4"}};
