@@ -34,6 +34,9 @@
 #ifdef WIN32
 #define vsnprintf _vsnprintf
 #endif
+#ifdef DJGPP
+#define vsnprintf(A, B, C, D) vsprintf((A),(C),(D))
+#endif
 
 struct log_output {
     enum log_level min;

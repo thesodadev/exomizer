@@ -33,6 +33,7 @@
 #include "log.h"
 #include "search.h"
 #include "radix.h"
+#include "chunkpool.h"
 
 #define DOUBLE_OFFSET_TABLES
 
@@ -63,18 +64,25 @@ interval_node_init(interval_nodep inp, int start, int depth, int flags)
 }
 
 static
-interval_nodep interval_node_new(void)
+interval_nodep interval_node_clone(interval_nodep inp)
 {
-    interval_nodep inp;
+    interval_nodep inp2 = NULL;
 
-    inp = malloc(sizeof(interval_node));
-    if (inp == NULL)
+    if(inp != NULL)
     {
-        LOG(LOG_ERROR, ("out of memory error in file %s, line %d\n",
-                        __FILE__, __LINE__));
-        exit(0);
+	inp2 = malloc(sizeof(interval_node));
+	if (inp2 == NULL)
+	{
+	    LOG(LOG_ERROR, ("out of memory error in file %s, line %d\n",
+			    __FILE__, __LINE__));
+	    exit(0);
+	}
+	/* copy contents */
+	*inp2 = *inp;
+	inp2->next = interval_node_clone(inp->next);
     }
-    return inp;
+    
+    return inp2;
 }
 
 static
@@ -242,8 +250,9 @@ struct _optimize_arg {
 typedef struct _optimize_arg optimize_arg[1];
 typedef struct _optimize_arg optimize_argp;
 
-static
-    interval_nodep
+static struct chunkpool interval_node_pool[1];
+
+static interval_nodep
 optimize1(optimize_arg arg, int start, int depth, int init)
 {
     interval_node inp;
@@ -320,7 +329,7 @@ optimize1(optimize_arg arg, int start, int depth, int init)
                 if (best_inp == NULL)
                 {
                     /* allocate if null */
-                    best_inp = interval_node_new();
+                    best_inp = chunkpool_malloc(interval_node_pool);
                 }
                 *best_inp = *inp;
             }
@@ -336,36 +345,31 @@ optimize1(optimize_arg arg, int start, int depth, int init)
     return best_inp;
 }
 
-static
- interval_nodep
+static interval_nodep
 optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
 {
     optimize_arg arg;
 
     interval_nodep inp;
-    interval_nodep inp2;
 
     arg->stats = stats;
     arg->stats2 = stats2;
 
     arg->max_depth = max_depth;
     arg->flags = flags;
+
+    chunkpool_init(interval_node_pool, sizeof(interval_node));
+
     radix_tree_init(arg->cache);
 
     inp = optimize1(arg, 1, 0, 0);
 
-    /* remove winner from cache */
-    inp2 = inp;
-    while (inp2 != NULL)
-    {
-        radix_node_set(arg->cache,
-                       CACHE_KEY(inp2->start, inp2->depth, max_depth),
-                       NULL);
-        inp2 = inp2->next;
-    }
+    /* use normal malloc for the winner */
+    inp = interval_node_clone(inp);
 
     /* cleanup */
-    radix_tree_free(arg->cache, (free_callback *) free, NULL);
+    radix_tree_free(arg->cache, NULL, NULL);
+    chunkpool_free(interval_node_pool);
 
     return inp;
 }
@@ -454,9 +458,9 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     encode_match_privp data;
     const_matchp mp;
     interval_nodep *offset;
-    int offset_arr[8][65536];
-    int offset_parr[8][65536];
-    int len_arr[65536];
+    static int offset_arr[8][65536];
+    static int offset_parr[8][65536];
+    static int len_arr[65536];
     int treshold;
 
     int i, j;

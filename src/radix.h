@@ -29,11 +29,14 @@
  *
  */
 
+#include "chunkpool.h"
+
 typedef struct _radix_node *radix_nodep;
 
 struct _radix_root {
     int depth;
     radix_nodep root;
+    struct chunkpool mem[1];
 };
 
 typedef struct _radix_root radix_root[1];

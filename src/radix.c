@@ -32,6 +32,7 @@
 #include <string.h>
 #include "log.h"
 #include "radix.h"
+#include "chunkpool.h"
 
 #define RADIX_TREE_NODE_RADIX 11U
 #define RADIX_TREE_NODE_MASK  ((1U << RADIX_TREE_NODE_RADIX) - 1U)
@@ -44,6 +45,8 @@ void radix_tree_init(radix_root rr)     /* IN */
 {
     rr->depth = 0;
     rr->root = NULL;
+
+    chunkpool_init(rr->mem, (1 << RADIX_TREE_NODE_RADIX) * sizeof(void *));
 }
 
 static
@@ -73,7 +76,6 @@ void radix_tree_free_helper(int depth, radix_nodep rnp, free_callback * f,      
             radix_tree_free_helper(depth - 1, rnp[i].rn, f, priv);
             rnp[i].rn = NULL;
         }
-        free(rnp);
     }
     while (0);
 }
@@ -85,6 +87,7 @@ void radix_tree_free(radix_root rr,     /* IN */
     radix_tree_free_helper(rr->depth, rr->root, f, priv);
     rr->depth = 0;
     rr->root = NULL;
+    chunkpool_free(rr->mem);
 }
 
 void radix_node_set(radix_rootp rrp,    /* IN */
@@ -101,7 +104,8 @@ void radix_node_set(radix_rootp rrp,    /* IN */
     {
         /*LOG(LOG_DUMP, ("calloc called\n")); */
         /* not deep enough, let's deepen the tree */
-        rnp = calloc(1 << RADIX_TREE_NODE_RADIX, sizeof(void *));
+	rnp = chunkpool_calloc(rrp->mem);
+
         rnp[0].rn = rrp->root;
         rrp->root = rnp;
         rrp->depth += 1;
@@ -119,8 +123,7 @@ void radix_node_set(radix_rootp rrp,    /* IN */
         {
             /*LOG(LOG_DUMP, ("calloc called\n")); */
             /* tree is not grown in this interval */
-            *rnpp = calloc(1 << RADIX_TREE_NODE_RADIX, sizeof(void *));
-
+	    *rnpp = chunkpool_calloc(rrp->mem);
         }
         node_index = ((index >> (RADIX_TREE_NODE_RADIX * depth)) &
                       RADIX_TREE_NODE_MASK);

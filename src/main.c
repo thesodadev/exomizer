@@ -492,8 +492,8 @@ main(int argc, char *argv[])
     char **infilev;
     int load;
     int len;
-    unsigned char mem[65536];
-    match_ctx ctx;
+    static unsigned char mem[65536];
+    static match_ctx ctx;
     encode_match_data emd;
     encode_match_priv optimal_priv;
     search_nodep snp;
