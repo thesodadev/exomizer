@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2003 Magnus Lind.
+ * Copyright (c) 2002 - 2004 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -129,16 +129,24 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
             /* snp and best_rle_snp is the same rle area,
              * let's see which is best */
+#undef NEW_STYLE
+#ifdef NEW_STYLE
+            rle_mp->len = best_rle_snp->index - snp->index;
+#else
             rle_mp->len = ctx->rle[best_rle_snp->index];
+#endif
             rle_mp->offset = 1;
             best_rle_score = f(rle_mp, emd);
             total_best_rle_score = best_rle_snp->total_score +
                 best_rle_score;
 
+#ifdef NEW_STYLE
+            snp_rle_score = 0.0;
+#else
             rle_mp->len = ctx->rle[snp->index];
             rle_mp->offset = 1;
             snp_rle_score = f(rle_mp, emd);
-
+#endif
             total_snp_rle_score = snp->total_score + snp_rle_score;
 
             if(total_snp_rle_score <= total_best_rle_score)
@@ -190,6 +198,10 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         }
         /* end of rle optimization */
 
+        LOG(LOG_DUMP,
+            ("matches for index %d with total score %0.1f\n",
+             len - 1, snp->total_score));
+
         prev_score = snp_arr[len]->total_score;
         while (mp != NULL)
         {
@@ -200,20 +212,21 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
             next = mp->next;
             end_len = 1;
+#if 0
             if(next != NULL)
             {
                 end_len = next->len + (next->offset > 0);
             }
-
+#endif
             *tmp = *mp;
-
             for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
             {
                 float score;
                 float total_score;
 
                 LOG(LOG_DUMP, ("mp[%d, %d], tmp[%d, %d]\n",
-                               mp->offset, mp->len, tmp->offset, tmp->len));
+                               mp->offset, mp->len,
+                               tmp->offset, tmp->len));
 
                 score = f(tmp, emd);
                 total_score = prev_score + score;
@@ -227,7 +240,11 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
                 if ((total_score < 1000000.0) &&
                     (snp->match->len == 0 ||
-                     total_score < snp->total_score))
+                     total_score < snp->total_score ||
+                     (total_score == snp->total_score &&
+                      (tmp->offset == 0 ||
+                       (snp->match->len == tmp->len &&
+                        snp->match->offset > tmp->offset)))))
                 {
                     LOG(LOG_DUMP, (", replaced"));
                     snp->index = len - tmp->len;
@@ -238,6 +255,10 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                 }
                 LOG(LOG_DUMP, ("\n"));
             }
+            LOG(LOG_DUMP, ("tmp->len %d, ctx->rle[%d] %d\n",
+                           tmp->len, len - tmp->len,
+                           ctx->rle[len - tmp->len]));
+
             mp = next;
         }
 

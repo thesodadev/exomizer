@@ -1,7 +1,7 @@
-2004-09-XX
+2004-09-26
 ----------
 1.1.5 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
-+ new faster sequence matching algorithm that also handles long rle-sequences
++ new sequence matching algorithm that also handles long rle-sequences
   without slowing down like the old one did.
 + bugfix: use -lauto mechanism for built in decrunchers too in order to handle
   files that requires large safety margins. Previously, files that contained

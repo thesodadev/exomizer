@@ -153,7 +153,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exobasic v1.0b2, Copyright (c) 2003 Magnus Lind. (magli143@comhem.se)\n"
+         "Exobasic v1.0b2, Copyright (c) 2003, 2004 Magnus Lind. (magli143@comhem.se)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"

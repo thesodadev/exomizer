@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
-Features of the Exobasic tool:
+Features of the Exobasic 1.0b2 tool:
 -------------------------------------------------------------------------------
 
 1) Renumber the basic lines (standard), -n<n>,<m> (Beta quality)
