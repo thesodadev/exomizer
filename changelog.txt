@@ -1,3 +1,9 @@
+2004-06-02
+----------
+1.1.4p1 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
++ bugfix The only change compared to 1.1.4 is a bugfixed exodecrunch.s.
+  (now one byte longer) The binaries are the same as 1.1.4.
+
 2004-05-29
 ----------
 1.1.4 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.

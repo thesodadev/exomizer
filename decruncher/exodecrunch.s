@@ -190,26 +190,12 @@ begin2:
 ;
 	ldx tabl_bi - 1,y
 	jsr get_bits
-	adc tabl_lo - 1,y	; we have now calculated zp_len_lo ,c = 0
+	adc tabl_lo - 1,y	; we have now calculated zp_len_lo
 	sta zp_len_lo
 ; -------------------------------------------------------------------
-; Here we do the dest_lo -= len_lo subtraction to prepare zp_dest
-; but we do it backwards:	a == (a - 1) ^ ~0 (C-syntax)
-; (14 bytes)
-literal_start:			; literal enters here with y = 0, c = 1
-	sbc zp_dest_lo
-	bcc noborrow
-	dec zp_dest_hi
-noborrow:
-	eor #$ff
-	sta zp_dest_lo
-	cpy #$01		; y < 1 then literal
-	bcc literal_get_byte
-; -------------------------------------------------------------------
 ; now do the hibyte of the sequence length calculation (6 bytes)
-	clc
 	lda zp_bits_hi
-	adc tabl_hi - 1,y
+	adc tabl_hi - 1,y	; c = 0 after this.
 	pha
 ; -------------------------------------------------------------------
 ; here we decide what offset table to use (20 bytes)
@@ -224,8 +210,22 @@ nots123:
 size123:
 	ldx tabl_bit - 1,y
 	jsr get_bits
-	adc tabl_off - 1,y
+	adc tabl_off - 1,y	; c = 0 after this.
 	tay			; 1 <= y <= 50 here
+; -------------------------------------------------------------------
+; Here we do the dest_lo -= len_lo subtraction to prepare zp_dest
+; but we do it backwards:	a - b == (b - a - 1) ^ ~0 (C-syntax)
+; (14 bytes)
+	lda zp_len_lo
+literal_start:			; literal enters here with y = 0, c = 1
+	sbc zp_dest_lo
+	bcc noborrow
+	dec zp_dest_hi
+noborrow:
+	eor #$ff
+	sta zp_dest_lo
+	cpy #$01		; y < 1 then literal
+	bcc literal_get_byte
 ; -------------------------------------------------------------------
 ; calulate absolute offset (zp_src) (27 bytes)
 ;
