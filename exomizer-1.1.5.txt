@@ -12,7 +12,7 @@ What is it?
    1) It is a cruncher that crunches c64/c16/+4 files.
    2) It can produce stand-alone self-decompressing c64/c16/+4-files.
    3) It can produce files for both "in memory" or "from disk" decrunching.
-   4) It handles RLE-sequences well, no packer is necessary.
+   4) It handles RLE-sequences well and fast, no packer is necessary.
    5) It's stand-alone decompressor can decompress $0400-$ffff (c64) or
       $0c00-$ffff (c16/+4)
    6) It is able to crunch more than one infile into the same outfile (link).
@@ -309,12 +309,13 @@ Credits
 
   Beta testing:
    Lasse Öörni
-   Csabo
+   Csabo / LOD
    Overkiller / Hokuto Force / PoL
    Rafal Szyja
    bubis / Resource
 
   Bug Reporting:
+   Csabo / LOD
    Soci / Singular
    6R6 / Nostalgia
    Ninja / The Dreams

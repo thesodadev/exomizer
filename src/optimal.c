@@ -211,10 +211,6 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
             break;
         }
         bits += data->len_f(mp->len, data->len_f_priv, emd->out);
-        /*if(mp->len > 256)
-           {
-           bits += 10000000.0;
-           } */
         if (bits > (9.0 * mp->len))
         {
             /* lets make literals out of it */

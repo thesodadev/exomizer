@@ -41,7 +41,6 @@ typedef const struct match *const_matchp;
 
 struct pre_calc {
     struct match_node *single;
-    struct match_node *tuple;
     struct match *cache;
 };
 

@@ -40,16 +40,16 @@ void search_node_dump(search_nodep snp) /* IN */
 {
     while (snp != NULL)
     {
-        LOG(LOG_NORMAL, ("index %d, mp ", snp->index));
+        LOG(LOG_DEBUG, ("index %d, mp ", snp->index));
         if (snp->match == NULL)
         {
-            LOG(LOG_NORMAL, ("(NULL)"));
+            LOG(LOG_DEBUG, ("(NULL)"));
         } else
         {
-            LOG(LOG_NORMAL,
+            LOG(LOG_DEBUG,
                 ("(of %d, le %d)", snp->match->offset, snp->match->len));
         }
-        LOG(LOG_NORMAL,
+        LOG(LOG_DEBUG,
             (", score %0.1f, total %0.1f\n",
              snp->match_score, snp->total_score));
 
@@ -62,10 +62,13 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                            encode_match_data emd)       /* IN */
 {
     static search_node snp_arr[65536];
-    float score_cache[65536];
     const_matchp mp;
     search_nodep snp;
-    int i;
+    search_nodep best_copy_snp;
+    int best_copy_len;
+
+    search_nodep best_rle_snp;
+
     int len = ctx->len;
 
     memset(snp_arr, 0, sizeof(snp_arr));
@@ -78,10 +81,10 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
     snp->total_score = 0;
     snp->prev = NULL;
 
-    for (i = 0; i < 65536; ++i)
-    {
-        score_cache[i] = 0.0;
-    }
+    best_copy_snp = snp;
+    best_copy_len = 0.0;
+
+    best_rle_snp = NULL;
 
     /* think twice about changing this code,
      * it works the way it is. The last time
@@ -90,72 +93,142 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
     while (len >= 0 &&
            (mp = matches_get(ctx, (unsigned short) (len - 1))) != NULL)
     {
-#if 0
-        LOG(LOG_NORMAL,
+        /* check if we can do rle */
+        snp = snp_arr[len];
+        if(best_rle_snp == NULL ||
+           snp->index + ctx->rle_r[snp->index] < best_rle_snp->index)
+        {
+            /* best_rle_snp can't be reached by rle from snp, reset it*/
+            if(ctx->rle[snp->index] > 0)
+            {
+                best_rle_snp = snp;
+                LOG(LOG_DEBUG, ("resetting best_rle at index %d, len %d\n",
+                                 snp->index, ctx->rle[snp->index]));
+            }
+            else
+            {
+                best_rle_snp = NULL;
+            }
+        }
+        else if(ctx->rle[snp->index] > 0 &&
+                snp->index + ctx->rle_r[snp->index] >= best_rle_snp->index)
+        {
+            float best_rle_score;
+            float total_best_rle_score;
+            float snp_rle_score;
+            float total_snp_rle_score;
+            match rle_mp;
+
+            LOG(LOG_DEBUG, ("challenger len %d, index %d, "
+                             "ruling len %d, index %d\n",
+                             ctx->rle_r[snp->index], snp->index,
+                             ctx->rle_r[best_rle_snp->index],
+                             best_rle_snp->index));
+
+            /* snp and best_rle_snp is the same rle area,
+             * let's see which is best */
+            rle_mp->len = ctx->rle[best_rle_snp->index];
+            rle_mp->offset = 1;
+            best_rle_score = f(rle_mp, emd);
+            total_best_rle_score = best_rle_snp->total_score +
+                best_rle_score;
+
+            rle_mp->len = ctx->rle[snp->index];
+            rle_mp->offset = 1;
+            snp_rle_score = f(rle_mp, emd);
+
+            total_snp_rle_score = snp->total_score + snp_rle_score;
+
+            if(total_snp_rle_score <= total_best_rle_score)
+            {
+                /* yes, the snp is a better rle than best_rle_snp */
+                LOG(LOG_DEBUG, ("prospect len %d, index %d, (%0.1f+%0.1f) "
+                                 "ruling len %d, index %d (%0.1f+%0.1f)\n",
+                                 ctx->rle[snp->index], snp->index,
+                                 snp->total_score, snp_rle_score,
+                                 ctx->rle[best_rle_snp->index],
+                                 best_rle_snp->index,
+                                 best_rle_snp->total_score, best_rle_score));
+                best_rle_snp = snp;
+                LOG(LOG_DEBUG, ("setting current best_rle: "
+                                 "index %d, len %d\n",
+                                 snp->index, rle_mp->len));
+            }
+        }
+        if(best_rle_snp != NULL && best_rle_snp != snp)
+        {
+            float rle_score;
+            float total_rle_score;
+            /* check if rle is better */
+            match local_mp;
+            local_mp->len = best_rle_snp->index - snp->index;
+            local_mp->offset = 1;
+            rle_score = f(local_mp, emd);
+            total_rle_score = best_rle_snp->total_score + rle_score;
+
+            LOG(LOG_DEBUG, ("comparing index %d (%0.1f) with "
+                             "rle index %d, len %d, total score %0.1f %0.1f\n",
+                             snp->index, snp->total_score,
+                             best_rle_snp->index, local_mp->len,
+                             best_rle_snp->total_score, rle_score));
+
+            if(snp->total_score > total_rle_score)
+            {
+                /*here it is good to do rle instead of crunch */
+                LOG(LOG_DEBUG,
+                    ("rle index %d, len %d, total %0.1f, rle %0.1f\n",
+                     snp->index, local_mp->len,
+                     snp->total_score, total_rle_score));
+
+                snp->total_score = total_rle_score;
+                snp->match_score = rle_score;
+                snp->prev = best_rle_snp;
+                *snp->match = *local_mp;
+            }
+        }
+        /* end of rle optimization */
+
+        LOG(LOG_DEBUG,
             ("matches for index %d with total score %0.1f\n",
              len - 1, snp->total_score));
-#endif
 
         while (mp != NULL)
         {
-            match local_mp;
-            unsigned short int i;
             float score;
             float prev_score;
             float total_score;
 
 
             prev_score = snp_arr[len]->total_score;
-            local_mp->offset = mp->offset;
 
-            for (i = 1; i <= mp->len; ++i)
+            score = f(mp, emd);
+            total_score = prev_score + score;
+
+            snp = snp_arr[len - mp->len];
+            if ((total_score < 1000000.0) &&
+                (snp->match->len == 0 ||
+                 total_score < snp->total_score))
             {
-                local_mp->len = i;
-
-                if (local_mp->offset != 1)
-                {
-                    score = f(local_mp, emd);
-                } else
-                {
-                    score = score_cache[local_mp->len];
-                    if (score == 0.0)
-                    {
-                        score = f(local_mp, emd);
-                        score_cache[local_mp->len] = score;
-                    }
-                }
-                total_score = prev_score + score;
-#if 0
-                LOG(LOG_NORMAL,
-                    ("%d: offset %d, len %d, score %0.1f, tot %0.1f\n",
-                     len, mp->offset, mp->len, score, total_score));
-#endif
-                snp = snp_arr[len - local_mp->len];
-                if ((total_score < 1000000.0) &&
-                    (snp->match->len == 0 ||
-                     total_score < snp->total_score))
-                {
-                    snp->index = len - local_mp->len;
-                    *snp->match = *local_mp;
-                    snp->match_score = score;
-                    snp->total_score = total_score;
-                    snp->prev = snp_arr[len];
-                }
+                snp->index = len - mp->len;
+                *snp->match = *mp;
+                snp->match_score = score;
+                snp->total_score = total_score;
+                snp->prev = snp_arr[len];
             }
             mp = mp->next;
         }
+
         /* slow way to get to the next node for cur */
-        while (snp_arr[--len]->match == NULL)
+        do
         {
+            --len;
+            ++best_copy_len;
             if (!(len & 0xFF))
             {
                 LOG(LOG_NORMAL, ("."));
             }
         }
-        if (!(len & 0xFF))
-        {
-            LOG(LOG_NORMAL, ("."));
-        }
+        while (snp_arr[len]->match == NULL);
     }
     LOG(LOG_NORMAL, ("\n"));
 
@@ -234,6 +307,6 @@ const_matchp matchp_snp_rle_enum_get_next(void *matchp_snp_enum)
             val->len += 1;
         }
     }
-    /*LOG(LOG_DUMP("rle: len = %d\n", val ? val->len : -1)); */
+    LOG(LOG_DUMP, ("rle: len = %d\n", val ? val->len : -1));
     return val;
 }

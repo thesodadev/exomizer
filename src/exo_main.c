@@ -160,6 +160,7 @@ static int find_sys(const unsigned char *buf)
     {
         unsigned char *sys_end;
         int c = buf[i];
+
         switch(state)
         {
             /* look for and consume sys token */
@@ -255,7 +256,6 @@ generate_output(match_ctx ctx,
     if (start >= 0 && start < 0x10000)
     {
         /* -s given */
-        decr->load(out, (unsigned short int) load);
     } else if (start >= 0x10000 && start < 0x20000)
     {
         /* -l given */
@@ -332,6 +332,11 @@ generate_output(match_ctx ctx,
 
     if (start >= 0 && start < 0x10000)
     {
+        /* -s given */
+        len = output_get_pos(out);
+        decr->load(out, (unsigned short int) load - max_diff);
+        output_copy_bytes(out, 0, len);
+
         /* second stage of decruncher */
         decr->stages(out, (unsigned short int) start);
     } else if (start >= 0x20000 && start < 0x30000)
@@ -711,7 +716,7 @@ main(int argc, char *argv[])
              decr_matrix[decr_target][decr_type]->text));
         if(outstart < 0)
         {
-            outstart = find_sys(mem + basic_start[decr_type]);
+            outstart = find_sys(mem + basic_start[decr_target]);
             if(outstart < 0)
             {
                 LOG(LOG_ERROR, ("\nerror: cant find sys address.\n"));

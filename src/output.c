@@ -116,12 +116,22 @@ void output_copy_bytes(output_ctx ctx,  /* IN */
                        unsigned int src_pos,    /* IN */
                        unsigned int len)        /* IN */
 {
-    len += src_pos;
-
-    for (; src_pos < len; ++src_pos)
+    int i;
+    if(src_pos > ctx->pos)
     {
-        output_byte(ctx, ctx->buf[src_pos]);
+        for (i = 0; i < len; ++i)
+        {
+            ctx->buf[ctx->pos + i] = ctx->buf[src_pos + i];
+        }
     }
+    else if(src_pos < ctx->pos)
+    {
+        for (i = len - 1; i >= 0; --i)
+        {
+            ctx->buf[ctx->pos + i] = ctx->buf[src_pos + i];
+        }
+    }
+    ctx->pos += len;
 }
 
 void output_word(output_ctx ctx,        /* IN/OUT */

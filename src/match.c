@@ -39,9 +39,6 @@ struct match_node {
     struct match_node *next;
 };
 
-typedef struct match_node match_node[1];
-typedef struct match_node *match_nodep;
-
 static
 const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
                           unsigned short int index);    /* IN */
@@ -55,14 +52,6 @@ matchp match_new(match_ctx ctx, /* IN/OUT */
     m->len = len;
     m->offset = offset;
 
-#if 0
-    while(*mpp != NULL &&
-          ((*mpp)->len > len ||
-           ((*mpp)->len == len && (*mpp)->offset < offset)))
-    {
-        mpp = &((*mpp)->next);
-    }
-#endif
     /* insert new node in list */
     m->next = *mpp;
     *mpp = m;
@@ -75,17 +64,11 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
                     int buf_len,        /* IN */
                     int max_offset)
 {
-    match_nodep np;
-    match_nodep *npp;
-    static struct match_node *single_map[256];
-    static struct match_node *tuple_map[65536];
-
+    struct match_node *np;
     struct chunkpool map_pool[1];
 
-    int i;
+    int c, i;
     int val;
-    memset(single_map, 0, sizeof(single_map));
-    memset(tuple_map, 0, sizeof(tuple_map));
 
     memset(ctx->info, 0, sizeof(ctx->info));
     memset(ctx->rle, 0, sizeof(ctx->rle));
@@ -125,53 +108,87 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
         val = buf[i];
     }
 
-    for (i = buf_len - 1; i >= 0; --i)
+    /* add extra nodes to rle sequences */
+    for(c = 0; c < 256; ++c)
     {
-        LOG(LOG_DUMP,
-            ("buf[%i] = '%c', rle %d\n", i, buf[i], ctx->rle[i]));
+        static char rle_map[65536];
+        struct match_node *prev_np;
+        int rle_len;
 
-        /* allocate single */
-        npp = single_map + buf[i];
-
-        np = *npp;
-        if(np != NULL)
+        /* for each possible rle char */
+        memset(rle_map, 0, sizeof(rle_map));
+        prev_np = NULL;
+        for (i = 0; i < buf_len; ++i)
         {
-            ctx->info[i]->single = chunkpool_malloc(ctx->m_pool);
-            *(ctx->info[i]->single) = *np;
+            /* must be the correct char */
+            if(buf[i] != c)
+            {
+                continue;
+            }
+
+            rle_len = ctx->rle[i];
+            if(!rle_map[rle_len] && ctx->rle_r[i] > 1)
+            {
+                /* no previous lengths and not our primary length*/
+                continue;
+            }
+
+            np = chunkpool_malloc(ctx->m_pool);
+            np->index = i;
+            np->next = NULL;
+            rle_map[rle_len] = 1;
+
+            LOG(LOG_DUMP, ("0) c = %d, added np idx %d -> %d\n", c, i, 0));
+
+            /* if we have a previous entry, let's chain it together */
+            if(prev_np != NULL)
+            {
+                LOG(LOG_DEBUG, ("1) c = %d, pointed np idx %d -> %d\n",
+                                c, prev_np->index, i));
+                prev_np->next = np;
+            }
+
+            ctx->info[i]->single = np;
+            prev_np = np;
         }
-        else
+
+        memset(rle_map, 0, sizeof(rle_map));
+        prev_np = NULL;
+        for (i = buf_len - 1; i >= 0; --i)
         {
-            ctx->info[i]->single = NULL;
-            np = chunkpool_malloc(map_pool);
+            /* must be the correct char */
+            if(buf[i] != c)
+            {
+                continue;
+            }
+
+            rle_len = ctx->rle_r[i];
+            np = ctx->info[i]->single;
+            if(np == NULL)
+            {
+                if(rle_map[rle_len] && prev_np != NULL && rle_len > 0)
+                {
+                    np = chunkpool_malloc(ctx->m_pool);
+                    np->index = i;
+                    np->next = prev_np;
+                    ctx->info[i]->single = np;
+
+                    LOG(LOG_DEBUG, ("2) c = %d, added np idx %d -> %d\n",
+                                    c, i, prev_np->index));
+                }
+            }
+            else
+            {
+                prev_np = np;
+            }
+
+            if(ctx->rle_r[i] > 0)
+            {
+                continue;
+            }
+            rle_len = ctx->rle[i];
+            rle_map[rle_len] = 1;
         }
-        np->next = ctx->info[i]->single;
-        np->index = i;
-        *npp = np;
-
-        LOG(LOG_DUMP, ("allocated np for index %d\n", i));
-
-        /* skip rle */
-    }
-
-    for (i = buf_len - 1; i >= 1; --i)
-    {
-        /* allocate tuple */
-        npp = tuple_map + ((buf[i - 1] << 8) | buf[i]);
-
-        np = *npp;
-        if(np != NULL)
-        {
-            ctx->info[i]->tuple = chunkpool_malloc(ctx->m_pool);
-            *(ctx->info[i]->tuple) = *np;
-        }
-        else
-        {
-            ctx->info[i]->tuple = NULL;
-            np = chunkpool_malloc(map_pool);
-        }
-        np->next = ctx->info[i]->tuple;
-        np->index = i;
-        *npp = np;
     }
 
     for (i = buf_len - 1; i >= 0; --i)
@@ -199,10 +216,13 @@ void dump_matches(matchp mp)
 {
     if (mp == NULL)
     {
-        LOG(LOG_NORMAL, (" (NULL)\n"));
+        LOG(LOG_DEBUG, (" (NULL)\n"));
     } else
     {
-        LOG(LOG_NORMAL, (" offset %d, len %d\n", mp->offset, mp->len));
+        if(mp->offset > 0)
+        {
+            LOG(LOG_DEBUG, (" offset %d, len %d\n", mp->offset, mp->len));
+        }
         if (mp->next != NULL)
         {
             dump_matches(mp->next);
@@ -223,194 +243,99 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
                           unsigned short int index)     /* IN */
 {
     const unsigned char *buf;
-    unsigned short int rle_len;
 
     matchp matches;
     matchp mp;
-    match_nodep single_np;
-    match_nodep tuple_np;
+    struct match_node *np;
 
     buf = ctx->buf;
     matches = NULL;
-    do
+
+    LOG(LOG_DUMP, ("index %d, char '%c', rle %d, rle_r %d\n",
+                   index, buf[index], ctx->rle[index],
+                   ctx->rle_r[index]));
+
+    /* proces the literal match and add it to matches */
+    mp = match_new(ctx, &matches, 1, 0);
+
+    /* get possible match */
+    np = ctx->info[index]->single;
+    if(np != NULL)
     {
-#if 0
-        LOG(LOG_DUMP, ("index %d, char '%c', rle %d, rle_r %d\n",
-                       index, buf[index], ctx->rle[index],
-                       ctx->rle_r[index]));
-#endif
-        /* proces the literal match and add it to matches */
-        mp = match_new(ctx, &matches, 1, 0);
+        np = np->next;
+    }
+    for (; np != NULL; np = np->next)
+    {
+        int mp_len;
+        int our_pos;
+        int np_pos;
 
-        /* get possible match */
-        single_np = ctx->info[index]->single;
-
-        /* think twice before touching this,
-         * I thought about this code for several days
-         * when i changed it last and it works now. */
-        rle_len = 0;
-        do
-        {
-            /* find correct match */
-            while ((single_np != NULL) &&
-                   (ctx->rle[single_np->index] < rle_len))
-            {
-                single_np = single_np->next;
-            }
-            /* break if no single matches left */
-            if (single_np == NULL)
-            {
-                break;
-            }
-
-            if(single_np->index > index + ctx->max_offset)
-            {
-                break;
-            }
-
-            /* allocate a match node and add it to matches */
-            if (single_np->index - index == 1)
-            {
-                mp = match_new(ctx, &matches, ctx->rle[index] + 1,
-                               single_np->index - index);
-            } else
-            {
-                mp = match_new(ctx, &matches, rle_len + 1,
-                               single_np->index - index);
-            }
-
-            ++rle_len;
-
-            /* reiterate only if we are in the highest
-             * index position of an rle with len > 1 */
-        }
-        while ((ctx->rle_r[index] == 0) &&
-               (ctx->rle[index] > 0) && (rle_len < ctx->rle[index]));
-
-#if 0
-        LOG(LOG_DUMP,
-            ("single matches for index %d char '%c'\n", index,
-             buf[index]));
-        dump_matches(matches);
-#endif
-        ctx->info[index]->cache = matches;
-        /* update index */
-        if (index < 1)
+        /* limit according to max offset */
+        if(np->index > index + ctx->max_offset)
         {
             break;
         }
 
-        /* get tuple */
-        tuple_np = ctx->info[index]->tuple;
+        LOG(LOG_DEBUG, ("find lengths for index %d to index %d\n",
+                        index, np->index));
 
-        for (; tuple_np != NULL; tuple_np = tuple_np->next)
+        /* get match len */
+        mp_len = mp->offset > 0 ? mp->len : 0;
+        LOG(LOG_DEBUG, ("0) comparing current offset length [%d] %d %d\n",
+                        index, mp->offset, mp_len));
+        our_pos = index - mp_len + 1;
+        np_pos = np->index - mp_len + 1;
+        /* Compare the first <previous len> bytes backwards. We can
+         * skip some comparisons by increasing by the rle count. We
+         * don't need to compare the first byte, hence > 1 instead of
+         * > 0 */
+        while(mp_len > 1 && buf[our_pos] == buf[np_pos])
         {
-            unsigned short int len;
+            int offset1 = ctx->rle_r[our_pos];
+            int offset2 = ctx->rle_r[np_pos];
+            int offset = offset1 < offset2 ? offset1 : offset2;
 
-            if(tuple_np->index > index + ctx->max_offset)
-            {
-                break;
-            }
+            LOG(LOG_DEBUG, ("1) compared sucesssfully [%d] %d %d\n",
+                            index, our_pos, np_pos));
 
-            if (ctx->rle[index] != ctx->rle[tuple_np->index])
-            {
-                continue;
-            }
-
-            LOG(LOG_DUMP, ("index %d, tuple_np->index %d\n",
-                           index, tuple_np->index));
-
-            /* get match len */
-            len = 2;
-            while ((index - len >= 0) &&
-                   (buf[index - len] == buf[tuple_np->index - len]))
-            {
-                int a, b;
-                a = ctx->rle[index - len];
-                b = ctx->rle[tuple_np->index - len];
-                len += (a < b ? a : b);
-                ++len;
-            }
-
-            /* are we bigger than the previous best? */
-            if (len > mp->len)
-            {
-                /* allocate match struct and add it to matches */
-                mp = match_new(ctx, &matches, len, tuple_np->index - index);
-            }
+            mp_len -= 1 + offset;
+            our_pos += 1 + offset;
+            np_pos += 1 + offset;
         }
-        /* add to cache */
-        ctx->info[index]->cache = matches;
+        if(mp_len > 1)
+        {
+            /* sequence length too short, skip this match */
+            continue;
+        }
+
+        /* Here we know that the current match is atleast as long as
+         * the previuos one. let's compare further. */
+        mp_len = mp->offset > 0 ? mp->len : 0;
+        our_pos = index - mp_len;
+        np_pos = np->index - mp_len;
+        while(our_pos >= 0 && buf[our_pos] == buf[np_pos])
+        {
+            LOG(LOG_DEBUG, ("2) compared sucesssfully [%d] %d %d\n",
+                            index, our_pos, np_pos));
+            --our_pos;
+            --np_pos;
+            /* allocate match struct and add it to matches */
+            mp = match_new(ctx, &matches, index - our_pos, np->index - index);
+        }
+        if(our_pos < 0)
+        {
+            /* we have reached the eof, no better matches can be found */
+            break;
+        }
     }
-    while (0);
-#if 0
-    LOG(LOG_DUMP, ("adding matches for index %d to cache\n", index));
+    /* add to cache */
+    ctx->info[index]->cache = matches;
+
+    LOG(LOG_DEBUG, ("adding matches for index %d to cache\n", index));
     dump_matches(matches);
-#endif
+
     return matches;
 }
-
-#if 0
-void matchp_cache_get_enum(match_ctx ctx,       /* IN */
-                           matchp_cache_enum mpce)      /* IN/OUT */
-{
-    mpce->ctx = ctx;
-    mpce->pos = 0;
-    mpce->next = NULL;
-}
-
-const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
-{
-    const_matchp val;
-    matchp_cache_enump mpce;
-
-    mpce = matchp_cache_enum;
-
-    val = NULL;
-    while (mpce->pos < 65536)
-    {
-        val = mpce->next;
-        if (val != NULL)
-        {
-            break;
-        }
-        val = mpce->ctx->info[(mpce->pos)++]->cache;
-        if (val != NULL)
-        {
-            LOG(LOG_DUMP, ("index %d\n", mpce->pos - 1));
-            mpce->next = val->next;
-            break;
-        }
-    }
-    mpce->next = NULL;
-    if (val != NULL)
-    {
-        LOG(LOG_DUMP,
-            (" offset %d, len %d, val $%02X\n",
-             val->offset, val->len, mpce->ctx->buf[mpce->pos - 1]));
-
-        mpce->next = val->next;
-#if 1
-        /* heuristics to skip some matches in
-           order to improve initial statistics */
-        while (mpce->next && (
-                                 /* allow only one entry of each len */
-                                 (mpce->next->len == val->len) ||
-                                 /* allow only 1 entry with len > 2 */
-                                 (mpce->next->len > 7) ||
-                                 (val->len == 1 && (val->offset == 0 || val->offset > 32))))
-        {
-            mpce->next = mpce->next->next;
-        }
-#endif
-    }
-    if (val == NULL && mpce->pos >= 65536)
-    {
-        mpce->pos = 0;
-    }
-    return val;
-}
-#else
 
 static
 int
@@ -461,30 +386,16 @@ matchp_cache_peek(struct match_ctx *ctx, int pos,
                 {
                     seqp = val;
                 }
-#if 1
                 if(val->len == 1 &&
                    (litp->offset == 0 || litp->offset > val->offset))
                 {
                     litp = val;
                 }
-#endif
             }
             val = val->next;
         }
 
     }
-#if 0
-    if(litp == NULL)
-        LOG(LOG_NORMAL, ("litp(NULL)"));
-    else
-        LOG(LOG_NORMAL, ("litp(%d,%d)", litp->len, litp->offset));
-
-    if(seqp == NULL)
-        LOG(LOG_NORMAL, ("seqp(NULL)"));
-    else
-        LOG(LOG_NORMAL, ("seqp(%d,%d)", seqp->len, seqp->offset));
-#endif
-
 
     if(litpp != NULL) *litpp = litp;
     if(seqpp != NULL) *seqpp = seqp;
@@ -536,7 +447,6 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
                 val = seq;
             }
         }
-
     }
     if(val != NULL)
     {
@@ -545,4 +455,4 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
     }
     return val;
 }
-#endif
+
