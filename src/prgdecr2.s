@@ -167,7 +167,8 @@ config_ram_while_decrunch = 1
 ; -- The decrunch effect macro definition ---------------------------
 ; -------------------------------------------------------------------
 .MACRO("effect")
-  .IF(i_config_effect == 0)
+  .IF(i_config_effect == -1)
+  .ELIF(i_config_effect == 0)
     .IF(i_target == 4)
 	lda <$fd,x
 	sta i_effect_color
@@ -398,7 +399,9 @@ bits_next:
 	bne ok
 	pha
 literal_get_byte:
-	.IF(.DEFINED(i_config_effect) && .DEFINED(i_fast_effect))
+	.IF(.DEFINED(i_config_effect) &&
+	    i_config_effect != -1 &&
+            .DEFINED(i_fast_effect))
 	  .INCLUDE("d2io")
 	  .INCLUDE("effect")
 	  .INCLUDE("io2d")
@@ -406,7 +409,9 @@ literal_get_byte:
 	lda get_byte_fixup + 1
 	bne get_byte_skip_hi
 	dec get_byte_fixup + 2
-	.IF(.DEFINED(i_config_effect) && !.DEFINED(i_fast_effect))
+	.IF(.DEFINED(i_config_effect) &&
+	    i_config_effect != -1 &&
+	    !.DEFINED(i_fast_effect))
 	  .INCLUDE("d2io")
 	  .INCLUDE("effect")
 	  .INCLUDE("io2d")

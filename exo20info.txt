@@ -66,6 +66,6 @@ To have the effect updated faster add this flag:
 The possible effects to chose from are:
 -1: no effect at all.
 0: traditional lower right screen corner flashing (default).
-1: border flash based on the value of the accumulator.
+1: border flash based on the value of the accumulator (needs fast effects).
 2: border flash based on the value of the x-register.
 3: border flash based on the value of the y-register.

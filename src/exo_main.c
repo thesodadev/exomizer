@@ -729,7 +729,7 @@ void sfx(const char *appl, int argc, char *argv[])
         }
     }
 
-    if(find_symref("i_config_effect", NULL) == NULL)
+    if(find_symref("i_config_effect", NULL) != NULL)
     {
         /* if no effect is given, default to effect 0 */
         new_symbol("i_config_effect", 0);
@@ -833,26 +833,26 @@ void sfx(const char *appl, int argc, char *argv[])
             if(basic_txt_start != targetp->basic_txt_start)
             {
                 new_symbol("i_basic_txt_start", basic_txt_start);
-                symbol_dump_resolved(LOG_NORMAL, "i_basic_txt_start");
+                symbol_dump_resolved(LOG_DEBUG, "i_basic_txt_start");
             }
             /* only set this if we've been given a value for it. */
             if(basic_var_start != -1)
             {
                 new_symbol("i_basic_var_start", basic_var_start);
-                symbol_dump_resolved(LOG_NORMAL, "i_basic_var_start");
+                symbol_dump_resolved(LOG_DEBUG, "i_basic_var_start");
             }
             /* only set this if we've been given a value for it. */
             if(basic_highest_addr != -1)
             {
                 new_symbol("i_basic_highest_addr", basic_highest_addr);
-                symbol_dump_resolved(LOG_NORMAL, "i_basic_highest_addr");
+                symbol_dump_resolved(LOG_DEBUG, "i_basic_highest_addr");
             }
         }
 
         if(info->literal_sequences_used)
         {
             new_symbol("i_literal_sequences_used", 1);
-            symbol_dump_resolved(LOG_NORMAL, "i_literal_sequences_used");
+            symbol_dump_resolved(LOG_DEBUG, "i_literal_sequences_used");
         }
 
         /* new_symbol("i_ram_on_exit", 1);
