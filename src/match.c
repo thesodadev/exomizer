@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2003 Magnus Lind.
+ * Copyright (c) 2002 - 2004 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -358,7 +358,14 @@ matchp_keep_this(const_matchp mp)
     /* if we want to ignore this matchp then return true else false */
     if(mp->len == 1)
     {
-        if(mp->offset > 32)
+        if(mp->offset > 8)
+        {
+            val = 0;
+        }
+    }
+    else if(mp->len == 2)
+    {
+        if(mp->offset > 1024)
         {
             val = 0;
         }
@@ -372,14 +379,14 @@ matchp_cache_peek(struct match_ctx *ctx, int pos,
                   const_matchp *litpp, const_matchp *seqpp,
                   matchp lit_tmp, matchp val_tmp)
 {
-    const_matchp litp, seqp, val;
+    const_matchp litp, seqp, val, start;
 
     seqp = NULL;
     litp = NULL;
     if(pos >= 0)
     {
-        val = matches_get(ctx, pos);
-        litp = val;
+        start = matches_get(ctx, pos);
+        litp = start;
         while(litp->offset != 0)
         {
             litp = litp->next;
@@ -390,59 +397,72 @@ matchp_cache_peek(struct match_ctx *ctx, int pos,
         {
             val_tmp->offset = 1;
             val_tmp->len = ctx->rle[pos] + 1;
-            val_tmp->next = val;
-            val = val_tmp;
+            val_tmp->next = (matchp)start;
+            start = val_tmp;
             LOG(LOG_DEBUG, ("injecting rle val(%d,%d)\n",
-                            val->len, val->offset));
+                            start->len, start->offset));
         }
-
-        while(val != NULL)
+#if 1
+        /* possibly improve the literal */
+        for(val = start; val != NULL; val = val->next)
         {
             if(val->offset != 0)
             {
-                if(matchp_keep_this(val))
+                /* skip the literal match */
+                continue;
+            }
+            LOG(LOG_DEBUG, ("val(%d,%d)", val->len, val->offset));
+            if(lit_tmp != NULL)
+            {
+                int diff;
+                match tmp2;
+                diff = ctx->rle[pos + val->offset];
+                tmp2->next = val->next;
+                tmp2->len = 1;
+                tmp2->offset = 1;
+                if(val->offset > diff)
                 {
-                    if(seqp == NULL || val->len > seqp->len ||
-                       (val->len == seqp->len && val->offset < seqp->offset))
-                    {
-                        seqp = val;
-                    }
+                    tmp2->offset = val->offset - diff;
                 }
-                if(litp->offset == 0 || litp->offset > val->offset)
+                LOG(LOG_DEBUG, ("=> litp(%d,%d)",
+                                tmp2->len, tmp2->offset));
+                if(matchp_keep_this(tmp2) &&
+                   (litp->offset == 0 || tmp2->offset < litp->offset))
                 {
-                    LOG(LOG_DEBUG, ("val(%d,%d)", val->len, val->offset));
-                    if(lit_tmp != NULL)
-                    {
-                        int diff;
-                        match tmp2;
-                        *tmp2 = *val;
-                        tmp2->len = 1;
-                        diff = ctx->rle[pos + val->offset];
-                        if(tmp2->offset > diff)
-                        {
-                            tmp2->offset -= diff;
-                        }
-                        else
-                        {
-                            tmp2->offset = 1;
-                        }
-                        LOG(LOG_DEBUG, ("=> litp(%d,%d)",
-                                        tmp2->len, tmp2->offset));
-                        if(matchp_keep_this(tmp2))
-                        {
-                            LOG(LOG_DEBUG, (", keeping"));
-                            *lit_tmp = *tmp2;
-                            litp = lit_tmp;
-                        }
-                    }
-                    LOG(LOG_DEBUG, ("\n"));
+                    LOG(LOG_DEBUG, (", keeping"));
+                    *lit_tmp = *tmp2;
+                        litp = lit_tmp;
                 }
             }
-            val = val->next;
+            LOG(LOG_DEBUG, ("\n"));
         }
-
+#endif
+        /* do the sequence */
+        for(val = start; val != NULL; val = val->next)
+        {
+            if(val->offset == 0)
+            {
+                /* skip the literal match */
+                continue;
+            }
+#if 0
+            if(val->offset == litp->offset &&
+               val->len == litp->len)
+            {
+                /* this exact offset/len is used for litp, skip it */
+                continue;
+            }
+#endif
+            if(matchp_keep_this(val))
+            {
+                if(seqp == NULL || val->len > seqp->len ||
+                   (val->len == seqp->len && val->offset < seqp->offset))
+                {
+                    seqp = val;
+                }
+            }
+        }
     }
-
 #if 0
     LOG(LOG_NORMAL, ("[%05d]: ", pos));
     if(litp == NULL)
@@ -492,7 +512,7 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
             mpce->next = (void*)mpce;
             goto restart;
         }
-#if 1
+#if 0
         else
         {
             mpce->next = NULL;
@@ -507,8 +527,8 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
             match t2;
             const_matchp next;
             matchp_cache_peek(mpce->ctx, mpce->pos - 1, NULL, &next, t1 ,t2);
-            if(next == NULL ||
-               (next->len + (mpce->next != NULL && next->len < 3) <= seq->len))
+            if(next == NULL || val->offset == 0 ||
+               next->len <= seq->len)
             {
                 /* nope, next is not better, use this sequence */
                 val = seq;

@@ -34,7 +34,7 @@
 struct _search_node {
     int index;
     match match;
-    float match_score;
+    unsigned int total_offset;
     float total_score;
     struct _search_node *prev;
 };

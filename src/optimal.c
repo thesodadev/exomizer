@@ -295,7 +295,7 @@ optimize1(optimize_arg arg, int start, int depth, int init)
                 }
                 inp->score += penalty;
             }
-            if (best_inp == NULL || inp->score < best_inp->score)
+            if (best_inp == NULL || inp->score <= best_inp->score)
             {
                 /* it's the new best in town, use it */
                 if (best_inp == NULL)

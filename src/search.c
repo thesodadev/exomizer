@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2003 Magnus Lind.
+ * Copyright (c) 2002 - 2004 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -36,27 +36,6 @@ void search_node_free(search_nodep snp) /* IN */
     /* emty now since snp:s are stored in an array */
 }
 
-void search_node_dump(search_nodep snp) /* IN */
-{
-    while (snp != NULL)
-    {
-        LOG(LOG_DEBUG, ("index %d, mp ", snp->index));
-        if (snp->match == NULL)
-        {
-            LOG(LOG_DEBUG, ("(NULL)"));
-        } else
-        {
-            LOG(LOG_DEBUG,
-                ("(of %d, le %d)", snp->match->offset, snp->match->len));
-        }
-        LOG(LOG_DEBUG,
-            (", score %0.1f, total %0.1f\n",
-             snp->match_score, snp->total_score));
-
-        snp = snp->prev;
-    }
-}
-
 search_nodep search_buffer(match_ctx ctx,       /* IN */
                            encode_match_f * f,  /* IN */
                            encode_match_data emd)       /* IN */
@@ -77,7 +56,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
     snp->index = len;
     snp->match->offset = 0;
     snp->match->len = 0;
-    snp->match_score = 0;
+    snp->total_offset = 0;
     snp->total_score = 0;
     snp->prev = NULL;
 
@@ -94,7 +73,8 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
            (mp = matches_get(ctx, (unsigned short) (len - 1))) != NULL)
     {
         float prev_score;
-#undef COPY
+        float prev_offset_sum;
+#define COPY
 #ifdef COPY
         /* check if we can do even better with copy */
         snp = snp_arr[len];
@@ -108,7 +88,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             best_copy_len = 0.0;
         } else
         {
-            float copy_score = best_copy_len*8.0 + (1.0 + 17.0 + 16.0);
+            float copy_score = best_copy_len * 8.0 + (1.0 + 17.0 + 16.0);
             float total_copy_score = best_copy_snp->total_score + copy_score;
 
             LOG(LOG_DEBUG,
@@ -118,7 +98,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             if(snp->total_score > total_copy_score)
             {
                 match local_mp;
-                /*here it is good to just copy instead of crunch */
+                /* here it is good to just copy instead of crunch */
 
                 LOG(LOG_DEBUG,
                     ("copy index %d, len %d, total %0.1f, copy %0.1f\n",
@@ -129,13 +109,13 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                 local_mp->len = best_copy_len;
                 local_mp->offset = 0;
                 snp->total_score = total_copy_score;
-                snp->match_score = copy_score;
+                snp->total_offset = best_copy_snp->total_offset;
                 snp->prev = best_copy_snp;
                 *snp->match = *local_mp;
             }
         }
-#endif
         /* end of copy optimization */
+#endif
 
         /* check if we can do rle */
         snp = snp_arr[len];
@@ -233,7 +213,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                      snp->total_score, total_rle_score));
 
                 snp->total_score = total_rle_score;
-                snp->match_score = rle_score;
+                snp->total_offset = best_rle_snp->total_offset + 1;
                 snp->prev = best_rle_snp;
                 *snp->match = *local_mp;
             }
@@ -245,6 +225,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
              len - 1, snp->total_score));
 
         prev_score = snp_arr[len]->total_score;
+        prev_offset_sum = snp_arr[len]->total_offset;
         while (mp != NULL)
         {
             matchp next;
@@ -261,10 +242,12 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             }
 #endif
             *tmp = *mp;
+            tmp->next = NULL;
             for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
             {
                 float score;
                 float total_score;
+                unsigned int total_offset;
 
                 LOG(LOG_DUMP, ("mp[%d, %d], tmp[%d, %d]\n",
                                mp->offset, mp->len,
@@ -272,7 +255,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
                 score = f(tmp, emd);
                 total_score = prev_score + score;
-
+                total_offset = prev_offset_sum + tmp->offset;
                 snp = snp_arr[len - tmp->len];
 
                 LOG(LOG_DUMP,
@@ -284,14 +267,12 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                     (snp->match->len == 0 ||
                      total_score < snp->total_score ||
                      (total_score == snp->total_score &&
-                      (tmp->offset == 0 ||
-                       (snp->match->len == tmp->len &&
-                        snp->match->offset > tmp->offset)))))
+                      total_offset < snp->total_offset)))
                 {
                     LOG(LOG_DUMP, (", replaced"));
                     snp->index = len - tmp->len;
                     *snp->match = *tmp;
-                    snp->match_score = score;
+                    snp->total_offset = total_offset;
                     snp->total_score = total_score;
                     snp->prev = snp_arr[len];
                 }

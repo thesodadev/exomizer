@@ -276,7 +276,7 @@ generate_output(match_ctx ctx,
     max_diff = 0;
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    output_gamma_code(out, 16);
+    output_gamma_code(out, 17);
     output_bits(out, 1, 0); /* 1 bit out */
 
     diff = output_get_pos(out) - pos_diff;
@@ -297,9 +297,22 @@ generate_output(match_ctx ctx,
         {
             if (mp->offset == 0)
             {
-                /* literal */
-                output_byte(out, ctx->buf[snp->index]);
-                output_bits(out, 1, 1);
+                if(mp->len == 1)
+                {
+                    /* literal */
+                    output_byte(out, ctx->buf[snp->index]);
+                    output_bits(out, 1, 1);
+                } else
+                {
+                    int i;
+                    for(i = 0; i < mp->len; ++i)
+                    {
+                        output_byte(out, ctx->buf[snp->index + i]);
+                    }
+                    output_bits(out, 16, mp->len);
+                    output_gamma_code(out, 16);
+                    output_bits(out, 1, 0);
+                }
             } else
             {
                 f(mp, emd);
