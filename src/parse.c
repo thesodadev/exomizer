@@ -154,7 +154,7 @@ void new_symbol_expr(const char *symbol, struct expr *arg)
     if(pos == -1)
     {
         /* error, find failed */
-        LOG(LOG_ERROR, ("vec_find() internal error\n"));
+        LOG(LOG_ERROR, ("new_symbol_expr: vec_find() internal error\n"));
         exit(1);
     }
     e->expr = arg;
@@ -195,7 +195,7 @@ const char *find_symref(const char *symbol, struct expr **expp)
     if(pos == -1)
     {
         /* error, find failed */
-        LOG(LOG_ERROR, ("vec_find() internal error\n"));
+        LOG(LOG_ERROR, ("find_symref: vec_find() internal error\n"));
         exit(-1);
     }
     ep = vec_get(s_sym_table, pos);
@@ -229,7 +229,7 @@ void new_label(const char *label)
     if(pos == -1)
     {
         /* error, find failed */
-        LOG(LOG_ERROR, ("vec_find() internal error\n"));
+        LOG(LOG_ERROR, ("new_label: vec_find() internal error\n"));
         exit(1);
     }
 

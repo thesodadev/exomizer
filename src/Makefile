@@ -47,8 +47,8 @@ lex.yy.c: asm.yy
 prgdecr.c: prgdecr b2membuf
 	./b2membuf prgdecr >prgdecr.c
 
-prgdecr: prgdecr.s exoraw
-	./exoraw -q prgdecr.s -o prgdecr
+prgdecr: prgdecr2.s exoraw
+	./exoraw -q prgdecr2.s -o prgdecr
 
 b2membuf: b2membuf.o
 -include deps

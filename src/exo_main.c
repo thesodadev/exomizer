@@ -251,7 +251,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         int valuepos = basic_txt_start - 1;
         /* the byte immediatley preceeding the basic start must be 0
          * for basic to function properly. */
-        if(min_start < valuepos)
+        if(min_start > valuepos)
         {
             /* It not covered by the files to crunch. Since the
              * default fill value is 0 we don't need to set it but we
@@ -532,7 +532,6 @@ get_target_info(int target)
         {
             break;
         }
-        ++targetp;
     }
     if(targetp->id == 0)
     {
@@ -562,10 +561,10 @@ void sfx(const char *appl, int argc, char *argv[])
     const struct target_info *targetp;
 
     struct membuf buf1[1];
-    struct membuf buf2[1];
 
-    struct membuf *in = buf1;
-    struct membuf *out = buf2;
+    struct membuf *in;
+    struct membuf *out;
+;
 
     if(argc <= 1)
     {
@@ -573,6 +572,8 @@ void sfx(const char *appl, int argc, char *argv[])
         print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
         exit(-1);
     }
+
+    parse_init();
 
     /* required argument: how to start the crunched program */
     do
@@ -596,6 +597,7 @@ void sfx(const char *appl, int argc, char *argv[])
         }
         else if(strcmp(p, "basic") == 0)
         {
+            basic_var_start = -2;
             /* we should start a basic program. */
             sys_addr = -2;
             p = strtok(NULL, ",");
@@ -646,7 +648,7 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "t:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "nD:t:%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
@@ -661,8 +663,9 @@ void sfx(const char *appl, int argc, char *argv[])
                 get_target_info(decr_target) == NULL)
             {
                 LOG(LOG_ERROR,
-                    ("error: invalid value for -t option, "
-                     "must be one of 20, 23, 52, 55, 4, 64 or 128."));
+                    ("error: invalid value, %d, for -t option, "
+                     "must be one of 20, 23, 52, 55, 4, 64 or 128.",
+                     decr_target));
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(-1);
             }
@@ -697,11 +700,12 @@ void sfx(const char *appl, int argc, char *argv[])
         }
     }
 
-    membuf_init(in);
-    membuf_init(out);
+    membuf_init(buf1);
+    in = buf1;
+    out = new_named_buffer("crunched_data");
 
-    infilev = argv + flagind;
-    infilec = argc - flagind;
+    infilev = argv + flagind + 1;
+    infilec = argc - flagind - 1;
 
     if (infilec == 0)
     {
@@ -722,7 +726,7 @@ void sfx(const char *appl, int argc, char *argv[])
         int *basic_var_startp;
 
         basic_var_startp = NULL;
-        if(basic_var_start == -1)
+        if(sys_addr == -2 && basic_var_start == -1)
         {
             basic_var_startp = &basic_var_start;
         }
@@ -750,7 +754,7 @@ void sfx(const char *appl, int argc, char *argv[])
         }
     }
 
-    LOG(LOG_NORMAL, ("self-decrunching %s executable", targetp->model));
+    LOG(LOG_NORMAL, (" Target is self-decrunching %s executable", targetp->model));
     if(sys_addr == -1)
     {
         sys_addr = find_sys((char*) membuf_get(in) +
@@ -832,8 +836,9 @@ void sfx(const char *appl, int argc, char *argv[])
 
     write_file(flags->outfile, out);
 
-    membuf_free(out);
-    membuf_free(in);
+    membuf_free(buf1);
+
+    parse_free();
 }
 
 int

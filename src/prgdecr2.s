@@ -284,8 +284,7 @@ zp_len_lo = $a7
 zp_src_lo  = $ae
 zp_src_hi  = zp_src_lo + 1
 
-zp_bits_lo = $fb
-zp_bits_hi = zp_bits_lo + 1
+zp_bits_hi = $fb
 
 zp_bitbuf  = $fd
 zp_dest_lo = zp_bitbuf + 1	; dest addr lo
@@ -294,7 +293,7 @@ zp_dest_hi = zp_bitbuf + 2	; dest addr hi
 	.ORG(i_basic_start - 2)
 stage1start:
 	.WORD(i_basic_start)
-	.WORD(basic_end, 2005)
+	.WORD(basic_end, 20)
 	.BYTE($9e, decr_start / 1000 % 10 + 48, decr_start / 100 % 10 + 48)
 	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0)
 basic_end:
@@ -354,7 +353,6 @@ stage3start:
 ;   a = #bits_lo
 ;   x = #0
 ;   c = 0
-;   zp_bits_lo = #bits_lo
 ;   zp_bits_hi = #bits_hi
 ; notes:
 ;   y is untouched
@@ -407,6 +405,9 @@ copy_next_hi:
 	dec <zp_src_hi
 copy_next:
 	dey
+.IF(.DEFINED(i_literal_sequences_used))
+	bcc literal_get_byte
+.ENDIF
 	lda (zp_src_lo),y
 literal_byte_gotten:
 	sta (zp_dest_lo),y
@@ -421,6 +422,7 @@ copy_start:
 ;
 begin:
 	dey
+	sty <zp_len_lo
 begin2:
 	inx
 	jsr bits_next
@@ -429,10 +431,25 @@ begin2:
 	bcc begin2
 	beq literal_start
 	cpy #$11
+.IF(.DEFINED(i_literal_sequences_used))
+	bcc sequence_start
+	bne decr_exit
+; -------------------------------------------------------------------
+; literal sequence handling
+;
+	ldx #$10
+	jsr get_bits
+	sta <zp_len_lo
+	ldx <zp_bits_hi
+	ldy #0
+	bcc literal_start
+.ELSE
 	bcs decr_exit
+.ENDIF
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (11 bytes)
 ;
+sequence_start:
 	ldx tabl_bi - 1,y
 	jsr get_bits
 	adc tabl_lo - 1,y	; we have now calculated zp_len_lo
@@ -456,7 +473,7 @@ size123:
 	ldx tabl_bit - 1,y
 	jsr get_bits
 	adc tabl_off - 1,y	; c = 0 after this.
-	tay			; 1 <= y <= 50 here
+	tay			; 1 <= y <= 52 here
 ; -------------------------------------------------------------------
 ; Here we do the dest_lo -= len_lo subtraction to prepare zp_dest
 ; but we do it backwards:	a - b == (b - a - 1) ^ ~0 (C-syntax)
@@ -470,7 +487,11 @@ noborrow:
 	eor #$ff
 	sta <zp_dest_lo
 	cpy #$01		; y < 1 then literal
+.IF(.DEFINED(i_literal_sequences_used))
+	bcc pre_copy
+.ELSE
 	bcc literal_get_byte
+.ENDIF
 ; -------------------------------------------------------------------
 ; calulate absolute offset (zp_src) (27 bytes)
 ;
@@ -492,8 +513,15 @@ skipcarry:
 ;
 	pla
 	tax
+.IF(.DEFINED(i_literal_sequences_used))
+	sec
+pre_copy:
+	ldy <zp_len_lo
+	jmp copy_start
+.ELSE
 	ldy <zp_len_lo
 	bcc copy_start
+.ENDIF
 decr_exit:
 	.INCLUDE("d2r")
 	.INCLUDE("run")
