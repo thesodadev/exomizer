@@ -25,36 +25,54 @@
  *
  */
 
-#include <stdlib.h>
-#include <string.h>
 #include "chunkpool.h"
 #include "log.h"
+#include <stdlib.h>
+#include <string.h>
 
 void
 chunkpool_init(struct chunkpool *ctx, int size)
 {
     ctx->chunk_size = size;
     ctx->chunk = -1;
-    ctx->chunk_pos = 0;
     ctx->chunk_max = (0x1fffff / size) * size;
+    ctx->chunk_pos = ctx->chunk_max;
+}
+
+void
+chunkpool_free2(struct chunkpool *ctx, cb_free *f)
+{
+    while(ctx->chunk >= 0)
+    {
+        if(f != NULL)
+        {
+            do
+            {
+                ctx->chunk_pos -= ctx->chunk_size;
+                f((char*)ctx->chunks[ctx->chunk] + ctx->chunk_pos);
+            }
+            while(ctx->chunk_pos > 0);
+            ctx->chunk_pos = ctx->chunk_max;
+        }
+	free(ctx->chunks[ctx->chunk]);
+	ctx->chunk -= 1;
+    }
+    ctx->chunk_size = -1;
+    ctx->chunk_max = -1;
+    ctx->chunk_pos = -1;
 }
 
 void
 chunkpool_free(struct chunkpool *ctx)
 {
-    while(ctx->chunk >= 0)
-    {
-	free(ctx->chunks[ctx->chunk]);
-	ctx->chunk -= 1;
-    }
-    ctx->chunk_pos = 0;
+    chunkpool_free2(ctx, NULL);
 }
 
 void *
 chunkpool_malloc(struct chunkpool *ctx)
 {
     void *p;
-    if(ctx->chunk_pos == 0)
+    if(ctx->chunk_pos == ctx->chunk_max)
     {
 	void *m;
 	if(ctx->chunk == 31)
@@ -75,13 +93,10 @@ chunkpool_malloc(struct chunkpool *ctx)
 	}
 	ctx->chunk += 1;
 	ctx->chunks[ctx->chunk] = m;
+	ctx->chunk_pos = 0;
     }
     p = (char*)ctx->chunks[ctx->chunk] + ctx->chunk_pos;
     ctx->chunk_pos += ctx->chunk_size;
-    if(ctx->chunk_pos >= ctx->chunk_max)
-    {
-	ctx->chunk_pos = 0;
-    }
     return p;
 }
 

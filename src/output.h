@@ -28,37 +28,25 @@
  *
  */
 
+#include "membuf.h"
 #include <stdio.h>
 
 struct _output_ctx {
     unsigned int bitbuf;
-    unsigned short int pos;
-    unsigned short int start;
-    unsigned char flags;
-    unsigned char buf[65536];
+    int pos;
+    int start;
+    struct membuf *buf;
 };
 
 typedef struct _output_ctx output_ctx[1];
 typedef struct _output_ctx *output_ctxp;
 
-void output_ctx_init(output_ctx ctx);   /* IN/OUT */
-
-void output_ctx_set_start(output_ctx ctx,       /* IN/OUT */
-                          unsigned int pos);    /* IN */
-
-void output_ctx_set_reverse(output_ctx ctx);    /* IN/OUT */
-
-unsigned int output_ctx_close(output_ctx ctx,   /* IN */
-                              FILE * out);      /* OUT */
+void output_ctx_init(output_ctx ctx, struct membuf *out);   /* IN/OUT */
 
 unsigned int output_get_pos(output_ctx ctx);    /* IN */
 
 void output_set_pos(output_ctx ctx,     /* IN */
                     unsigned int pos);  /* IN */
-
-void output_copy_bytes(output_ctx ctx,  /* IN */
-                       unsigned int src_pos,    /* IN */
-                       unsigned int len);       /* IN */
 
 void output_byte(output_ctx ctx,        /* IN/OUT */
                  unsigned char byte);   /* IN */

@@ -28,6 +28,8 @@
  *
  */
 
+#include "callback.h"
+
 struct chunkpool {
     int chunk_size;
     int chunk;
@@ -41,6 +43,9 @@ chunkpool_init(struct chunkpool *ctx, int size);
 
 void
 chunkpool_free(struct chunkpool *ctx);
+
+void
+chunkpool_free2(struct chunkpool *ctx, cb_free *f);
 
 void *
 chunkpool_malloc(struct chunkpool *ctx);

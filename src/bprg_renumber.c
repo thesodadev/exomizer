@@ -233,7 +233,7 @@ renumber1_cb_line_mutate(const unsigned char *in, /* IN */
     /* prepare target key */
     target_key->old_line = in[2] | (in[3] << 8);
     /* update targets vector with the new line number */
-    target = vec_find(rctx->targets, goto_target_cb_cmp, target_key);
+    target = vec_find2(rctx->targets, goto_target_cb_cmp, target_key);
 
     line = 0;
     if(target != NULL || rctx->mode == 0)
@@ -308,7 +308,7 @@ renumber2_cb_line_mutate(const unsigned char *in, /* IN */
                            rctx->fixup->old_line, in));
 
             target_key->old_line = rctx->fixup->old_line;
-            target = vec_find(rctx->targets,
+            target = vec_find2(rctx->targets,
                               goto_target_cb_cmp,
                               target_key);
             if(target == NULL)
@@ -445,7 +445,7 @@ rem_cb_line_mutate(const unsigned char *in, /* IN */
                 struct goto_target target_key[1];
                 struct goto_target *target;
                 target_key->old_line = line;
-                target = vec_find(rctx->targets,
+                target = vec_find2(rctx->targets,
                                   goto_target_cb_cmp,
                                   target_key);
                 if(target == NULL)

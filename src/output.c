@@ -31,66 +31,12 @@
 
 #define OUTPUT_FLAG_REVERSE 1
 
-void output_ctx_init(output_ctx ctx)    /* IN/OUT */
+void output_ctx_init(output_ctx ctx, struct membuf *out)    /* IN/OUT */
 {
     ctx->bitbuf = 1;
     ctx->pos = 0;
     ctx->start = 0;
-    ctx->flags = 0;
-}
-
-void output_ctx_set_start(output_ctx ctx,       /* IN/OUT */
-                          unsigned int pos)     /* IN */
-{
-    ctx->start = pos;
-}
-
-void output_ctx_set_reverse(output_ctx ctx)     /* IN/OUT */
-{
-    ctx->flags |= OUTPUT_FLAG_REVERSE;
-}
-
-
-static void reverse(unsigned char *start, int len)
-{
-    unsigned char *end = start + len - 1;
-    unsigned char tmp;
-
-    while (start < end)
-    {
-        tmp = *start;
-        *start = *end;
-        *end = tmp;
-
-        ++start;
-        --end;
-    }
-}
-
-unsigned int output_ctx_close(output_ctx ctx,   /* IN */
-                              FILE * out)       /* OUT */
-{
-    int rval;
-    int len;
-
-    rval = 0;
-    /* flush the buffer */
-    len = ctx->pos - ctx->start;
-
-    if (ctx->start + len > sizeof(ctx->buf))
-    {
-        LOG(LOG_ERROR, ("error: out of range in output_ctx_close()\n"));
-        exit(1);
-    }
-
-    if (ctx->flags & OUTPUT_FLAG_REVERSE)
-    {
-        reverse(ctx->buf + ctx->start, len);
-        ctx->flags &= ~OUTPUT_FLAG_REVERSE;
-    }
-
-    fwrite(ctx->buf + ctx->start, 1, len, out);
-    return len;
+    ctx->buf = out;
 }
 
 unsigned int output_get_pos(output_ctx ctx)     /* IN */
@@ -108,20 +54,22 @@ void output_byte(output_ctx ctx,        /* IN/OUT */
                  unsigned char byte)    /* IN */
 {
     /*LOG(LOG_DUMP, ("output_byte: $%02X\n", byte)); */
-    ctx->buf[ctx->pos] = byte;
-    ++(ctx->pos);
-}
-
-void output_copy_bytes(output_ctx ctx,  /* IN */
-                       unsigned int src_pos,    /* IN */
-                       unsigned int len)        /* IN */
-{
-    len += src_pos;
-
-    for (; src_pos < len; ++src_pos)
+    if(ctx->pos < membuf_memlen(ctx->buf))
     {
-        output_byte(ctx, ctx->buf[src_pos]);
+        char *p;
+        p = membuf_get(ctx->buf);
+        p[ctx->pos] = byte;
     }
+    else
+    {
+        while(ctx->pos > membuf_memlen(ctx->buf))
+        {
+            char c = '\0';
+            membuf_append(ctx->buf, &c, 1);
+        }
+        membuf_append(ctx->buf, &byte, 1);
+    }
+    ++(ctx->pos);
 }
 
 void output_word(output_ctx ctx,        /* IN/OUT */
@@ -180,7 +128,7 @@ void output_bits(output_ctx ctx,        /* IN/OUT */
         {
             /* full byte, flush it */
             output_byte(ctx, (unsigned char) (ctx->bitbuf & 0xFF));
-            /*LOG(LOG_DUMP, 
+            /*LOG(LOG_DUMP,
                ("bitstream byte 0x%02X\n", ctx->bitbuf & 0xFF)); */
             ctx->bitbuf = 1;
         }

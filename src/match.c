@@ -28,11 +28,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "log.h"
 #include "match.h"
 #include "chunkpool.h"
 #include "radix.h"
-
+#include "membuf.h"
+#include "progress.h"
 
 struct match_node {
     int index;
@@ -41,7 +43,7 @@ struct match_node {
 
 static
 const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
-                          unsigned short int index);    /* IN */
+                          int index);    /* IN */
 
 matchp match_new(match_ctx ctx, /* IN/OUT */
                  matchp *mpp,
@@ -61,19 +63,22 @@ matchp match_new(match_ctx ctx, /* IN/OUT */
 
 
 void match_ctx_init(match_ctx ctx,      /* IN/OUT */
-                    const unsigned char *buf,      /* IN */
-                    int buf_len,        /* IN */
+                    struct membuf *inbuf,   /* IN */
                     int max_offset)
 {
     struct match_node *np;
     struct chunkpool map_pool[1];
+    struct progress prog[1];
+
+    int buf_len = membuf_memlen(inbuf);
+    const unsigned char *buf = membuf_get(inbuf);
 
     int c, i;
     int val;
 
-    memset(ctx->info, 0, sizeof(ctx->info));
-    memset(ctx->rle, 0, sizeof(ctx->rle));
-    memset(ctx->rle_r, 0, sizeof(ctx->rle_r));
+    ctx->info = calloc(buf_len + 1, sizeof(*ctx->info));
+    ctx->rle = calloc(buf_len + 1, sizeof(*ctx->rle));
+    ctx->rle_r = calloc(buf_len + 1, sizeof(*ctx->rle_r));
 
     chunkpool_init(ctx->m_pool, sizeof(match));
     chunkpool_init(map_pool, sizeof(match));
@@ -192,61 +197,62 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
         }
     }
 
+    progress_init(prog, "building.directed.acyclic.graph.", buf_len - 1, 0);
+
     for (i = buf_len - 1; i >= 0; --i)
     {
         const_matchp matches;
         /* let's populate the cache */
-        matches = matches_calc(ctx, (unsigned short) i);
+        matches = matches_calc(ctx, i);
 
         /* add to cache */
         ctx->info[i]->cache = matches;
 
-        if (!(i & 0xFF))
-        {
-            LOG(LOG_NORMAL, ("."));
-        }
-
+        progress_bump(prog, i);
     }
 
     LOG(LOG_NORMAL, ("\n"));
 
+    progress_free(prog);
     chunkpool_free(map_pool);
 }
 
 void match_ctx_free(match_ctx ctx)      /* IN/OUT */
 {
     chunkpool_free(ctx->m_pool);
+    free(ctx->info);
+    free(ctx->rle);
+    free(ctx->rle_r);
 }
 
-void dump_matches(matchp mp)
+void dump_matches(int level, matchp mp)
 {
     if (mp == NULL)
     {
-        LOG(LOG_DEBUG, (" (NULL)\n"));
+        LOG(level, (" (NULL)\n"));
     } else
     {
         if(mp->offset > 0)
         {
-            LOG(LOG_DEBUG, (" offset %d, len %d\n", mp->offset, mp->len));
+            LOG(level, (" offset %d, len %d\n", mp->offset, mp->len));
         }
         if (mp->next != NULL)
         {
-            dump_matches(mp->next);
+            dump_matches(level, mp->next);
         }
     }
 }
 
 const_matchp matches_get(match_ctx ctx, /* IN/OUT */
-                         unsigned short int index)      /* IN */
+                         int index)      /* IN */
 {
     return ctx->info[index]->cache;
-
 }
 
 /* this needs to be called with the indexes in
  * reverse order */
 const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
-                          unsigned short int index)     /* IN */
+                          int index)     /* IN */
 {
     const unsigned char *buf;
 
@@ -345,7 +351,7 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
         }
     }
     LOG(LOG_DEBUG, ("adding matches for index %d to cache\n", index));
-    dump_matches(matches);
+    dump_matches(LOG_DEBUG, matches);
 
     return matches;
 }
@@ -402,7 +408,7 @@ matchp_cache_peek(struct match_ctx *ctx, int pos,
             LOG(LOG_DEBUG, ("injecting rle val(%d,%d)\n",
                             start->len, start->offset));
         }
-#if 1
+#if 0
         /* possibly improve the literal */
         for(val = start; val != NULL; val = val->next)
         {

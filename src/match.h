@@ -28,6 +28,7 @@
  */
 
 #include "chunkpool.h"
+#include "membuf.h"
 
 struct match {
     unsigned short int offset;
@@ -44,13 +45,11 @@ struct pre_calc {
     const struct match *cache;
 };
 
-typedef struct pre_calc pre_calc[1];
-
 struct match_ctx {
     struct chunkpool m_pool[1];
-    pre_calc info[65536];
-    unsigned short int rle[65536];
-    unsigned short int rle_r[65536];
+    struct pre_calc (*info)[1];
+    unsigned short int *rle;
+    unsigned short int *rle_r;
     const unsigned char *buf;
     int len;
     int max_offset;
@@ -60,8 +59,7 @@ typedef struct match_ctx match_ctx[1];
 typedef struct match_ctx *match_ctxp;
 
 void match_ctx_init(match_ctx ctx,      /* IN/OUT */
-                    const unsigned char *buf,   /* IN */
-                    int buf_len,        /* IN */
+                    struct membuf *inbuf,   /* IN */
                     int max_offset);    /* IN */
 
 void match_ctx_free(match_ctx ctx);     /* IN/OUT */
@@ -69,7 +67,7 @@ void match_ctx_free(match_ctx ctx);     /* IN/OUT */
 /* this needs to be called with the indexes in
  * reverse order */
 const_matchp matches_get(match_ctx ctx, /* IN/OUT */
-                         unsigned short int index);     /* IN */
+                         int index);     /* IN */
 
 void match_delete(match_ctx ctx,        /* IN/OUT */
                   matchp mp);   /* IN */

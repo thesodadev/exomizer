@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include "log.h"
 #include "search.h"
+#include "membuf.h"
+#include "progress.h"
 
 void search_node_free(search_nodep snp) /* IN */
 {
@@ -40,7 +42,9 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                            encode_match_f * f,  /* IN */
                            encode_match_data emd)       /* IN */
 {
-    static search_node snp_arr[65536];
+    struct progress prog[1];
+    static struct membuf backing[1] = { STATIC_MEMBUF_INIT };
+    static search_node *snp_arr;
     const_matchp mp;
     search_nodep snp;
     search_nodep best_copy_snp;
@@ -50,7 +54,11 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
     int len = ctx->len;
 
-    memset(snp_arr, 0, sizeof(snp_arr));
+    progress_init(prog, "finding.cheapest.path.",len, 0);
+
+    membuf_atleast(backing, len * sizeof(search_node));
+    snp_arr = membuf_get(backing);
+    memset(snp_arr, 0, len * sizeof(search_node));
 
     snp = snp_arr[len];
     snp->index = len;
@@ -69,8 +77,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
      * it works the way it is. The last time
      * I examined this code I was certain it was
      * broken and broke it myself, trying to fix it. */
-    while (len >= 0 &&
-           (mp = matches_get(ctx, (unsigned short) (len - 1))) != NULL)
+    while (len > 0 && (mp = matches_get(ctx, len - 1)) != NULL)
     {
         float prev_score;
         float prev_offset_sum;
@@ -290,14 +297,14 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         {
             --len;
             ++best_copy_len;
-            if (!(len & 0xFF))
-            {
-                LOG(LOG_NORMAL, ("."));
-            }
         }
         while (snp_arr[len]->match == NULL);
+
+        progress_bump(prog, len);
     }
     LOG(LOG_NORMAL, ("\n"));
+
+    progress_free(prog);
 
     return snp_arr[0];
 }
@@ -374,6 +381,7 @@ const_matchp matchp_snp_rle_enum_get_next(void *matchp_snp_enum)
             val->len += 1;
         }
     }
+
     LOG(LOG_DUMP, ("rle: len = %d\n", val ? val->len : -1));
     return val;
 }

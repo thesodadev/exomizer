@@ -84,22 +84,49 @@ int membuf_memlen(struct membuf *sb)
     return sb->len;
 }
 
-void *membuf_memcpy(struct membuf *sb, const void *mem, int memlen)
+void *membuf_memcpy(struct membuf *sb, const void *mem, int len)
 {
-    membuf_atleast(sb, memlen);
-    memcpy(sb->buf, mem, memlen);
+    membuf_atleast(sb, len);
+    memcpy(sb->buf, mem, len);
     return sb->buf;
 }
-void *membuf_append(struct membuf *sb, const void *mem, int memlen)
+void *membuf_append(struct membuf *sb, const void *mem, int len)
 {
-    int len;
+    int newlen;
     void *p;
-    len = sb->len + memlen;
-    membuf_atleast(sb, len);
+    newlen = sb->len + len;
+    membuf_atleast(sb, newlen);
     p = (char *) sb->buf + sb->len;
-    memcpy(p, mem, memlen);
-    sb->len = len;
+    memcpy(p, mem, len);
+    sb->len = newlen;
     return p;
+}
+
+void *membuf_append_char(struct membuf *sb, char c)
+{
+    int newlen;
+    char *p;
+    newlen = sb->len + 1;
+    membuf_atleast(sb, newlen);
+    p = (char *) sb->buf + sb->len;
+    *p = c;
+    sb->len = newlen;
+    return p;
+}
+
+void *membuf_insert(struct membuf *sb, int offset, const void *mem, int len)
+{
+    int newlen;
+    void *from;
+    void *to;
+    newlen = sb->len + len;
+    membuf_atleast(sb, newlen);
+    from = (char *) sb->buf + offset;
+    to = (char *)from + len;
+    memmove(to, from, sb->len - offset);
+    memcpy(from, mem, len);
+    sb->len = newlen;
+    return from;
 }
 
 void membuf_atleast(struct membuf *sb, int len)
