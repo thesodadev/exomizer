@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 Magnus Lind.
+; Copyright (c) 2002, 2003 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -37,8 +37,8 @@ zp_bits_lo = $fb
 zp_bits_hi = zp_bits_lo + 1
 
 zp_bitbuf  = $fd
-zp_dest_lo = $fe		; dest addr lo
-zp_dest_hi = zp_bitbuf + 1	; dest addr hi
+zp_dest_lo = zp_bitbuf + 1	; dest addr lo
+zp_dest_hi = zp_bitbuf + 2	; dest addr hi
 
 tabl_bi = decrunch_table
 tabl_lo = decrunch_table + 52

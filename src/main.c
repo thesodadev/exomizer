@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 Magnus Lind.
+ * Copyright (c) 2002, 2003 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -23,7 +23,7 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * This file is a part of the Exomizer v1.1 release
+ * This file is a part of the Exomizer v1.1.1 release
  *
  */
 
@@ -39,6 +39,118 @@
 #include "sfx.h"
 #include "getflag.h"
 
+/* returns 0 if ok, 1 otherwise */
+static
+int
+str_to_int(const char *str, int *value)
+{
+    int status = 0;
+    do {
+        char *str_end;
+        long lval;
+
+        /* base 0 is auto detect */
+        int base = 0;
+
+        if (*str == '\0')
+        {
+            /* no string to parse */
+            status = 1;
+            break;
+        }
+
+        if (*str == '$')
+        {
+            /* a $ prefix specifies base 16 */
+            ++str;
+            base = 16;
+        }
+
+        lval = strtol(str, &str_end, base);
+
+        if(*str_end != '\0')
+        {
+            /* there is garbage in the string */
+            status = 1;
+            break;
+        }
+
+        if(value != NULL)
+        {
+            /* all is well, set the out parameter */
+            *value = (int)lval;
+        }
+    } while(0);
+
+    return status;
+}
+
+static
+FILE *
+open_file(char *name, int *load_addr)
+{
+    FILE * in;
+    int relocated = 0;
+    int reloc;
+    int load;
+
+    do {
+        char *load_str;
+
+        in = fopen(name, "rb");
+        if (in != NULL)
+        {
+            /* we have succeded in opening the file */
+            break;
+        }
+        
+        /* hmm, let's see if the user is trying to relocate it */
+        load_str = strrchr(name, ',');
+        if (load_str == NULL)
+        {
+            /* we fail */
+            break;
+        }
+
+        *load_str = '\0';
+        ++load_str;
+        relocated = 1;
+
+        /* relocation was requested */
+        if (str_to_int(load_str, &reloc) != 0)
+        {
+            /* we fail */
+            LOG(LOG_FATAL,
+                (" can't parse load address from \"%s\"\n", load_str));
+            exit(1);
+        }
+         
+        in = fopen(name, "rb");
+
+    } while (0);
+    if (in == NULL)
+    {
+        LOG(LOG_FATAL,
+            (" can't open file \"%s\" for input\n", name));
+        exit(1);
+    }
+
+    /* set the load address */
+    load = fgetc(in);
+    load |= fgetc(in) << 8;
+
+    if(load_addr != NULL)
+    {
+        *load_addr = load;
+        if (relocated)
+        {
+            *load_addr = reloc;
+        }
+    }
+    return in;
+}
+
+static
 void
 do_load(int filec, char *filev[], unsigned char *buf, int *load, int *len)
 {
@@ -50,15 +162,8 @@ do_load(int filec, char *filev[], unsigned char *buf, int *load, int *len)
     for (i = 0; i < filec; ++i)
     {
         int tmp_load, tmp_end;
-        in = fopen(filev[i], "rb");
-        if (in == NULL)
-        {
-            LOG(LOG_FATAL,
-                (" can't open file \"%s\" for input\n", filev[i]));
-            exit(1);
-        }
-        tmp_load = fgetc(in);
-        tmp_load |= fgetc(in) << 8;
+
+        in = open_file(filev[i], &tmp_load);
 
         tmp_end =
             tmp_load + fread(buf + tmp_load, 1, 65536 - tmp_load, in);
@@ -86,6 +191,47 @@ do_load(int filec, char *filev[], unsigned char *buf, int *load, int *len)
     *len = max_end - min_load;
 }
 
+static
+int
+calculate_safety(search_nodep snp)
+{
+    int size = 0;
+    float total_score = 0.0;
+    int max_diff = 0;
+
+    while (snp != NULL)
+    {
+	int diff;
+        const_matchp mp;
+
+        mp = snp->match;
+        if (mp != NULL && mp->len > 0)
+        {
+            if (mp->offset == 0)
+            {
+                /* literal */
+		++size;
+            } else
+            {
+		/* sequence */
+		size += mp->len;
+            }
+        }
+	total_score += snp->match_score;
+	diff = (((int)total_score + 7) >> 3) - size;
+	if(diff > max_diff)
+	{
+	    max_diff = diff;
+	}
+        snp = snp->prev;
+    }
+
+    LOG(LOG_DUMP, ("max diff %d", max_diff));
+
+    return max_diff;
+}
+
+static
 int
 generate_output(match_ctx ctx,
                 search_nodep snp,
@@ -106,6 +252,8 @@ generate_output(match_ctx ctx,
     if (start >= 0 && start < 0x10000)
     {
         /* -s given */
+	calculate_safety(snp);
+
         decr->load(out, (unsigned short int) load);
     } else if (start >= 0x10000 && start < 0x20000)
     {
@@ -172,7 +320,9 @@ generate_output(match_ctx ctx,
     return len;
 }
 
-search_nodep do_compress(match_ctx ctx, encode_match_data emd)
+static
+search_nodep
+do_compress(match_ctx ctx, encode_match_data emd)
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
@@ -236,6 +386,7 @@ search_nodep do_compress(match_ctx ctx, encode_match_data emd)
     return best_snp;
 }
 
+static
 void
 do_output(match_ctx ctx,
           search_nodep snp,
@@ -260,11 +411,12 @@ do_output(match_ctx ctx,
     LOG(LOG_BRIEF, (" crunched length: %d bytes\n", len));
 }
 
+static
 void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v1.1, Copyright (c) 2002 Magnus Lind. (magli143@telia.com)\n"
+         "Exomizer v1.1.1, Copyright (c) 2002, 2003 Magnus Lind. (magli143@telia.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -290,7 +442,7 @@ void print_license()
          "nor infected by this license in any way.\n"));
 }
 
-
+static
 void print_usage(const char *appl, enum log_level level)
 {
     const char *applp;
@@ -307,7 +459,7 @@ void print_usage(const char *appl, enum log_level level)
         appl = applp + 1;
     }
     /* done */
-    LOG(level, ("usage: %s [options] infile(s)\n", appl));
+    LOG(level, ("usage: %s [option]... infile[,<address>]...\n", appl));
     LOG(level,
         ("  -r           writes the outfile backwards without load address, this is\n"
          "               suitable for files that are to be decompressed directly\n"
@@ -326,12 +478,13 @@ void print_usage(const char *appl, enum log_level level)
          "  -v           displays version and the usage license\n"));
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
-         " they are given on the command-line, from the left to the right.\n"));
+         " they are given on the command-line, from left to right.\n"));
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-    const char *outfile = NULL;
+    const char *outfile = "a.prg";
     int reverse = 0;
     int outstart = -1;
     int outload = -1;
@@ -363,7 +516,7 @@ int main(int argc, char *argv[])
             reverse = 1;
             break;
         case 'l':
-            if (sscanf(flagarg, "%i", &outload) != 1 ||
+            if (str_to_int(flagarg, &outload) != 0 ||
                 outload < 0 || outload >= 65536)
             {
                 LOG(LOG_ERROR,
@@ -374,7 +527,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 's':
-            if (sscanf(flagarg, "%i", &outstart) != 1 ||
+            if (str_to_int(flagarg, &outstart) != 0 ||
                 outstart < 0 || outstart >= 65536)
             {
                 LOG(LOG_ERROR,
@@ -444,13 +597,6 @@ int main(int argc, char *argv[])
         LOG(LOG_ERROR, ("error: no input files to process.\n"));
         print_usage(argv[0], LOG_ERROR);
         exit(1);
-    }
-
-    if (outfile == NULL)
-    {
-        LOG(LOG_WARNING,
-            ("warning: no -o option was given, outfile is \"a.prg\".\n"));
-        outfile = "a.prg";
     }
 
     LOG(LOG_NORMAL, ("Mode for target file: "));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 Magnus Lind.
+ * Copyright (c) 2002, 2003 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -23,7 +23,7 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * This file is a part of the Exomizer v1.1 release
+ * This file is a part of the Exomizer v1.1.1 release
  *
  */
 
@@ -34,21 +34,21 @@
 
 #define DECOMP_EFFECT_ADDR 0x07e7
 #define DECOMP_MIN_ADDR 0x0400
-#define DECOMP_SAFETY_SOFT 48
+#define DECOMP_SAFETY_SOFT 25
 #define DECOMP_SAFETY_HARD 24
 #define DECOMP_LEN 0xba
 
 static const unsigned char stage1[] = {
-    0x01, 0x08, 0x0B, 0x08, 0xD2, 0x07, 0x9E, 0x32,
+    0x01, 0x08, 0x0B, 0x08, 0xD3, 0x07, 0x9E, 0x32,
     0x30, 0x35, 0x39, 0x00, 0xA0, 0x00, 0x78, 0xE6,
-    0x01, 0xA2, DECOMP_LEN + 3, 0xBD, 0x00, 0x00, 0x9D, 0xFC,
-    0x00, 0xCA, 0xD0, 0xF7, 0x4C, 0x00, 0x00
+    0x01, 0xBA, 0xBD, 0x00, 0x00, 0x9D, 0xFC, 0x00,
+    0xCA, 0xD0, 0xF7, 0x4C, 0x00, 0x00
 };
-#define STAGE1_COPY_SRC 20
-#define STAGE1_JMP_STAGE2 29
+#define STAGE1_COPY_SRC 19
+#define STAGE1_JMP_STAGE2 28
 
 #define STAGE1_BEGIN 0x07ff
-#define STAGE1_END   0x081e
+#define STAGE1_END   (STAGE1_BEGIN + sizeof(stage1))
 
 static unsigned char stage2[] = {
     0xE8, 0xA9, 0x00, 0x85, 0xFC, 0x85, 0xFB, 0xE0,

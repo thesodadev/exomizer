@@ -1,3 +1,30 @@
+2003-01-25
+----------
+1.1.1 released win32 and linux binaries compressed with upx and source code.
++ some further cleaning up of the exomizer-1.1.1.txt file.
++ rename exomizer-1.1.txt to exomizer-1.1.1.txt
++ decreased safety buffer size of the built-in decruncher. This removed
+  'garbage' seen on screen while decrunching files that load >= $0800 ($1000).
+  This leaves only the decrunch effect visible in the lower right corner.
++ changed basic line number to 2003
++ updated copyright dates in files modified since v1.1.
++ shorted built-in decruncher by one byte.
++ bugfix for the decruncher source file 'exodecrunch.s'. Bug reported by
+  Soci / Singular. The latest version without this bug was 1.0beta3.
++ added a credits section to the exomizer-1.1.1.txt
+
+2002-12-30
+----------
+1.1.1beta1 released to testers win32 only, no source.
++ bug: fixed bug in c16/+4 decruncher where the decrunch effect sometimes
+  was invisible.
++ '$' is now allowed as well as 0x as a prefix for hexadecimal constants.
++ added a feature to relocate the files to be crunched. just add a ",addr" to
+  the filename. obs. no spaces. addr may be decimal octal or hexadecimal and is
+  parsed like all other command line constants.
++ update the exomizer-1.1.txt file to include hints about relocation and how to
+  start basic programs from the built in Exomizer decruncher.
+
 2002-10-06
 ----------
 1.1 released win32 and linux, including source code.
