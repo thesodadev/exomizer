@@ -1,9 +1,10 @@
-2004-03-23
+2004-04-05
 ----------
 1.1.4 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
 + the flag -l now also accepts the string auto as an argument. Giving this
   string results in that the cruncher will use the address of the infile with
-  the lowest address. Thanks to Ninja/The Dreams for suggesting this feature.
+  the lowest address decreased by the calculated minimum safety margin. Thanks
+  to Ninja/The Dreams for suggesting this feature.
 + normal decruncher source (exodecrunch.s) reworked  and just like the stream
   decrunchers there's an example application for it included. All decruncher
   sourcecode + examples are located in the 'decruncher' directory and have been
@@ -15,7 +16,7 @@
 + new flag, -p<n>, that limits the number of optimization passes. This flag
   combined with the -m flag like this: -p1 -m1024, will make the exomizer a lot
   faster at the expense of the crunch ratio. Something for your test builds
-  perhaps? Thanks to Lasse Öörni for suggeting this feature.
+  perhaps? Thanks to Lasse Öörni for suggesting this feature.
 + the flag -s now also accepts the string sys as an argument. Giving this
   string results in that the cruncher will look in the infiles for a basic
   sysline and use the address the sys command targets. Thanks to Ninja/The

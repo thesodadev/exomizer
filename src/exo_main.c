@@ -233,46 +233,6 @@ do_load(int filec, char *filev[], unsigned char *buf, int *load, int *len)
 
 static
 int
-calculate_safety(search_nodep snp)
-{
-    int size = 0;
-    float total_score = 0.0;
-    int max_diff = 0;
-
-    while (snp != NULL)
-    {
-	int diff;
-        const_matchp mp;
-
-        mp = snp->match;
-        if (mp != NULL && mp->len > 0)
-        {
-            if (mp->offset == 0)
-            {
-                /* literal */
-		++size;
-            } else
-            {
-		/* sequence */
-		size += mp->len;
-            }
-        }
-	total_score += snp->match_score;
-	diff = (((int)total_score + 7) >> 3) - size;
-	if(diff > max_diff)
-	{
-	    max_diff = diff;
-	}
-        snp = snp->prev;
-    }
-
-    LOG(LOG_DUMP, ("max diff %d", max_diff));
-
-    return max_diff;
-}
-
-static
-int
 generate_output(match_ctx ctx,
                 search_nodep snp,
                 struct sfx_decruncher *decr,
@@ -281,6 +241,8 @@ generate_output(match_ctx ctx,
                 int load, int len, int start, FILE * of)
 {
     int pos;
+    int pos_diff;
+    int max_diff;
     static output_ctx out;
     output_ctxp old;
 
@@ -292,13 +254,15 @@ generate_output(match_ctx ctx,
     if (start >= 0 && start < 0x10000)
     {
         /* -s given */
-	calculate_safety(snp);
-
         decr->load(out, (unsigned short int) load);
     } else if (start >= 0x10000 && start < 0x20000)
     {
         /* -l given */
         output_word(out, (unsigned short int) (start - 0x10000));
+    } else if (start >= 0x20000 && start < 0x30000)
+    {
+        /* -l auto given */
+        output_word(out, (unsigned short int)0);
     } else if (start == -2)
     {
         /* -r given */
@@ -307,11 +271,15 @@ generate_output(match_ctx ctx,
 
     pos = output_get_pos(out);
 
+    pos_diff = pos;
+    max_diff = 0;
+
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
     output_gamma_code(out, 17);
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
     LOG(LOG_DUMP, ("------------\n"));
+
     while (snp != NULL)
     {
         const_matchp mp;
@@ -319,16 +287,30 @@ generate_output(match_ctx ctx,
         mp = snp->match;
         if (mp != NULL && mp->len > 0)
         {
-            /*printf("index %d, offset %d, len %d\n", snp->index, mp->offset, mp->len); */
+            int diff;
             if (mp->offset == 0)
             {
                 /* literal */
                 output_byte(out, ctx->buf[snp->index]);
                 output_bits(out, 1, 1);
+
+                diff = output_get_pos(out) - pos_diff;
+                if(diff > max_diff)
+                {
+                    max_diff = diff;
+                }
+                ++pos_diff;
             } else
             {
                 f(mp, emd);
                 output_bits(out, 1, 0);
+
+                diff = output_get_pos(out) - pos_diff;
+                if(diff > max_diff)
+                {
+                    max_diff = diff;
+                }
+                pos_diff += mp->offset;
             }
         }
         LOG(LOG_DUMP, ("------------\n"));
@@ -351,7 +333,20 @@ generate_output(match_ctx ctx,
 
     if (start >= 0 && start < 0x10000)
     {
+        /* second stage of decruncher */
         decr->stages(out, (unsigned short int) start);
+    } else if (start >= 0x20000 && start < 0x30000)
+    {
+        /* update auto load address */
+        load = start - 0x20000 - max_diff;
+        LOG(LOG_NORMAL,
+            ("  final load address determined by auto setting to $%04X\n",
+             load));
+
+        pos = output_get_pos(out);
+        output_set_pos(out, 0);
+        output_word(out, (unsigned short int)load);
+        output_set_pos(out, pos);
     }
 
     len = output_ctx_close(out, of);
@@ -589,7 +584,7 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid offset for -m option, "
                      "must be in the range of [0 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
+                print_usage(argv[0], LOG_NORMAL);
                 exit(1);
             }
             break;
@@ -602,7 +597,7 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid address for -l option, "
                      "must be in the range of [0 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
+                print_usage(argv[0], LOG_NORMAL);
                 exit(1);
             }
             break;
@@ -613,7 +608,7 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid value for -p option, "
                      "must be in the range of [1 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
+                print_usage(argv[0], LOG_NORMAL);
                 exit(1);
             }
             break;
@@ -626,7 +621,7 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid address for -s option, "
                      "must be in the range of [0 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
+                print_usage(argv[0], LOG_NORMAL);
                 exit(1);
             }
             break;
@@ -677,27 +672,27 @@ main(int argc, char *argv[])
     {
         LOG(LOG_ERROR,
             ("error: the -r, -l or -s options can't be combined.\n"));
-        print_usage(argv[0], LOG_ERROR);
+        print_usage(argv[0], LOG_NORMAL);
         exit(1);
     }
     if (decr_target == DECR_TARGET_C264 && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -4 option must be combined with -s.\n"));
-        print_usage(argv[0], LOG_ERROR);
+        print_usage(argv[0], LOG_NORMAL);
         exit(1);
     }
     if (decr_type == DECR_TYPE_NO_EFFECT && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -n option must be combined with -s.\n"));
-        print_usage(argv[0], LOG_ERROR);
+        print_usage(argv[0], LOG_NORMAL);
         exit(1);
     }
     if (infilec == 0)
     {
         LOG(LOG_ERROR, ("error: no input files to process.\n"));
-        print_usage(argv[0], LOG_ERROR);
+        print_usage(argv[0], LOG_NORMAL);
         exit(1);
     }
 
@@ -733,9 +728,13 @@ main(int argc, char *argv[])
             if(outload < 0)
             {
                 outload = load;
+                LOG(LOG_NORMAL, (", loading to: $%04X - safety", outload));
+                outstart = outload + 0x20000;
+            } else
+            {
+                LOG(LOG_NORMAL, (", loading to: $%04X", outload));
+                outstart = outload + 0x10000;
             }
-            LOG(LOG_NORMAL, (", loading to: $%04X", outload));
-            outstart = outload + 0x10000;
         }
         LOG(LOG_NORMAL, ("\n"));
     }

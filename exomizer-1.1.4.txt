@@ -70,8 +70,7 @@ How do I invoke the exomizer?
    -r           writes the outfile backwards without load address, this is
                 suitable for files that are to be decompressed directly
                 from disk, can't be combined with -l or -s
-   -l <address> adds load address to the outfile, using "auto" as <address>
-                will enable load address auto detection, can't be combined
+   -l <address> adds load address to the outfile, can't be combined
                 with -r or -s, default is no load address
    -s <address> adds basic-line and decruncher that exits with a jmp <address>,
                 using "sys" as <address> will enable basic-sys address auto
@@ -101,6 +100,43 @@ Is it possible to specify an explicit load address for an infile ?
   This will load the program.prg file beginning at $1000 while the intro.prg
   will load to it's normal address. Pleas note that there must not be any
   spaces between the filename, the ',' and the address.
+
+
+What load addresses are valid for memory decrunching?
+
+  This depends on the file you are decrunching. You don't want the decruncher
+  to clobber the not yet decrunched data. However overlapping memory areas are
+  still possible if enough safety margin is used. How much safety margin that
+  is necessary depends on the file and on the crunching scheme. Let's take a
+  nice easy file that loads from $4000 to $5000. Let's further say that you
+  crunch this with the flag -l$4000. The crunched file will the load from $4000
+  to $4635 or something like that. Since the Exomizer decrunches backwards an
+  in-memory decrunch will go very well at the beginning since there is a large
+  safety margin between where the decruncher reads ($4635 something) and writes
+  ($5000 something). However the write address will then follow and gain on the
+  read address. The trouble starts if it catches up with it. Then the
+  decruncher will read already decrunched data instead of the expected crunched
+  data and the decrunch will fail.
+
+  So, what does this mean? It means that the crunched file has to be loaded to
+  perhaps $3ff0 or so to avoid the read address being run over. The exact
+  number of bytes to subtract from the original load address depends on the
+  crunching scheme. The exomizer has a minimum safety margin of 3. But it can
+  sometimes be larger depending on the crunched file.
+
+  This all sounds very complicated, so why not just decide on a margin that is
+  safe enough? Well, this is how it is done in the built-in decruncher. it uses
+  a safety margin of 24 and just hopes that no infiles will fail with that.
+  However when memory decrunching this solution is just not good enough for all
+  situations. Sometimes there may just not be any memory available to waste on
+  decrunch safety margins.
+
+  But now Exomizer comes to the rescue. The -l flag also takes the string
+  literal "auto" as an argument. This argument tells the Exomizer to calculate
+  the minimum safety necessary for the infile and use the original load
+  address decreased by that amount. So back to the previous example: if the
+  file is crunched with the flag "-l auto" it will load back to $3ffd or
+  something like that. Decrunched from that address it will work.
 
 
 Is it possible to use hexadecimal numbers for load and start addresses?
