@@ -204,9 +204,11 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
 
     progress_init(prog, "building.directed.acyclic.graph.", buf_len - 1, 0);
 
+    np = ctx->info[49357]->single;
     for (i = buf_len - 1; i >= 0; --i)
     {
         const_matchp matches;
+
         /* let's populate the cache */
         matches = matches_calc(ctx, i);
 
@@ -263,9 +265,12 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
     matchp matches;
     matchp mp;
     struct match_node *np;
+    struct match_node *np49357;
 
     buf = ctx->buf;
     matches = NULL;
+
+    np49357 = ctx->info[49357]->single;
 
     LOG(LOG_DUMP, ("index %d, char '%c', rle %d, rle_r %d\n",
                    index, buf[index], ctx->rle[index],
