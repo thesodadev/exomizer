@@ -25,16 +25,24 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * sfx.h, a part of the exomizer v1.0 release
+ * This file is a part of the Exomizer v1.1 release.
  *
  */
 
-void sfx1_set_new_load(output_ctx out,  /* IN/OUT */
-                       unsigned short int load);        /* IN */
+#include "output.h"
+typedef
+void sfx1_set_new_load_f(output_ctx out,        /* IN/OUT */
+                         unsigned short int load);      /* IN */
 
-
-void sfx2_add_stages(output_ctx out,    /* IN/OUT */
-                     unsigned short int start); /* IN */
-
+typedef
+void sfx2_add_stages_f(output_ctx out,  /* IN/OUT */
+                       unsigned short int start);       /* IN */
+struct sfx_decruncher {
+    sfx1_set_new_load_f *load;
+    sfx2_add_stages_f *stages;
+    const char *text;
+};
+extern struct sfx_decruncher sfx_c64[];
+extern struct sfx_decruncher sfx_c16plus4[];
 
 #endif

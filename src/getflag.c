@@ -23,11 +23,12 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * getflag.c, a part of the exomizer v1.0 release
+ * This file is a part of the Exomizer v1.1 release
  *
  */
 
 #include <string.h>
+#include <stdio.h>
 
 int flagind = 1;
 int flagflag = '?';
@@ -60,6 +61,7 @@ int getflag(int argc, char **argv, const char *flags)
     const char *flagp;
 
     c = -1;
+    flagarg = NULL;
     argstart = flagind;
     flagstart = argc;
 
@@ -77,18 +79,24 @@ int getflag(int argc, char **argv, const char *flags)
     /* we have an arg to work with */
     do
     {
-        if (argv[flagind][1] == '-')
+        flagstart = flagind;
+        if (argv[flagind][1] == '-' && argv[flagind][2] == '\0')
         {
             /* stop parsing at '--' flag */
             break;
         }
         c = flagflag = argv[flagind][1];
-        flagstart = flagind;
         if (c == ':' || c == '\0')
         {
             /* this is an illegal flag */
             c = '?';
             break;
+        }
+        /* flag with arg */
+        if (argv[flagind][2] != '\0')
+        {
+            /* flag-arg in same argv[] */
+            flagarg = argv[flagind] + 2;
         }
         flagp = strchr(flags, c);
         if (flagp == NULL)
@@ -97,19 +105,16 @@ int getflag(int argc, char **argv, const char *flags)
             c = '?';
             break;
         }
-        if (flagp[1] != ':')
+        if (flagarg != NULL || flagp[1] != ':')
         {
-            /* this is a simple flag */
+            if (flagarg != NULL && flagp[1] != ':')
+            {
+                /* error, a simple flag with an argument */
+                c = '?';
+            }
             break;
         }
 
-        /* flag with arg */
-        if (argv[flagind][2] != '\0')
-        {
-            /* flag-arg in same argv[] */
-            flagarg = argv[flagind] + 2;
-            break;
-        }
         /* flag-arg is in the next argv[] */
         if (flagind + 1 == argc)
         {
@@ -119,8 +124,7 @@ int getflag(int argc, char **argv, const char *flags)
             break;
         }
         flagarg = argv[++flagind];
-    }
-    while (0);
+    } while (0);
     /* skip to next arg */
     ++flagind;
 

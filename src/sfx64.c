@@ -23,11 +23,12 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * sfx.c, a part of the exomizer v1.0 release
+ * This file is a part of the Exomizer v1.1 release
  *
  */
 
 #include <stdlib.h>
+#include "sfx.h"
 #include "log.h"
 #include "output.h"
 
@@ -104,9 +105,9 @@ static unsigned char stage3l[] = {
 #define STAGE3L_COPY_DEST   16
 
 static unsigned int L_copy_len;
-
-void sfx1_set_new_load(output_ctx out,  /* IN/OUT */
-                       unsigned short int load) /* IN */
+static
+void load(output_ctx out,       /* IN/OUT */
+          unsigned short int load)      /* IN */
 {
     unsigned short int new_load;
     if (load < 0x0400)
@@ -141,8 +142,9 @@ void sfx1_set_new_load(output_ctx out,  /* IN/OUT */
 
 }
 
-void sfx2_add_stages(output_ctx out,    /* IN/OUT */
-                     unsigned short int start)  /* IN */
+static
+void stages(output_ctx out,     /* IN/OUT */
+            unsigned short int start)   /* IN */
 {
     int i;
     int stage2_begin;
@@ -262,3 +264,4 @@ void sfx2_add_stages(output_ctx out,    /* IN/OUT */
     /* set the pos behind everything */
     output_set_pos(out, stages_end);
 }
+struct sfx_decruncher sfx_c64[1] = { {&load, &stages, "c64"} };

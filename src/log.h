@@ -25,7 +25,7 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * log.h, a part of the exomizer v1.0 release
+ * This file is a part of the Exomizer v1.1 release
  *
  */
 
@@ -115,6 +115,7 @@ do { \
 do { \
     G_log_ctx = log_new(); \
     log_set_level(G_log_ctx, (X)); \
+    G_log_level = (X); \
     log_add_output_stream(G_log_ctx, LOG_WARNING, LOG_MAX, NULL, stdout); \
     log_add_output_stream(G_log_ctx, LOG_MIN, LOG_WARNING - 1, NULL, stderr); \
 } while(0)

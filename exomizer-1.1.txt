@@ -1,18 +1,18 @@
 ----------------------------------------------------------------------------
 
-Exomizer 1.0
+Exomizer 1.1
 ------------
 
 What is it?
 
   Exomizer is a cross-cruncher that runs on win32 or Linux as a command-line
-  tool, but processes and generates files for the c64 computer.
+  tool, but processes and generates files for the c64 and the c16/+4 computers.
 
-   1) It is a file-compressor that compresses c64 files.
-   2) It can produce stand-alone self-decompressing c64-files.
+   1) It is a file-compressor that compresses c64/c16/+4 files.
+   2) It can produce stand-alone self-decompressing c64/c16/+4-files.
    3) It can produce files for both "in memory" or "from disk" decompression.
    3) It handles rle-sequences well, no packer is necessary.
-   4) It's stand-alone decompressor can decompress $0400-$ffff.
+   4) It's built-in c64 decompressor handles $0400-$ffff. (c16/+4 $0c00-ffff)
 
 
 Why is it called exomizer?
@@ -42,6 +42,32 @@ Are you releasing the source code?
   It is available.
 
 
+How do I invoke the exomizer?
+
+  If you run the exomizer with the -? option it will print a description of
+  the available options like this:
+
+  prompt> exomizer -?
+  usage: EXOMIZER.EXE [options] infile(s)
+    -r           writes the outfile backwards without load address, this is
+                 suitable for files that are to be decompressed directly
+                 from disc, can't be combined with -l or -s
+    -l <address> adds load address to the outfile, can't be combined
+                 with -r or -s, default is no load address
+    -s <address> adds basic-line and decruncher, after decrunching it will jmp
+                 to <address>, can't be combined with -r or -l
+    -o <outname> sets the outfile name, default is "a.prg"
+    -q           enable quiet mode, display output is reduced to one line
+    -4           the decruncher targets the c16/+4 computers instead of the c64,
+                 must be combined with -s
+    --           treat all args to the right as non-options
+    -?           displays this help screen
+    -v           displays version and the usage license
+   All infiles are merged into the outfile. They are loaded in the order
+   they are given on the command-line, from the left to the right.
+  prompt> _
+
+
 Is it possible to use hexadecimal numbers for load and start adresses?
 
   Yes, use a 0x prefix, like 0xc600.
@@ -58,6 +84,11 @@ How much overhead does the builtin decruncher add to a file?
 
 
 What memory adresses does the decruncher clobber?
+
+  The following description covers the c64 decruncher. The c16/+4 decruncher
+  differs from this description only by having a 3 bytes longer startup code.
+  The number of bytes copied to the stack is the same. Another difference is
+  that it loads to $1001 instead of $0801.
 
   Except for the adresses covered by the file itself $0801-$XXXX, the
   decruncher also clobbers the following adresses:
@@ -147,10 +178,5 @@ What else have you made?
 
     I have previously made some native packers for the c64 and an iffl-
     system, but that was at least ten years ago or so.
-
-    The iffl system has been used recently by Nostalgia in some of their
-    retro cracks. This is funny, because I have NO idea how they have gotten
-    it. It was never released to the public and I haven't been able to find
-    it on the net. (Not that I mind them using it.)
 
 ----------------------------------------------------------------------------
