@@ -17,28 +17,28 @@
 ;   2. Altered source versions must be plainly marked as such, and must not
 ;   be misrepresented as being the original software.
 ;
-;   3. This notice may not be removed or altered from any source distribution.
+;   3. This notice may not be removed or altered from any distribution.
 ;
 ;   4. The names of this software and/or it's copyright holders may not be
 ;   used to endorse or promote products derived from this software without
 ;   specific prior written permission.
 ;
-; exodecruncher.s, a part of the exomizer v1.0beta2 release
+; exodecruncher.s, a part of the exomizer v1.0beta3 release
 ;
 ; -------------------------------------------------------------------
 ; zero page adresses used
 ; -------------------------------------------------------------------
+zp_len_lo = $a7
+
 zp_src_lo  = $ae
 zp_src_hi  = zp_src_lo + 1
 
-zp_bits_lo = $fa
+zp_bits_lo = $fb
 zp_bits_hi = zp_bits_lo + 1
 
-zp_bitbuf  = $fc		
+zp_bitbuf  = $fd
 zp_dest_lo  = zp_bitbuf + 1		; dest addr lo
 zp_dest_hi  = zp_bitbuf + 2		; dest addr hi
-
-zp_len_lo = $ff
 
 ; -------------------------------------------------------------------
 ; Here an example of how to call the decruncher.
@@ -51,7 +51,7 @@ zp_len_lo = $ff
 	rts
 ; -------------------------------------------------------------------
 ; this is an example implementation of the get_byte routine.
-; You may implement this yourselves to read bytes from and datasource.
+; You may implement this yourselves to read bytes from any datasource.
 ; The get_byte routine must not modify x-reg, y-reg, carry-flag.
 ; -------------------------------------------------------------------	
 get_byte:
@@ -256,13 +256,19 @@ skipcarry:
 	pla
 	tax
 	bcc copy_start
-; -------------------------------------------------------------------
-; these tables may be relocated
-; -------------------------------------------------------------------
 tabl_bit:
 	.byte 2,4,4
 tabl_off:
 	.byte 48,32,16
+; -------------------------------------------------------------------
+; end of decruncher
+; -------------------------------------------------------------------
+
+; -------------------------------------------------------------------
+; this table area may be relocated and clobbered between decrunches.
+; the ordering between the tabl_x lables must not be changed and
+; they must be adjacent in memory to each other like they are here.
+; -------------------------------------------------------------------
 tabl_bi:
 	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -278,3 +284,6 @@ tabl_hi:
 	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	.byte 0,0,0,0
+; -------------------------------------------------------------------
+; end of decruncher
+; -------------------------------------------------------------------

@@ -19,24 +19,22 @@
  *   2. Altered source versions must be plainly marked as such, and must not
  *   be misrepresented as being the original software.
  *
- *   3. This notice may not be removed or altered from any source distribution.
+ *   3. This notice may not be removed or altered from any distribution.
  *
  *   4. The names of this software and/or it's copyright holders may not be
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * sfx.h, a part of the exomizer v1.0beta2 release
+ * sfx.h, a part of the exomizer v1.0beta3 release
  *
  */
 
-void
-sfx1_set_new_load(output_ctx out, /* IN/OUT */
-                  unsigned short int load); /* IN */
-                  
+void sfx1_set_new_load(output_ctx out,  /* IN/OUT */
+                       unsigned short int load);        /* IN */
 
-void
-sfx2_add_stages(output_ctx out, /* IN/OUT */
-                unsigned short int start); /* IN */
-                
+
+void sfx2_add_stages(output_ctx out,    /* IN/OUT */
+                     unsigned short int start); /* IN */
+
 
 #endif

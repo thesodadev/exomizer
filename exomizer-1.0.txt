@@ -11,8 +11,9 @@ What is it?
    1) It is a file-compressor that compresses c64 files.
    2) It can produce stand-alone self-decompressing c64-files.
    3) It can produce files for both "in memory" or "from disk" decompression.
-   3) It compresses rle-sequences well.
+   3) It handles rle-sequences well, no packer is necessary.
    4) It's stand-alone decompressor can decompress $0400-$ffff.
+
 
 Why is it called exomizer?
 
@@ -21,6 +22,7 @@ Why is it called exomizer?
   Since I'm not a member of any group now and it is a cross cruncher I
   figured 'exo' was the perfect prefix. The 'mizer' suffix I just kept for
   nostalgic reasons.
+
 
 What sets this program apart from similar programs like PuCrunch?
 
@@ -37,9 +39,39 @@ What sets this program apart from similar programs like PuCrunch?
 
 Are you releasing the source code?
 
-  Yes, when first non-beta version is released.
+  It is available.
+
+
+Is it possible to use hexadecimal numbers for load and start adresses?
+
+  Yes, use a 0x prefix, like 0xc600.
+
+
+What memory adresses does the decruncher clobber?
+
+    Eight zeropage adresses are used: $a7, $ae-$af, $fb-$ff.
+    The decruncher copies 187 bytes of itself to the stack at $0100-$01bb.
+    The tapebuffer is used for tables, 156 bytes in total at $0334-$03d0.
+    
+    The decruncher also clobbers the 48 bytes immediately preceding the start
+    adress of the decrunched data. This space is used as a safety buffer.
+
+    The exodecrunch.s decruncher defaults to using the same zeropage adresses
+    as the stand alone decruncher. It also uses a 156 byte tablespace. Both
+    the table area and the zeropage adresses can easily be relocated.
+
+
+How do I use the decruncher in the exodecrunch sourcecode?
+
+    You simply call jsr decrunch_file, but first you must have implemented a
+    suitable get_byte routine for it. The decruncher has only a simple
+    get_byte as an example. If you want to decrunch from file you have to
+    write the file handling routines yourselves. See the exodecrunch.s
+    for more info.
+
 
 Some Performance numbers:
+
   These tests are made on a AMD duron 700MHz. the byteboiler+rle sizes for
   the delenn.bin sheridan.bin and ivanova.bin has been taken from the home-
   page of pucrunch. I could not get them so small myself and I really want
@@ -83,10 +115,12 @@ And some files known from the pucrunch homepage.
   byteboiler+rle                    9812
   pucrunch           0.3s           9819        -p2 -fshort
 
+
 who made it?
 
     My name is Magnus Lind.
     I am reachable by email: magli143@telia.com
+
 
 What else have you made?
 

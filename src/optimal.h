@@ -19,37 +19,32 @@
  *   2. Altered source versions must be plainly marked as such, and must not
  *   be misrepresented as being the original software.
  *
- *   3. This notice may not be removed or altered from any source distribution.
+ *   3. This notice may not be removed or altered from any distribution.
  *
  *   4. The names of this software and/or it's copyright holders may not be
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * optimal.h, a part of the exomizer v1.0beta2 release
+ * optimal.h, a part of the exomizer v1.0beta3 release
  *
  */
 #include "search.h"
 #include "output.h"
 
-float
-optimal_encode(const_matchp mp, /* IN */
-	       encode_match_data emp); /* IN */
+float optimal_encode(const_matchp mp,   /* IN */
+                     encode_match_data emp);    /* IN */
 
-void
-optimal_init(encode_match_data emp); /* IN/OUT */
+void optimal_init(encode_match_data emp);       /* IN/OUT */
 
-void
-optimal_free(encode_match_data emd); /* IN */
+void optimal_free(encode_match_data emd);       /* IN */
 
-void
-optimal_optimize(encode_match_data emd, /* IN/OUT */
-		 matchp_enum_get_next_f *f, /* IN */
-		 void *priv); /* IN */
+void optimal_optimize(encode_match_data emd,    /* IN/OUT */
+                      matchp_enum_get_next_f * f,       /* IN */
+                      void *priv);      /* IN */
 
-void
-optimal_dump(encode_match_data emp); /* IN */
+void optimal_dump(encode_match_data emp);       /* IN */
 
-void
-optimal_out(output_ctx out, encode_match_data emd);
+void optimal_out(output_ctx out,        /* IN/OUT */
+                 encode_match_data emd);        /* IN */
 
 #endif
