@@ -1,7 +1,7 @@
 #ifndef ALREADY_INCLUDED_MATCH_H
 #define ALREADY_INCLUDED_MATCH_H
 /*
- * Copyright (c) 2002 Magnus Lind.
+ * Copyright (c) 2002, 2003 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -25,42 +25,45 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * This file is a part of the Exomizer v1.1 release
- *
  */
 
-struct _match {
+#include "chunkpool.h"
+
+struct match {
     unsigned short int offset;
     unsigned short int len;
-    struct _match *next;
+    struct match *next;
 };
 
-typedef struct _match match[1];
-typedef struct _match *matchp;
-typedef const struct _match *const_matchp;
+typedef struct match match[1];
+typedef struct match *matchp;
+typedef const struct match *const_matchp;
 
-struct _pre_calc {
-    struct _match_node *single;
-    struct _match_node *tuple;
-    struct _match *cache;
+struct pre_calc {
+    struct match_node *single;
+    struct match_node *tuple;
+    struct match *cache;
 };
 
-typedef struct _pre_calc pre_calc[1];
+typedef struct pre_calc pre_calc[1];
 
-struct _match_ctx {
+struct match_ctx {
+    struct chunkpool m_pool[1];
     pre_calc info[65536];
     unsigned short int rle[65536];
     unsigned short int rle_r[65536];
     const unsigned char *buf;
     int len;
+    int max_offset;
 };
 
-typedef struct _match_ctx match_ctx[1];
-typedef struct _match_ctx *match_ctxp;
+typedef struct match_ctx match_ctx[1];
+typedef struct match_ctx *match_ctxp;
 
 void match_ctx_init(match_ctx ctx,      /* IN/OUT */
                     const unsigned char *buf,   /* IN */
-                    int buf_len);       /* IN */
+                    int buf_len,        /* IN */
+                    int max_offset);    /* IN */
 
 void match_ctx_free(match_ctx ctx);     /* IN/OUT */
 
@@ -72,14 +75,14 @@ const_matchp matches_get(match_ctx ctx, /* IN/OUT */
 void match_delete(match_ctx ctx,        /* IN/OUT */
                   matchp mp);   /* IN */
 
-struct _matchp_cache_enum {
+struct matchp_cache_enum {
     match_ctxp ctx;
     const_matchp next;
     int pos;
 };
 
-typedef struct _matchp_cache_enum matchp_cache_enum[1];
-typedef struct _matchp_cache_enum *matchp_cache_enump;
+typedef struct matchp_cache_enum matchp_cache_enum[1];
+typedef struct matchp_cache_enum *matchp_cache_enump;
 
 void matchp_cache_get_enum(match_ctx ctx,       /* IN */
                            matchp_cache_enum mpce);     /* IN/OUT */

@@ -4,10 +4,10 @@
 
 CFLAGS = -Wall -O3 -ffast-math -mcpu=i686 -fomit-frame-pointer -fgcse -pedantic
 LDFLAGS = -s
-#CFLAGS = -pg
-#LDFLAGS = -pg
+#CFLAGS = -g
+#LDFLAGS = -g
 
-OBJS = match.o search.o main.o optimal.o output.o radix.o sfx264.o sfx64.o getflag.o log.o chunkpool.c
+OBJS = match.o search.o main.o optimal.o output.o radix.o sfx264.o sfx64.o getflag.o log.o chunkpool.o
 
 .PHONY: build
 

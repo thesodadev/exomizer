@@ -23,8 +23,6 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * This file is a part of the Exomizer v1.1.1 release
- *
  */
 
 #include <stdio.h>
@@ -340,6 +338,8 @@ do_compress(match_ctx ctx, encode_match_data emd)
     matchp_cache_get_enum(ctx, mpce);
     optimal_optimize(emd, matchp_cache_enum_get_next, mpce);
 
+    /*optimal_dump(emd);*/
+
     best_snp = NULL;
     old_size = 1000000.0;
 
@@ -361,6 +361,7 @@ do_compress(match_ctx ctx, encode_match_data emd)
             search_node_free(snp);
             break;
         }
+
         ++pass;
 
         if (best_snp != NULL)
@@ -380,9 +381,8 @@ do_compress(match_ctx ctx, encode_match_data emd)
         matchp_snp_get_enum(snp, snpe);
         optimal_optimize(emd, matchp_snp_enum_get_next, snpe);
     }
-#if 0
-    optimal_dump(emd);
-#endif
+
+    /* optimal_dump(emd); */
     return best_snp;
 }
 
@@ -416,7 +416,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v1.1.1, Copyright (c) 2002, 2003 Magnus Lind. (magli143@telia.com)\n"
+         "Exomizer v1.1.2b1, Copyright (c) 2002, 2003 Magnus Lind. (magli143@telia.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -473,6 +473,7 @@ void print_usage(const char *appl, enum log_level level)
          "  -q           enable quiet mode, display output is reduced to one line\n"
          "  -4           the decruncher targets the c16/+4 computers instead of the c64,\n"
          "               must be combined with -s\n"
+         "  -m <offset>  limits the maximum offset size to <offset>, default is 65535\n"
          "  --           treat all args to the right as non-options\n"
          "  -?           displays this help screen\n"
          "  -v           displays version and the usage license\n"));
@@ -492,6 +493,7 @@ main(int argc, char *argv[])
     char **infilev;
     int load;
     int len;
+    int max_offset = 65536;
     static unsigned char mem[65536];
     static match_ctx ctx;
     encode_match_data emd;
@@ -504,7 +506,7 @@ main(int argc, char *argv[])
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     outload = -1;
-    while ((c = getflag(argc, argv, "4qrl:s:o:v")) != -1)
+    while ((c = getflag(argc, argv, "m:4qrl:s:o:v")) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch (c)
@@ -514,6 +516,17 @@ main(int argc, char *argv[])
             break;
         case 'r':
             reverse = 1;
+            break;
+        case 'm':
+            if (str_to_int(flagarg, &max_offset) != 0 ||
+                max_offset < 0 || max_offset >= 65536)
+            {
+                LOG(LOG_ERROR,
+                    ("error: invalid offset for -m option, "
+                     "must be in the range of [0 - 0xffff]\n"));
+                print_usage(argv[0], LOG_ERROR);
+                exit(1);
+            }
             break;
         case 'l':
             if (str_to_int(flagarg, &outload) != 0 ||
@@ -627,7 +640,7 @@ main(int argc, char *argv[])
     /* zero fill mem */
     memset(mem, 0, sizeof(mem));
     do_load(infilec, infilev, mem, &load, &len);
-    match_ctx_init(ctx, mem + load, len);
+    match_ctx_init(ctx, mem + load, len, max_offset);
 
     LOG(LOG_NORMAL, (" Instrumenting file(s), done.\n"));
 

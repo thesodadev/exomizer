@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 Magnus Lind.
+ * Copyright (c) 2002, 2003 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -22,8 +22,6 @@
  *   4. The names of this software and/or it's copyright holders may not be
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
- *
- * This file is a part of the Exomizer v1.1 release
  *
  */
 
@@ -81,7 +79,7 @@ interval_nodep interval_node_clone(interval_nodep inp)
 	*inp2 = *inp;
 	inp2->next = interval_node_clone(inp->next);
     }
-    
+
     return inp2;
 }
 
@@ -106,10 +104,11 @@ void interval_node_dump(interval_nodep inp)
     while (inp != NULL)
     {
         end = inp->start + (1 << inp->bits);
-        LOG(LOG_NORMAL, ("%d[1«%d], ", inp->start, inp->bits));
+        LOG(LOG_NORMAL, ("%X", inp->bits));
+        /*LOG(LOG_NORMAL, ("%d[1«%d], ", inp->start, inp->bits));*/
         inp = inp->next;
     }
-    LOG(LOG_NORMAL, ("%d[eol]\n", end));
+    LOG(LOG_NORMAL, ("[eol@%d]\n", end));
 }
 
 float optimal_encode_int(int arg, void *priv, output_ctxp out)
@@ -243,14 +242,13 @@ struct _optimize_arg {
     int *stats2;
     int max_depth;
     int flags;
+    struct chunkpool in_pool[1];
 };
 
 #define CACHE_KEY(START, DEPTH, MAXDEPTH) ((int)((START)*(MAXDEPTH)|DEPTH))
 
 typedef struct _optimize_arg optimize_arg[1];
 typedef struct _optimize_arg optimize_argp;
-
-static struct chunkpool interval_node_pool[1];
 
 static interval_nodep
 optimize1(optimize_arg arg, int start, int depth, int init)
@@ -329,7 +327,7 @@ optimize1(optimize_arg arg, int start, int depth, int init)
                 if (best_inp == NULL)
                 {
                     /* allocate if null */
-                    best_inp = chunkpool_malloc(interval_node_pool);
+                    best_inp = chunkpool_malloc(arg->in_pool);
                 }
                 *best_inp = *inp;
             }
@@ -358,7 +356,7 @@ optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
     arg->max_depth = max_depth;
     arg->flags = flags;
 
-    chunkpool_init(interval_node_pool, sizeof(interval_node));
+    chunkpool_init(arg->in_pool, sizeof(interval_node));
 
     radix_tree_init(arg->cache);
 
@@ -369,7 +367,7 @@ optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
 
     /* cleanup */
     radix_tree_free(arg->cache, NULL, NULL);
-    chunkpool_free(interval_node_pool);
+    chunkpool_free(arg->in_pool);
 
     return inp;
 }
@@ -553,6 +551,74 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     offset[7] = optimize(offset_arr[7], offset_parr[7], 1 << 4, 4);
 }
 
+static int optimal_fixup1(interval_nodep *npp,
+                          int start, int depth, int flags, int max)
+{
+    int size = max - start;
+    if (*npp == NULL)
+    {
+        int bits = 0;
+        LOG(LOG_DEBUG, ("max %d, size %d\n", max, size));
+        if(depth < 15)
+        {
+            interval_node in;
+            while (size > 0)
+            {
+                size >>= 1;
+                ++bits;
+            }
+            in->start = start;
+            in->depth = depth;
+            in->flags = flags;
+            in->bits = bits > 15 ? 15 : bits;
+            in->next = NULL;
+
+            *npp = interval_node_clone(in);
+        }
+    }
+    if(*npp != NULL)
+    {
+        int len = (1 << (*npp)->bits);
+        size = optimal_fixup1(&((*npp)->next),
+                              start + len, depth + 1, flags, max);
+        if(size > 0)
+        {
+            int bits = (*npp)->bits;
+            int diff = 32768 - (1 << bits);
+            if(diff > 0)
+            {
+                interval_nodep np;
+                (*npp)->bits = 15;
+
+                np = (*npp)->next;
+                while(np != NULL)
+                {
+                    np->start += diff;
+                    np = np->next;
+                }
+                size -= diff;
+            }
+        }
+    }
+    return size;
+}
+
+void optimal_fixup(encode_match_data emd, int max_len, int max_offset)
+{
+    encode_match_privp data;
+    interval_nodep *offset;
+    interval_nodep len;
+
+    data = emd->priv;
+
+    offset = data->offset_f_priv;
+    len = data->len_f_priv;
+
+    optimal_fixup1(&len, 1, 0, -1, max_len);
+
+    /*optimal_fixup1(&(offset[7]), 1, 0, -4, max_offset);*/
+}
+
 void optimal_dump(encode_match_data emd)
 {
     encode_match_privp data;
@@ -564,7 +630,7 @@ void optimal_dump(encode_match_data emd)
     offset = data->offset_f_priv;
     len = data->len_f_priv;
 
-    LOG(LOG_NORMAL, ("lens: "));
+    LOG(LOG_NORMAL, ("lens:             "));
     interval_node_dump(len);
 
     LOG(LOG_NORMAL, ("offsets (len =1): "));
@@ -572,7 +638,7 @@ void optimal_dump(encode_match_data emd)
 
     LOG(LOG_NORMAL, ("offsets (len =2): "));
     interval_node_dump(offset[1]);
-
+#if 0
     LOG(LOG_NORMAL, ("offsets (len =3): "));
     interval_node_dump(offset[2]);
 
@@ -587,7 +653,7 @@ void optimal_dump(encode_match_data emd)
 
     LOG(LOG_NORMAL, ("offsets (len =7): "));
     interval_node_dump(offset[6]);
-
+#endif
     LOG(LOG_NORMAL, ("offsets (len =8): "));
     interval_node_dump(offset[7]);
 }

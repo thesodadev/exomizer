@@ -23,8 +23,6 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * This file is a part of the Exomizer v1.1.1 release
- *
  */
 
 #include <stdlib.h>

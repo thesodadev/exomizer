@@ -1,7 +1,8 @@
 #ifndef ALREADY_INCLUDED_OPTIMAL_H
 #define ALREADY_INCLUDED_OPTIMAL_H
+
 /*
- * Copyright (c) 2002 Magnus Lind.
+ * Copyright (c) 2002, 2003 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -25,9 +26,8 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * This file is a part of the Exomizer v1.1 release
- *
  */
+
 #include "search.h"
 #include "output.h"
 
@@ -41,6 +41,10 @@ void optimal_free(encode_match_data emd);       /* IN */
 void optimal_optimize(encode_match_data emd,    /* IN/OUT */
                       matchp_enum_get_next_f * f,       /* IN */
                       void *priv);      /* IN */
+
+void optimal_fixup(encode_match_data emd,       /* IN/OUT */
+                   int max_len, /* IN */
+                   int max_offset);     /* IN */
 
 void optimal_dump(encode_match_data emp);       /* IN */
 
