@@ -42,12 +42,11 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
                       matchp_enum_get_next_f * f,       /* IN */
                       void *priv);      /* IN */
 
-void optimal_fixup(encode_match_data emd,       /* IN/OUT */
-                   int max_len, /* IN */
-                   int max_offset);     /* IN */
-
 void optimal_encoding_import(encode_match_data emd,     /* IN/OUT */
                              const char *encoding);     /* IN */
+
+const char *
+optimal_encoding_export(encode_match_data emd);    /* IN */
 
 void optimal_dump(int level, encode_match_data emp);       /* IN */
 

@@ -30,7 +30,8 @@
 
 #include "callback.h"
 
-#define CHUNKPOOL_CHUNKS_MAX 64;
+#define CHUNKPOOL_CHUNKS_MAX    64
+
 struct chunkpool {
     int chunk_size;
     int chunk;

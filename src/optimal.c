@@ -176,7 +176,7 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
         {
         case 0:
             LOG(LOG_ERROR, ("bad len\n"));
-            exit(1);
+            bits = *(float*)0;
             break;
         case 1:
             bits += data->offset_f(mp->offset, offset[0], emd->out);
@@ -348,6 +348,34 @@ optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
     chunkpool_free(arg->in_pool);
 
     return inp;
+}
+
+static const char *export_helper(interval_nodep np)
+{
+    static char buf[20];
+    char *p = buf;
+    while(np != NULL)
+    {
+        p += sprintf(p, "%X", np->bits);
+        np = np->next;
+    }
+    return buf;
+}
+
+const char *optimal_encoding_export(encode_match_data emd)
+{
+    interval_nodep np, *offsets;
+    static char buf[100];
+    char *p = buf;
+    encode_match_privp data;
+
+    data = emd->priv;
+    offsets = (interval_nodep*)data->offset_f_priv;
+    p += sprintf(p, "%s", export_helper((interval_nodep)data->len_f_priv));
+    p += sprintf(p, ",%s", export_helper(offsets[0]));
+    p += sprintf(p, ",%s", export_helper(offsets[1]));
+    p += sprintf(p, ",%s", export_helper(offsets[7]));
+    return buf;
 }
 
 static void import_helper(interval_nodep *npp,
@@ -622,72 +650,6 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     {
         optimal_dump(LOG_DEBUG, emd);
     }
-}
-
-static int optimal_fixup1(interval_nodep *npp,
-                          int start, int depth, int flags, int max)
-{
-    int size = max - start;
-    if (*npp == NULL)
-    {
-        int bits = 0;
-        LOG(LOG_DEBUG, ("max %d, size %d\n", max, size));
-        if(depth < 15)
-        {
-            interval_node in;
-            while (size > 0)
-            {
-                size >>= 1;
-                ++bits;
-            }
-            in->start = start;
-            in->depth = depth;
-            in->flags = flags;
-            in->bits = bits > 15 ? 15 : bits;
-            in->next = NULL;
-
-            *npp = interval_node_clone(in);
-        }
-    }
-    if(*npp != NULL)
-    {
-        int len = (1 << (*npp)->bits);
-        size = optimal_fixup1(&((*npp)->next),
-                              start + len, depth + 1, flags, max);
-        if(size > 0)
-        {
-            int bits = (*npp)->bits;
-            int diff = 32768 - (1 << bits);
-            if(diff > 0)
-            {
-                interval_nodep np;
-                (*npp)->bits = 15;
-
-                np = (*npp)->next;
-                while(np != NULL)
-                {
-                    np->start += diff;
-                    np = np->next;
-                }
-                size -= diff;
-            }
-        }
-    }
-    return size;
-}
-
-void optimal_fixup(encode_match_data emd, int max_len, int max_offset)
-{
-    encode_match_privp data;
-    interval_nodep *offset;
-    interval_nodep len;
-
-    data = emd->priv;
-
-    offset = data->offset_f_priv;
-    len = data->len_f_priv;
-
-    optimal_fixup1(&len, 1, 0, -1, max_len);
 }
 
 void optimal_dump(int level, encode_match_data emd)

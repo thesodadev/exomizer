@@ -81,6 +81,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
     {
         float prev_score;
         float prev_offset_sum;
+
 #define COPY
 #ifdef COPY
         /* check if we can do even better with copy */
@@ -127,6 +128,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         /* check if we can do rle */
         snp = snp_arr[len];
         if(best_rle_snp == NULL ||
+           snp->index + 65535 < best_rle_snp->index ||
            snp->index + ctx->rle_r[snp->index] < best_rle_snp->index)
         {
             /* best_rle_snp can't be reached by rle from snp, reset it*/
@@ -202,6 +204,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             match local_mp;
             local_mp->len = best_rle_snp->index - snp->index;
             local_mp->offset = 1;
+
             rle_score = f(local_mp, emd);
             total_rle_score = best_rle_snp->total_score + rle_score;
 

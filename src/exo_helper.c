@@ -157,9 +157,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
     float old_size;
 
     pass = 1;
-    LOG(LOG_NORMAL, (" pass %d: optimizing ", pass));
-    LOG(LOG_BRIEF, ("."));
-    LOG(LOG_NORMAL, (".\n"));
+    LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
     if(exported_encoding != NULL)
     {
@@ -170,8 +168,6 @@ do_compress(match_ctx ctx, encode_match_data emd,
         matchp_cache_get_enum(ctx, mpce);
         optimal_optimize(emd, matchp_cache_enum_get_next, mpce);
     }
-
-    /*optimal_dump(emd);*/
 
     best_snp = NULL;
     old_size = 100000000.0;
@@ -211,15 +207,12 @@ do_compress(match_ctx ctx, encode_match_data emd,
         optimal_free(emd);
         optimal_init(emd);
 
-        LOG(LOG_NORMAL, (" pass %d: optimizing ", pass));
-        LOG(LOG_BRIEF, ("."));
-        LOG(LOG_NORMAL, (".\n"));
+        LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
         matchp_snp_get_enum(snp, snpe);
         optimal_optimize(emd, matchp_snp_enum_get_next, snpe);
     }
 
-    /* optimal_dump(emd); */
     return best_snp;
 }
 
@@ -239,6 +232,7 @@ int crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 1: Instrumenting file"
          "\n-----------------------------\n"));
+    LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", membuf_memlen(inbuf)));
 
     match_ctx_init(ctx, inbuf, max_offset);
 
@@ -256,7 +250,10 @@ int crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
+    LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
     do_output(ctx, snp, emd, optimal_encode, outbuf);
+    LOG(LOG_NORMAL, (" Length of outdata: %d bytes.\n",
+                     membuf_memlen(outbuf)));
 
     optimal_free(emd);
     search_node_free(snp);
@@ -307,7 +304,7 @@ void decrunch(struct membuf *inbuf,
     char *enc;
     enc = dec_ctx_init(ctx, inbuf, outbuf);
 
-    LOG(LOG_BRIEF, ("Encoding: %s\n", enc));
+    LOG(LOG_NORMAL, (" Encoding: %s\n", enc));
 
     dec_ctx_decrunch(ctx);
     dec_ctx_free(ctx);

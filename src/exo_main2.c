@@ -125,6 +125,7 @@ main(int argc, char *argv[])
         {
         case 'd':
             decrunch_mode = 1;
+            break;
         case 'q':
             LOG_SET_LEVEL(LOG_BRIEF);
             break;
@@ -204,10 +205,14 @@ main(int argc, char *argv[])
 
     if(decrunch_mode)
     {
+        LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\".\n",
+                         infilev[0], outfile));
         decrunch(inbuf, outbuf);
     }
     else
     {
+        LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
+                         infilev[0], outfile));
         crunch(inbuf, outbuf, exported_encoding, max_passes, max_offset);
     }
 

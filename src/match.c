@@ -47,19 +47,24 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
 
 matchp match_new(match_ctx ctx, /* IN/OUT */
                  matchp *mpp,
-                 unsigned short int len,
-                 unsigned short int offset)
+                 int len,
+                 int offset)
 {
     matchp m = chunkpool_malloc(ctx->m_pool);
-    m->len = len;
-    m->offset = offset;
 
-    if(len == 0 && offset == 0)
+    if(len == 0)
     {
         int a;
-        LOG(LOG_ERROR, ("tried to allocate [0,0] match.\n"));
+        LOG(LOG_ERROR, ("tried to allocate len0 match.\n"));
         a = *(int*)0;
     }
+    if(len > 65535)
+    {
+        len = 65535;
+    }
+
+    m->len = len;
+    m->offset = offset;
 
     /* insert new node in list */
     m->next = *mpp;
@@ -98,18 +103,33 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
     {
         if (buf[i] == val)
         {
-            ctx->rle[i] = ctx->rle[i - 1] + 1;
+            int len = ctx->rle[i - 1] + 1;
+#if 1
+            if(len > 65535) len = 0;
+#endif
+            ctx->rle[i] = len;
         } else
         {
             ctx->rle[i] = 0;
         }
         val = buf[i];
     }
-
+#if 1
+    for (i = buf_len - 2; i >= 0; --i)
+    {
+        if (ctx->rle[i] < ctx->rle[i + 1])
+        {
+            ctx->rle_r[i] = ctx->rle_r[i + 1] + 1;
+        } else
+        {
+            ctx->rle_r[i] = 0;
+        }
+    }
+#else
     val = buf[buf_len - 1];
     for (i = buf_len - 2; i >= 0; --i)
     {
-        if (buf[i] == val)
+        if (buf[i] == val )
         {
             ctx->rle_r[i] = ctx->rle_r[i + 1] + 1;
         } else
@@ -118,13 +138,14 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
         }
         val = buf[i];
     }
+#endif
 
     /* add extra nodes to rle sequences */
     for(c = 0; c < 256; ++c)
     {
         static char rle_map[65536];
         struct match_node *prev_np;
-        int rle_len;
+        unsigned short int rle_len;
 
         /* for each possible rle char */
         memset(rle_map, 0, sizeof(rle_map));
@@ -204,7 +225,6 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
 
     progress_init(prog, "building.directed.acyclic.graph.", buf_len - 1, 0);
 
-    np = ctx->info[49357]->single;
     for (i = buf_len - 1; i >= 0; --i)
     {
         const_matchp matches;
@@ -265,12 +285,9 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
     matchp matches;
     matchp mp;
     struct match_node *np;
-    struct match_node *np49357;
 
     buf = ctx->buf;
     matches = NULL;
-
-    np49357 = ctx->info[49357]->single;
 
     LOG(LOG_DUMP, ("index %d, char '%c', rle %d, rle_r %d\n",
                    index, buf[index], ctx->rle[index],
