@@ -34,7 +34,7 @@
 float optimal_encode(const_matchp mp,   /* IN */
                      encode_match_data emp);    /* IN */
 
-void optimal_init(encode_match_data emp);       /* IN/OUT */
+void optimal_init(encode_match_data emp);        /* IN/OUT */
 
 void optimal_free(encode_match_data emd);       /* IN */
 
@@ -45,6 +45,9 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
 void optimal_fixup(encode_match_data emd,       /* IN/OUT */
                    int max_len, /* IN */
                    int max_offset);     /* IN */
+
+void optimal_encoding_import(encode_match_data emd,     /* IN/OUT */
+                             const char *encoding);     /* IN */
 
 void optimal_dump(encode_match_data emp);       /* IN */
 

@@ -32,6 +32,7 @@
 #include "search.h"
 #include "radix.h"
 #include "chunkpool.h"
+#include "optimal.h"
 
 #define DOUBLE_OFFSET_TABLES
 
@@ -105,7 +106,6 @@ void interval_node_dump(interval_nodep inp)
     {
         end = inp->start + (1 << inp->bits);
         LOG(LOG_NORMAL, ("%X", inp->bits));
-        /*LOG(LOG_NORMAL, ("%d[1«%d], ", inp->start, inp->bits));*/
         inp = inp->next;
     }
     LOG(LOG_NORMAL, ("[eol@%d]\n", end));
@@ -372,15 +372,119 @@ optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
     return inp;
 }
 
+void optimal_encoding_import(encode_match_data emd,
+                             const char *encoding)
+{
+    encode_match_privp data;
+    int c;
+    int start = 1;
+    int depth = 0;
+    interval_nodep *npp, len, *offsets;
 
-/*static interval_nodep optimal_offset[16] = {NULL, NULL};
-  static interval_nodep optimal_len = NULL;*/
+    optimal_free(emd);
+    optimal_init(emd);
 
-void optimal_init(encode_match_data emd)        /* OUT */
+    data = emd->priv;
+    len = (interval_nodep)data->len_f_priv;
+    offsets = (interval_nodep*)data->offset_f_priv;
+
+    /* lengths */
+    npp = &len;
+    while((c = *(encoding++)) != '\0')
+    {
+        char buf[2] = {0, 0};
+        char *dummy;
+        int bits;
+        interval_nodep np;
+
+        if(c == ',')
+        {
+            break;
+        }
+
+        buf[0] = c;
+        bits = strtol(buf, &dummy, 16);
+        np = malloc(sizeof(interval_node));
+        interval_node_init(np, start, depth, -1);
+        *npp = np;
+        npp = &(np->next);
+    }
+    /* offsets, len = 1 */
+    npp = &offsets[0];
+    while((c = *(encoding++)) != '\0')
+    {
+        char buf[2] = {0, 0};
+        char *dummy;
+        int bits;
+        interval_nodep np;
+
+        if(c == ',')
+        {
+            break;
+        }
+
+        buf[0] = c;
+        bits = strtol(buf, &dummy, 16);
+        np = malloc(sizeof(interval_node));
+        interval_node_init(np, start, depth, 2);
+        *npp = np;
+        npp = &(np->next);
+    }
+    /* offsets, len = 2 */
+    npp = &offsets[1];
+    while((c = *(encoding++)) != '\0')
+    {
+        char buf[2] = {0, 0};
+        char *dummy;
+        int bits;
+        interval_nodep np;
+
+        if(c == ',')
+        {
+            break;
+        }
+
+        buf[0] = c;
+        bits = strtol(buf, &dummy, 16);
+        np = malloc(sizeof(interval_node));
+        interval_node_init(np, start, depth, 4);
+        *npp = np;
+        npp = &(np->next);
+    }
+    /* offsets, len >= 3 */
+    npp = &offsets[7];
+    while((c = *(encoding++)) != '\0')
+    {
+        char buf[2] = {0, 0};
+        char *dummy;
+        int bits;
+        interval_nodep np;
+
+        if(c == ',')
+        {
+            break;
+        }
+
+        buf[0] = c;
+        bits = strtol(buf, &dummy, 16);
+        np = malloc(sizeof(interval_node));
+        interval_node_init(np, start, depth, 4);
+        *npp = np;
+        npp = &(np->next);
+    }
+
+#if 1
+    LOG(LOG_NORMAL, ("imported encoding: "));
+    optimal_dump(emd);
+#endif
+}
+
+void optimal_init(encode_match_data emd)        /* IN/OUT */
 {
     encode_match_privp data;
     interval_nodep *inpp;
 
+    emd->priv = malloc(sizeof(encode_match_priv));
     data = emd->priv;
 
     memset(data, 0, sizeof(encode_match_priv));
@@ -549,6 +653,8 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     offset[5] = optimize(offset_arr[5], offset_parr[5], 1 << 4, 4);
     offset[6] = optimize(offset_arr[6], offset_parr[6], 1 << 4, 4);
     offset[7] = optimize(offset_arr[7], offset_parr[7], 1 << 4, 4);
+
+    optimal_dump(emd);
 }
 
 static int optimal_fixup1(interval_nodep *npp,

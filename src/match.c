@@ -127,8 +127,11 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
 
     for (i = buf_len - 1; i >= 0; --i)
     {
-        LOG(LOG_DUMP,
-            ("buf[%i] = '%c', rle %d\n", i, buf[i], ctx->rle[i]));
+        if(ctx->rle[i] != 0)
+        {
+            /* only allocate one entry at the front of rle repeats */
+            continue;
+        }
 
         /* allocate single */
         npp = single_map + buf[i];
@@ -155,8 +158,18 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
 
     for (i = buf_len - 1; i >= 1; --i)
     {
+        int tuple = (buf[i - 1] << 8) | buf[i];
+
+        if(ctx->rle[i] != 0 ||
+           ctx->rle[i - 1] != 0)
+        {
+            /* only allocate one entry at the back of rle repeats, the
+               tuple matcher in matches_calc() expects this */
+            continue;
+        }
+
         /* allocate tuple */
-        npp = tuple_map + ((buf[i - 1] << 8) | buf[i]);
+        npp = tuple_map + tuple;
 
         np = *npp;
         if(np != NULL)
@@ -223,7 +236,6 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
                           unsigned short int index)     /* IN */
 {
     const unsigned char *buf;
-    unsigned short int rle_len;
 
     matchp matches;
     matchp mp;
@@ -245,48 +257,21 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
         /* get possible match */
         single_np = ctx->info[index]->single;
 
-        /* think twice before touching this,
-         * I thought about this code for several days
-         * when i changed it last and it works now. */
-        rle_len = 0;
-        do
+        if(single_np != NULL)
         {
-            /* find correct match */
-            while ((single_np != NULL) &&
-                   (ctx->rle[single_np->index] < rle_len))
+            int offset = single_np->index - index;
+            if(offset <= ctx->max_offset)
             {
-                single_np = single_np->next;
+                if(offset == 1)
+                {
+                    /* rle, should not occur here */
+                    LOG(LOG_ERROR, ("unexpected rle found at index %d\n",
+                                    index));
+                    exit(1);
+                }
+                mp = match_new(ctx, &matches, 1, offset);
             }
-            /* break if no single matches left */
-            if (single_np == NULL)
-            {
-                break;
-            }
-
-            if(single_np->index > index + ctx->max_offset)
-            {
-                break;
-            }
-
-            /* allocate a match node and add it to matches */
-            if (single_np->index - index == 1)
-            {
-                mp = match_new(ctx, &matches, ctx->rle[index] + 1,
-                               single_np->index - index);
-            } else
-            {
-                mp = match_new(ctx, &matches, rle_len + 1,
-                               single_np->index - index);
-            }
-
-            ++rle_len;
-
-            /* reiterate only if we are in the highest
-             * index position of an rle with len > 1 */
         }
-        while ((ctx->rle_r[index] == 0) &&
-               (ctx->rle[index] > 0) && (rle_len < ctx->rle[index]));
-
 #if 0
         LOG(LOG_DUMP,
             ("single matches for index %d char '%c'\n", index,
@@ -302,49 +287,69 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
 
         /* get tuple */
         tuple_np = ctx->info[index]->tuple;
-
         for (; tuple_np != NULL; tuple_np = tuple_np->next)
         {
             unsigned short int len;
+            int diff;
 
+            /* limit according to max offset */
             if(tuple_np->index > index + ctx->max_offset)
             {
                 break;
             }
 
-            if (ctx->rle[index] != ctx->rle[tuple_np->index])
+            diff = ctx->rle[tuple_np->index] - ctx->rle[index];
+            if(diff < 0)
             {
-                continue;
-            }
+                /* match has shorter rle, add new match for this
+                 * index */
+                int new_index = index + diff;
+                match_nodep new_nodep = ctx->info[new_index]->tuple;
+                if(new_nodep != NULL)
+                {
+                    /* should not be a match in the middle of an
+                     * rle */
+                    LOG(LOG_ERROR, ("unexpected match found in rle "
+                                    "at index %d\n", index));
+                    exit(1);
+                }
 
+                new_nodep = chunkpool_malloc(ctx->m_pool);
+                new_nodep->index = tuple_np->index;
+                new_nodep->next = NULL;
+                ctx->info[new_index]->tuple = new_nodep;
+
+                /* the negativ diff will be dealt with when the new nodep
+                 * is processed */
+                diff = 0;
+            }
+#if 0
             LOG(LOG_DUMP, ("index %d, tuple_np->index %d\n",
-                           index, tuple_np->index));
-
+                           index, tuple_np->index - diff));
+#endif
             /* get match len */
-            len = 2;
-            while ((index - len >= 0) &&
-                   (buf[index - len] == buf[tuple_np->index - len]))
+            len = 1;
+            do
             {
-                int a, b;
-                a = ctx->rle[index - len];
-                b = ctx->rle[tuple_np->index - len];
-                len += (a < b ? a : b);
                 ++len;
+                if (len > mp->len && (ctx->info[index - len]->tuple != NULL ||
+                                (1 && ctx->info[index - len]->single != NULL)))
+                {
+                    /* allocate match struct and add it to matches */
+                    mp=match_new(ctx, &matches, len,
+                                 tuple_np->index - diff - index);
+                }
             }
+            while ((index - len >= 0) &&
+                   (buf[index - len] == buf[tuple_np->index - diff - len]));
 
-            /* are we bigger than the previous best? */
-            if (len > mp->len)
-            {
-                /* allocate match struct and add it to matches */
-                mp = match_new(ctx, &matches, len, tuple_np->index - index);
-            }
         }
         /* add to cache */
         ctx->info[index]->cache = matches;
     }
     while (0);
 #if 0
-    LOG(LOG_DUMP, ("adding matches for index %d to cache\n", index));
+    LOG(LOG_INFO, ("adding matches for index %d to cache\n", index));
     dump_matches(matches);
 #endif
     return matches;
@@ -385,10 +390,11 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
     mpce->next = NULL;
     if (val != NULL)
     {
+#if 0
         LOG(LOG_DUMP,
             (" offset %d, len %d, val $%02X\n",
              val->offset, val->len, mpce->ctx->buf[mpce->pos - 1]));
-
+#endif
         mpce->next = val->next;
 #if 1
         /* heuristics to skip some matches in
@@ -536,7 +542,6 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
                 val = seq;
             }
         }
-
     }
     if(val != NULL)
     {

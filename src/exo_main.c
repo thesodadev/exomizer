@@ -321,9 +321,29 @@ generate_output(match_ctx ctx,
             /*printf("index %d, offset %d, len %d\n", snp->index, mp->offset, mp->len); */
             if (mp->offset == 0)
             {
-                /* literal */
-                output_byte(out, ctx->buf[snp->index]);
-                output_bits(out, 1, 1);
+                if(mp->len == 1)
+                {
+                    /* literal */
+                    output_byte(out, ctx->buf[snp->index]);
+                    output_bits(out, 1, 1);
+                }
+                else
+                {
+                    int i;
+                    for(i = 0; i < mp->len; ++i)
+                    {
+                        /* literal */
+                        output_byte(out, ctx->buf[snp->index]);
+                    }
+                    output_bits(out, 16, 0xaa55); /* 16 bits out */
+                    output_gamma_code(out, 16); /* 17 bits out */
+                    output_bits(out, 1, 0); /* 1 bit out */
+
+#if 1
+                    LOG(LOG_NORMAL, ("copy index %d, len %d\n",
+                                     snp->index, mp->len));
+#endif
+                }
             } else
             {
                 f(mp, emd);
@@ -361,7 +381,9 @@ generate_output(match_ctx ctx,
 
 static
 search_nodep
-do_compress(match_ctx ctx, encode_match_data emd, int max_passes)
+do_compress(match_ctx ctx, encode_match_data emd,
+            const char *exported_encoding,
+            int max_passes)
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
@@ -376,8 +398,15 @@ do_compress(match_ctx ctx, encode_match_data emd, int max_passes)
     LOG(LOG_BRIEF, ("."));
     LOG(LOG_NORMAL, (".\n"));
 
-    matchp_cache_get_enum(ctx, mpce);
-    optimal_optimize(emd, matchp_cache_enum_get_next, mpce);
+    if(exported_encoding != NULL)
+    {
+        optimal_encoding_import(emd, exported_encoding);
+    }
+    else
+    {
+        matchp_cache_get_enum(ctx, mpce);
+        optimal_optimize(emd, matchp_cache_enum_get_next, mpce);
+    }
 
     /*optimal_dump(emd);*/
 
@@ -392,7 +421,9 @@ do_compress(match_ctx ctx, encode_match_data emd, int max_passes)
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
             exit(-1);
         }
-
+#if 0
+        search_node_dump(snp);
+#endif
         size = snp->total_score;
         LOG(LOG_NORMAL, ("  size %0.1f bits ~%d bytes\n",
                          size, (((int) size) + 7) >> 3));
@@ -535,6 +566,7 @@ int
 main(int argc, char *argv[])
 {
     const char *outfile = "a.prg";
+    const char *exported_encoding = NULL;
     int reverse = 0;
     int outstart = -1;
     int decruncher = 0;
@@ -548,7 +580,6 @@ main(int argc, char *argv[])
     static unsigned char mem[65536];
     static match_ctx ctx;
     encode_match_data emd;
-    encode_match_priv optimal_priv;
     search_nodep snp;
 
 #define DECR_TARGET_C64  0
@@ -568,7 +599,7 @@ main(int argc, char *argv[])
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     outload = -1;
-    while ((c = getflag(argc, argv, "m:4qrnl:s:o:vp:")) != -1)
+    while ((c = getflag(argc, argv, "m:4qrnl:s:o:vp:e:")) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch (c)
@@ -636,6 +667,9 @@ main(int argc, char *argv[])
             exit(1);
         case '4':
             decr_target = DECR_TARGET_C264;
+            break;
+        case 'e':
+            exported_encoding = flagarg;
             break;
         default:
             if (flagflag != '?')
@@ -740,15 +774,12 @@ main(int argc, char *argv[])
 
     LOG(LOG_NORMAL, (" Instrumenting file(s), done.\n"));
 
-    emd->out = NULL;
-    emd->priv = optimal_priv;
-
     optimal_init(emd);
 
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snp = do_compress(ctx, emd, max_passes);
+    snp = do_compress(ctx, emd, exported_encoding, max_passes);
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,
