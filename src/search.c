@@ -330,15 +330,15 @@ const_matchp matchp_snp_enum_get_next(void *matchp_snp_enum)
     snpe = matchp_snp_enum;
 
     val = NULL;
-    if (snpe->currp != NULL)
+    while (snpe->currp != NULL && val == NULL)
     {
         val = snpe->currp->match;
         snpe->currp = snpe->currp->prev;
     }
-    else
+
+    if (snpe->currp == NULL)
     {
         snpe->currp = snpe->startp;
     }
-
     return val;
 }

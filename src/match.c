@@ -56,8 +56,9 @@ matchp match_new(match_ctx ctx, /* IN/OUT */
 
     if(len == 0 && offset == 0)
     {
+        int a;
         LOG(LOG_ERROR, ("tried to allocate [0,0] match.\n"));
-        int a = *(int*)0;
+        a = *(int*)0;
     }
 
     /* insert new node in list */

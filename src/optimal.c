@@ -523,6 +523,7 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
 
     /* first the lens */
     priv1 = matchp_enum;
+#if 0
     while ((mp = f(priv1)) != NULL)
     {
         LOG(LOG_DEBUG, ("%p len %d offset %d\n", mp, mp->len, mp->offset));
@@ -531,7 +532,7 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     {
         LOG(LOG_ERROR, ("the horror, negative len!\n"));
     }
-
+#endif
     while ((mp = f(priv1)) != NULL && mp->len > 0)
     {
         if (mp->offset > 0)
