@@ -2,11 +2,11 @@
 # Makefile for exomizer
 #
 
-#CFLAGS = -Wall -O3 -ffast-math -mtune=i686 -fomit-frame-pointer -fgcse -pedantic
-#LDFLAGS = -s
+CFLAGS = -Wall -O3 -ffast-math -mcpu=i686 -fomit-frame-pointer -fgcse -pedantic
+LDFLAGS = -s
 
-CFLAGS = -g -pg -mtune=i686 -Wall
-LDFLAGS = -g -pg -mtune=i686
+#CFLAGS = -g -pg -mtune=i686 -Wall
+#LDFLAGS = -g -pg -mtune=i686
 
 SHARED_OBJS = getflag.o log.o membuf.o
 RAW_OBJS = match.o search.o exo_raw.o optimal.o output.o membuf_io.o \

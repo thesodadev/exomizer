@@ -1,0 +1,71 @@
+
+Exomizer 2.0 beta1 released (no source code and no docs yet).
+
+NEW FEATURES:
+
+o  New target independant binary, exoraw, that features:
+   1) Crunches plain files instead of .prg files.
+   2) Crunches forward or backwards instead of just backwards.
+   3) Also decrunches.
+   4) Handles files larget than 64k. Sizes below 1MB is now possible to crunch.
+      It handles the complete canterbury and calgary corpora just fine.
+   5) Comes with two different C-source decrunchers, one thread safe forward
+      pull decruncher and one low-level backward push decruncher perfect to
+      base an assembler port on.
+
+o  Totally rewitten handling of the sfx decruncher in exomizer:
+   1) Several different decrunch effects to chose from.
+   2) Configurable for ram-only exit.
+   3) Can start basic programs properly with built in trampoline by using the
+      command 'sfx basic'
+   3) The decruncher code is assembled on the fly for maximum flexibility by an
+      embedded assembler.
+   4) Will adapt the decruncher to include only features used by the compressed
+      stream to keep the size down.
+   5) Now also supports the c128 and the vic20 (in several configurations).
+
+o  The cruncher now has an escape mechanism that detects and handles sequences
+   of uncrunchable data, literal sequences, much better than before.
+
+o  The level mode of exomizer now crunches each infile separately and appends
+   them to the outfile instead of merging them together like the -r mode did
+   before. The new behaviour is much more useful for level usage.
+
+FEATURES STILL TO DO BEFORE PROPER RELEASE:
+
+o  Sfx decruncher in exomizer:
+   1) Handle the vic20 target better with regards to memory holes.
+
+o  There is no decruncher 6502 asm source that handles the new literal
+   sequences yet. Fortunately, these are almost never used for normal data so
+   using the -c flag to order exomizer not to generate them is not a big loss.
+
+o Update the usage descriptions properly.
+
+The exomizer binary now uses a slightly different command syntax:
+old:                                    new:
+------------------                      -----------------------------
+exomizer -ssys <infile>                 exomizer sfx sys <infile>
+exomizer -s$1234 <infile>               exomizer sfx $1234 <infile>
+exomizer -r <infile>                    exomizer level <infile>
+exomizer <infile>                       exomizer mem -lnone <infile>
+exomizer -l$1234 <infile>               exomizer mem -l$1234 <infile>
+exomizer -lauto  <infile>               exomizer mem <infile>
+
+The sfx decruncher effect and ram config on exit is selected by defining symbols to the assembler on the command line:
+
+To use ram config on exit add the following flag:
+ -Di_ram_on_exit=1
+
+To select one of the four decruncher effects add this flag (0 <= n <= 3):
+ -Di_config_effect=n
+
+To have the effect updated faster add this flag:
+ -Di_fast_effect=1
+
+The possible effects to chose from are:
+-1: no effect at all.
+0: traditional lower right screen corner flashing (default).
+1: border flash based on the value of the accumulator.
+2: border flash based on the value of the x-register.
+3: border flash based on the value of the y-register.

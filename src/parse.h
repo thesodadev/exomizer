@@ -73,6 +73,9 @@ struct expr *new_expr_incword(const char *name, struct expr *skip);
 void new_symbol(const char *symbol, i32 value);
 void new_symbol_expr(const char *symbol, struct expr *arg);
 
+/* returns NULL if found, not otherwise, expp may be NULL. */
+const char *find_symref(const char *symbol, struct expr **expp);
+
 void symbol_dump_resolved(int level, const char *symbol);
 
 void new_label(const char *label);

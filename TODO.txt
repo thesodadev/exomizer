@@ -1,8 +1,6 @@
 -----------------------------------------------------------------------
 Exomizer 2.0, to do before the release.
 -----------------------------------------------------------------------
-+ fix -n flag (and docs)
-+ fix user notifications of -r appends.
 + start decrunch from other address than basic start without basic line.
 + update usage display. (crunch it perhaps?)
 -----------------------------------------------------------------------

@@ -153,7 +153,7 @@ static int find_sys(const unsigned char *buf)
 }
 
 
-static void load_prg(char *filename, char mem[65536],
+static void load_prg(char *filename, unsigned char mem[65536],
                      int *startp, int *endp)
 {
     int load;
@@ -317,8 +317,8 @@ void print_mem_usage(const char *appl, enum log_level level,
          "  The mem command generates outfiles that are intended to be decrunched from\n"
          "  memory after being loaded or assembled there.\n", appl));
     LOG(level,
-        ("  -l <address>  adds load address to the outfile, using \"auto\" as <address>\n"
-         "                will enable load address auto detection.\n"));
+        ("  -l <address>  adds load address to the outfile, using \"none\" as <address>\n"
+         "                will skip the load address.\n"));
     print_shared_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
@@ -331,7 +331,7 @@ void print_sfx_usage(const char *appl, enum log_level level,
 {
     /* done */
     LOG(level,
-        ("usage: %s sfx basic|sys|<jmpaddress> [option]... infile[,<address>]...\n"
+        ("usage: %s sfx basic[,<start>[,<end>[,<high>]]]|sys[,<start>]|<jmpaddress> [option]... infile[,<address>]...\n"
          "  The sfx command generates outfiles that are intended to decrunch themselves.\n"
          "  The basic start argument will start a basic program.\n"
          "  The sys start argument will auto detect the start address by searching the\n"
@@ -349,15 +349,19 @@ void print_sfx_usage(const char *appl, enum log_level level,
 
 void level(const char *appl, int argc, char *argv[])
 {
+    int literal_sequences_used = 0;
+    int max_safety = 0;
     int c;
     int infilec;
     char **infilev;
 
     struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
-    struct common_flags flags[1] = {{options, DEFAULT_OUTFILE}};
+    struct common_flags flags[1] = {{NULL, DEFAULT_OUTFILE}};
 
     struct membuf in[1];
     struct membuf out[1];
+
+    flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     while ((c = getflag(argc, argv, SHARED_FLAGS)) != -1)
@@ -392,6 +396,15 @@ void level(const char *appl, int argc, char *argv[])
         in_len = membuf_memlen(in);
         crunch_backwards(in, out, options, info);
 
+        if(info->literal_sequences_used)
+        {
+            literal_sequences_used = 1;
+        }
+        if(info->needed_safety_offset > max_safety)
+        {
+            max_safety = info->needed_safety_offset;
+        }
+
         /* append the starting address of decrunching */
         membuf_append_char(out, (in_load + in_len) & 255);
         membuf_append_char(out, (in_load + in_len) >> 8);
@@ -400,6 +413,11 @@ void level(const char *appl, int argc, char *argv[])
         reverse_buffer((char*)membuf_get(out) + out_pos,
                        membuf_memlen(out) - out_pos);
     }
+
+    LOG(LOG_NORMAL, (" Literal sequences are %sused and",
+                     literal_sequences_used ? "" : "not "));
+    LOG(LOG_NORMAL, (" the largest safety offset is %d.\n",
+                     max_safety));
 
     write_file(flags->outfile, out);
 
@@ -410,17 +428,19 @@ void level(const char *appl, int argc, char *argv[])
 void mem(const char *appl, int argc, char *argv[])
 {
     int load_addr = -1;
-    int prepend_load_addr = 0;
+    int prepend_load_addr = 1;
     char flags_arr[32];
     int c;
     int infilec;
     char **infilev;
 
     struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
-    struct common_flags flags[1] = {{options, DEFAULT_OUTFILE}};
+    struct common_flags flags[1] = {{NULL, DEFAULT_OUTFILE}};
 
     struct membuf in[1];
     struct membuf out[1];
+
+    flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     sprintf(flags_arr, "l:%s", SHARED_FLAGS);
@@ -430,10 +450,12 @@ void mem(const char *appl, int argc, char *argv[])
         switch(c)
         {
         case 'l':
-            prepend_load_addr = 1;
-            if (strcmp(flagarg, "auto") != 0 &&
-                (str_to_int(flagarg, &load_addr) != 0 ||
-                 load_addr < 0 || load_addr >= 65536))
+            if(strcmp(flagarg, "none") == 0)
+            {
+                prepend_load_addr = 0;
+            }
+            else if(str_to_int(flagarg, &load_addr) != 0 ||
+                    load_addr < 0 || load_addr >= 65536)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid address for -l option, "
@@ -494,7 +516,17 @@ void mem(const char *appl, int argc, char *argv[])
             p = membuf_get(out);
             p[0] = load_addr & 255;
             p[1] = load_addr >> 8;
+            LOG(LOG_NORMAL, (" The load address is $%04X.\n", load_addr));
         }
+        else
+        {
+            LOG(LOG_NORMAL, (" No load address is used.\n", load_addr));
+        }
+
+        LOG(LOG_NORMAL, (" Literal sequences are %sused and",
+                         info->literal_sequences_used ? "" : "not "));
+        LOG(LOG_NORMAL, (" the safety offset is %d.\n",
+                         info->needed_safety_offset));
     }
 
     write_file(flags->outfile, out);
@@ -543,7 +575,6 @@ get_target_info(int target)
 void sfx(const char *appl, int argc, char *argv[])
 {
     int in_load;
-    int decr_effect_off = 0;
     int basic_txt_start = -1;
     int basic_var_start = -1;
     int basic_highest_addr = -1;
@@ -557,14 +588,15 @@ void sfx(const char *appl, int argc, char *argv[])
     struct crunch_info info[1];
 
     struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
-    struct common_flags flags[1] = {{options, DEFAULT_OUTFILE}};
+    struct common_flags flags[1] = {{NULL, DEFAULT_OUTFILE}};
     const struct target_info *targetp;
 
     struct membuf buf1[1];
 
     struct membuf *in;
     struct membuf *out;
-;
+
+    flags->options = options;
 
     if(argc <= 1)
     {
@@ -648,16 +680,13 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "nD:t:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "D:t:%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch(c)
         {
-        case 'n':
-            decr_effect_off = 1;
-            break;
         case 't':
             if (str_to_int(flagarg, &decr_target) != 0 ||
                 get_target_info(decr_target) == NULL)
@@ -698,6 +727,12 @@ void sfx(const char *appl, int argc, char *argv[])
         default:
             handle_shared_flags(c, flagarg, print_sfx_usage, appl, flags);
         }
+    }
+
+    if(find_symref("i_config_effect", NULL) == NULL)
+    {
+        /* if no effect is given, default to effect 0 */
+        new_symbol("i_config_effect", 0);
     }
 
     membuf_init(buf1);
@@ -757,7 +792,7 @@ void sfx(const char *appl, int argc, char *argv[])
     LOG(LOG_NORMAL, (" Target is self-decrunching %s executable", targetp->model));
     if(sys_addr == -1)
     {
-        sys_addr = find_sys((char*) membuf_get(in) +
+        sys_addr = find_sys((unsigned char*)membuf_get(in) +
                             basic_txt_start - in_load);
         if(sys_addr < 0)
         {
@@ -849,6 +884,7 @@ main(int argc, char *argv[])
     /* init logging */
     LOG_INIT_CONSOLE(LOG_NORMAL);
 
+    appl = fixup_appl(argv[0]);
     if(argc < 2)
     {
         /* missing required command */
@@ -858,7 +894,6 @@ main(int argc, char *argv[])
         print_usage(appl, LOG_ERROR);
         exit(-1);
     }
-    appl = fixup_appl(argv[0]);
     ++argv;
     --argc;
     if(strcmp(argv[0], "level") == 0)
