@@ -1,7 +1,7 @@
 
 #include "progress.h"
 #include "log.h"
-
+#include <string.h>
 
 void progress_init(struct progress p[1], char *msg, int start, int end)
 {

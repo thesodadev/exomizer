@@ -45,7 +45,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
     struct progress prog[1];
     static struct membuf backing[1] = { STATIC_MEMBUF_INIT };
     static search_node *snp_arr;
-    const_matchp mp;
+    const_matchp mp = NULL;
     search_nodep snp;
     search_nodep best_copy_snp;
     int best_copy_len;

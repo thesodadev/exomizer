@@ -74,7 +74,6 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
                     int max_offset)
 {
     struct match_node *np;
-    struct chunkpool map_pool[1];
     struct progress prog[1];
 
     int buf_len = membuf_memlen(inbuf);
@@ -88,7 +87,6 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
     ctx->rle_r = calloc(buf_len + 1, sizeof(*ctx->rle_r));
 
     chunkpool_init(ctx->m_pool, sizeof(match));
-    chunkpool_init(map_pool, sizeof(match));
 
     ctx->max_offset = max_offset;
 
@@ -221,7 +219,6 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
     LOG(LOG_NORMAL, ("\n"));
 
     progress_free(prog);
-    chunkpool_free(map_pool);
 }
 
 void match_ctx_free(match_ctx ctx)      /* IN/OUT */
@@ -313,6 +310,7 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
          * > 0 */
         while(len > 1 && buf[pos] == buf[pos + offset])
         {
+#if 1
             int offset1 = ctx->rle_r[pos];
             int offset2 = ctx->rle_r[pos + offset];
             int offset = offset1 < offset2 ? offset1 : offset2;
@@ -322,6 +320,10 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
 
             len -= 1 + offset;
             pos += 1 + offset;
+#else
+            --len;
+            ++pos;
+#endif
         }
         if(len > 1)
         {

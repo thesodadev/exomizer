@@ -75,7 +75,7 @@ chunkpool_malloc(struct chunkpool *ctx)
     if(ctx->chunk_pos == ctx->chunk_max)
     {
 	void *m;
-	if(ctx->chunk == 31)
+	if(ctx->chunk == 63)
 	{
 	    LOG(LOG_ERROR, ("out of chunks in file %s, line %d\n",
 			    __FILE__, __LINE__));
