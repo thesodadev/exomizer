@@ -42,6 +42,8 @@
 
 extern struct membuf prgdecr[];
 
+#define DEFAULT_OUTFILE "a.prg"
+
 static
 FILE *
 open_file(char *name, int *load_addr)
@@ -280,10 +282,231 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     return min_start;
 }
 
+static
+void print_usage(const char *appl, enum log_level level)
+{
+    /* done */
+    LOG(level,
+        ("usage: %s level|mem|sfx [option]... infile[,<address>]...\n"
+         "  see the individual commands for more help.\n",
+         appl));
+}
+
+static
+void print_level_usage(const char *appl, enum log_level level,
+                       const char *default_outfile)
+{
+    /* done */
+    LOG(level,
+        ("usage: %s level [option]... infile[,<address>]...\n"
+         "  The level command generates outfiles that are intended to be decrunched on\n"
+         "  the fly while being read.\n", appl));
+    print_shared_flags(level, default_outfile);
+    LOG(level,
+        (" All infiles are crunched separately and concatenated in the outfile in the\n"
+         " order they are given on the command-line.\n"));
+}
+
+static
+void print_mem_usage(const char *appl, enum log_level level,
+                     const char *default_outfile)
+{
+    /* done */
+    LOG(level,
+        ("usage: %s mem [option]... infile[,<address>]...\n"
+         "  The mem command generates outfiles that are intended to be decrunched from\n"
+         "  memory after being loaded or assembled there.\n", appl));
+    LOG(level,
+        ("  -l <address>  adds load address to the outfile, using \"auto\" as <address>\n"
+         "                will enable load address auto detection.\n"));
+    print_shared_flags(level, default_outfile);
+    LOG(level,
+        (" All infiles are merged into the outfile. They are loaded in the order\n"
+         " they are given on the command-line, from left to right.\n"));
+}
+
+static
+void print_sfx_usage(const char *appl, enum log_level level,
+                     const char *default_outfile)
+{
+    /* done */
+    LOG(level,
+        ("usage: %s sfx basic|sys|<jmpaddress> [option]... infile[,<address>]...\n"
+         "  The sfx command generates outfiles that are intended to decrunch themselves.\n"
+         "  The basic start argument will start a basic program.\n"
+         "  The sys start argument will auto detect the start address by searching the\n"
+         "  basic start for a sys command.\n"
+         "  the <jmpaddress> start argument will jmp to the given address.\n", appl));
+    LOG(level,
+        ("  -t            the decruncher target, must be 20, 23, 52, 55, 4, 64 or 128.\n"
+         "  -D<symbol>=<value>\n"
+         "                predefines symbols for the sfx assembler."));
+    print_shared_flags(level, default_outfile);
+    LOG(level,
+        (" All infiles are merged into the outfile. They are loaded in the order\n"
+         " they are given on the command-line, from left to right.\n"));
+}
+
+void level(const char *appl, int argc, char *argv[])
+{
+    int c;
+    int infilec;
+    char **infilev;
+
+    struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
+    struct common_flags flags[1] = {{options, DEFAULT_OUTFILE}};
+
+    struct membuf in[1];
+    struct membuf out[1];
+
+    LOG(LOG_DUMP, ("flagind %d\n", flagind));
+    while ((c = getflag(argc, argv, SHARED_FLAGS)) != -1)
+    {
+        LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
+        handle_shared_flags(c, flagarg, print_level_usage, appl, flags);
+    }
+
+    membuf_init(in);
+    membuf_init(out);
+
+    infilev = argv + flagind;
+    infilec = argc - flagind;
+
+    if (infilec == 0)
+    {
+        LOG(LOG_ERROR, ("Error: no input files to process.\n"));
+        print_level_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(-1);
+    }
+
+    /* append the files instead of merging them */
+    for(c = 0; c < infilec; ++c)
+    {
+        struct crunch_info info[1];
+        int in_load;
+        int in_len;
+        int out_pos;
+        out_pos = membuf_memlen(out);
+
+        in_load = do_load(infilev[c], in);
+        in_len = membuf_memlen(in);
+        crunch_backwards(in, out, options, info);
+
+        /* append the starting address of decrunching */
+        membuf_append_char(out, (in_load + in_len) & 255);
+        membuf_append_char(out, (in_load + in_len) >> 8);
+
+        /* reverse the just appended segment of the out buffer */
+        reverse_buffer((char*)membuf_get(out) + out_pos,
+                       membuf_memlen(out) - out_pos);
+    }
+
+    write_file(flags->outfile, out);
+
+    membuf_free(out);
+    membuf_free(in);
+}
+
+void mem(const char *appl, int argc, char *argv[])
+{
+    int load_addr = -1;
+    int prepend_load_addr = 0;
+    char flags_arr[32];
+    int c;
+    int infilec;
+    char **infilev;
+
+    struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
+    struct common_flags flags[1] = {{options, DEFAULT_OUTFILE}};
+
+    struct membuf in[1];
+    struct membuf out[1];
+
+    LOG(LOG_DUMP, ("flagind %d\n", flagind));
+    sprintf(flags_arr, "l:%s", SHARED_FLAGS);
+    while ((c = getflag(argc, argv, flags_arr)) != -1)
+    {
+        LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
+        switch(c)
+        {
+        case 'l':
+            prepend_load_addr = 1;
+            if (strcmp(flagarg, "auto") != 0 &&
+                (str_to_int(flagarg, &load_addr) != 0 ||
+                 load_addr < 0 || load_addr >= 65536))
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid address for -l option, "
+                     "must be in the range of [0 - 0xffff]\n"));
+                print_mem_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+                exit(-1);
+            }
+            break;
+        default:
+            handle_shared_flags(c, flagarg, print_mem_usage, appl, flags);
+        }
+    }
+
+    membuf_init(in);
+    membuf_init(out);
+
+    infilev = argv + flagind;
+    infilec = argc - flagind;
+
+    if (infilec == 0)
+    {
+        LOG(LOG_ERROR, ("Error: no input files to process.\n"));
+        print_mem_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(-1);
+    }
+
+    {
+        struct crunch_info info[1];
+        int in_load;
+        int in_len;
+        int safety;
+
+        in_load = do_loads(infilec, infilev, in, -1, NULL);
+        in_len = membuf_memlen(in);
+
+        /* make room for load addr */
+        if(prepend_load_addr)
+        {
+            membuf_append(out, NULL, 2);
+        }
+
+        crunch_backwards(in, out, options, info);
+        safety = info->needed_safety_offset;
+
+        /* append the in_loading address of decrunching */
+        membuf_append_char(out, (in_load + in_len) & 255);
+        membuf_append_char(out, (in_load + in_len) >> 8);
+
+        /* prepend load addr */
+        if(prepend_load_addr)
+        {
+            char *p;
+            if(load_addr < 0)
+            {
+                /* auto load addr specified */
+                load_addr = in_load - safety;
+            }
+            p = membuf_get(out);
+            p[0] = load_addr & 255;
+            p[1] = load_addr >> 8;
+        }
+    }
+
+    write_file(flags->outfile, out);
+
+    membuf_free(out);
+    membuf_free(in);
+}
+
 struct target_info
 {
     int id;
-    int basic_start;
+    int basic_txt_start;
     const char *model;
 };
 
@@ -318,161 +541,120 @@ get_target_info(int target)
     return targetp;
 }
 
-static
-void print_usage(const char *appl, enum log_level level)
+void sfx(const char *appl, int argc, char *argv[])
 {
-    /* done */
-    LOG(level, ("usage: %s [option]... infile[,<address>]...\n", appl));
-    LOG(level,
-        ("  -r            writes the outfile backwards without load address, this is\n"
-         "                suitable for files that are to be decompressed directly\n"
-         "                from disk, can't be combined with -l or -s\n"
-         "  -l <address>  adds load address to the outfile, using \"auto\" as <address>\n"
-         "                will enable load address auto detection, can't be combined\n"
-         "                with -r or -s, default is no load address\n"
-         "  -s <address>  adds basic-line and decruncher that exits with a jmp <address>,\n"));
-    LOG(level,
-        ("                using \"sys\" as <address> will enable basic-sys address auto\n"
-         "                detection, using \"basic\" as <address> will run basic.can't be\n"
-         "                combined with -r or -l\n"
-         "  -t            the decruncher target, must be 20, 23, 52, 55, 4, 64 or 128,\n"
-         "                must be combined with -s\n"));
-    LOG(level,
-        ("  -4            alias for -t4 (deprecated)\n"
-         "  -n            does nothing (deprecated)\n"));
-    print_shared_flags(level);
-    LOG(level,
-        (" All infiles are merged into the outfile. They are loaded in the order\n"
-         " they are given on the command-line, from left to right.\n"));
-}
-
-int
-main(int argc, char *argv[])
-{
-    char flags_arr[32];
-    int reverse = 0;
-    int outstart = -1;
-    int decruncher = 0;
-    int decr_target = 0;
+    int in_load;
     int decr_effect_off = 0;
-    int symbol_arg = 0;
-    int loadaddr = 0;
-    int outload = -1;
-    int c, infilec;
-    char *p;
-    char **infilev;
-    int start;
-    int safety;
-    struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
-    struct common_flags flags[1] = {{options, "a.prg"}};
-
-    struct membuf buf1[1];
-    struct membuf *in;
-    struct membuf *out;
-
-    struct crunch_info info[1];
-    const struct target_info *targetp;
     int basic_txt_start = -1;
     int basic_var_start = -1;
     int basic_highest_addr = -1;
-    int *basic_var_startp;
+    int decr_target = 64;
+    int sys_addr = -1;
+    char flags_arr[32];
+    int c;
+    int infilec;
+    char **infilev;
 
-    const char *appl = fixup_appl(argv[0]);
+    struct crunch_info info[1];
 
-    /* init logging */
-    LOG_INIT_CONSOLE(LOG_NORMAL);
+    struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
+    struct common_flags flags[1] = {{options, DEFAULT_OUTFILE}};
+    const struct target_info *targetp;
 
-    parse_init();
+    struct membuf buf1[1];
+    struct membuf buf2[1];
+
+    struct membuf *in = buf1;
+    struct membuf *out = buf2;
+
+    if(argc <= 1)
+    {
+        LOG(LOG_ERROR, ("Error: no start argument given.\n"));
+        print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(-1);
+    }
+
+    /* required argument: how to start the crunched program */
+    do
+    {
+        char *p = strtok(argv[1], ",");
+        if (strcmp(p, "sys") == 0)
+        {
+            /* we should look for a basic sys command. */
+            sys_addr = -1;
+            p = strtok(NULL, ",");
+            /* look for an optional basic start address */
+            if(p == NULL) break;
+            if(str_to_int(p, &basic_txt_start) != 0)
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid value for the start of basic text "
+                     "address.\n"));
+                print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+                exit(-1);
+            }
+        }
+        else if(strcmp(p, "basic") == 0)
+        {
+            /* we should start a basic program. */
+            sys_addr = -2;
+            p = strtok(NULL, ",");
+            /* look for an optional basic start address */
+            if(p == NULL) break;
+            if(str_to_int(p, &basic_txt_start) != 0)
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid value for the start of basic text "
+                     "address.\n"));
+                print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+                exit(-1);
+            }
+            p = strtok(NULL, ",");
+            /* look for an optional basic end address */
+            if(p == NULL) break;
+            if(str_to_int(p, &basic_var_start) != 0)
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid value for the start of basic "
+                     "variables address.\n"));
+                print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+                exit(-1);
+            }
+            p = strtok(NULL, ",");
+            /* look for an optional highest address used by basic */
+            if(p == NULL) break;
+            if(str_to_int(p, &basic_highest_addr) != 0)
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid value for the highest address used "
+                     "by basic address.\n"));
+                print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+                exit(-1);
+            }
+        }
+        else if(str_to_int(p, &sys_addr) != 0 ||
+                sys_addr < 0 || sys_addr >= 65536)
+        {
+            /* we got an address we should jmp to. */
+            LOG(LOG_ERROR,
+                ("Error: invalid address for -s option, "
+                 "must be in the range of [0 - 0xffff]\n"));
+            print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(-1);
+        }
+    }
+    while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "t:4D:rnl:s:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "t:%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
+        char *p;
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
-        switch (c)
+        switch(c)
         {
-        case 'r':
-            reverse = 1;
-            break;
-        case 'l':
-            loadaddr = 1;
-            if (strcmp(flagarg, "auto") != 0 &&
-                (str_to_int(flagarg, &outload) != 0 ||
-                 outload < 0 || outload >= 65536))
-            {
-                LOG(LOG_ERROR,
-                    ("Error: invalid address for -l option, "
-                     "must be in the range of [0 - 0xffff]\n"));
-                print_usage(appl, LOG_NORMAL);
-                exit(-1);
-            }
-            break;
-        case 's':
-            decruncher = 1;
-            p = strtok((char*)flagarg, ",");
-            if (strcmp(p, "sys") == 0)
-            {
-                outstart = -1;
-                p = strtok(NULL, ",");
-                if(p == NULL) break;
-                if(str_to_int(p, &basic_txt_start) != 0)
-                {
-                    LOG(LOG_ERROR,
-                        ("Error: invalid value for the start of basic text "
-                         "address.\n"));
-                    print_usage(appl, LOG_NORMAL);
-                    exit(-1);
-                }
-            }
-            else if(strcmp(p, "basic") == 0)
-            {
-                outstart = -2;
-                p = strtok(NULL, ",");
-                if(p == NULL) break;
-                if(str_to_int(p, &basic_txt_start) != 0)
-                {
-                    LOG(LOG_ERROR,
-                        ("Error: invalid value for the start of basic text "
-                         "address.\n"));
-                    print_usage(appl, LOG_NORMAL);
-                    exit(-1);
-                }
-                p = strtok(NULL, ",");
-                if(p == NULL) break;
-                if(str_to_int(p, &basic_var_start) != 0)
-                {
-                    LOG(LOG_ERROR,
-                        ("Error: invalid value for the start of basic "
-                         "variables address.\n"));
-                    print_usage(appl, LOG_NORMAL);
-                    exit(-1);
-                }
-                p = strtok(NULL, ",");
-                if(p == NULL) break;
-                if(str_to_int(p, &basic_highest_addr) != 0)
-                {
-                    LOG(LOG_ERROR,
-                        ("Error: invalid value for the highest address used "
-                         "by basic address.\n"));
-                    print_usage(appl, LOG_NORMAL);
-                    exit(-1);
-                }
-            }
-            else if(str_to_int(p, &outstart) != 0 ||
-                    outstart < 0 || outstart >= 65536)
-            {
-                LOG(LOG_ERROR,
-                    ("Error: invalid address for -s option, "
-                     "must be in the range of [0 - 0xffff]\n"));
-                print_usage(appl, LOG_NORMAL);
-                exit(-1);
-            }
-            break;
         case 'n':
             decr_effect_off = 1;
-            break;
-        case '4':
-            decr_target = 4;
             break;
         case 't':
             if (str_to_int(flagarg, &decr_target) != 0 ||
@@ -481,7 +663,7 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid value for -t option, "
                      "must be one of 20, 23, 52, 55, 4, 64 or 128."));
-                print_usage(appl, LOG_NORMAL);
+                print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(-1);
             }
             break;
@@ -494,76 +676,29 @@ main(int argc, char *argv[])
                 {
                     LOG(LOG_ERROR, ("Error: invalid value for -D "
                                     "<symbol>[=<value>] option.\n"));
-                    print_usage(appl, LOG_NORMAL);
+                    print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                     exit(-1);
                 }
                 /* This is ugly, we really should allocate our own
                  * copy of the symbol string. */
                 *p = '\0';
                 new_symbol(flagarg, value);
-                symbol_arg = 1;
             }
             else
             {
                 LOG(LOG_ERROR, ("Error: invalid value for -D "
                                 "<symbol>=<value> option.\n"));
-                print_usage(appl, LOG_NORMAL);
+                print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(-1);
             }
             break;
         default:
-            handle_shared_flags(c, flagarg, print_usage, appl, flags);
+            handle_shared_flags(c, flagarg, print_sfx_usage, appl, flags);
         }
     }
 
-    /* assert option combinations */
-    if (reverse + loadaddr + decruncher > 1)
-    {
-        LOG(LOG_ERROR,
-            ("Error: the -r, -l or -s options can't be combined.\n"));
-        print_usage(appl, LOG_NORMAL);
-        exit(-1);
-    }
-    if (symbol_arg != 0 && !decruncher)
-    {
-        LOG(LOG_ERROR,
-            ("Error: the -D<symbol>=<value> option must be combined "
-             "with -s.\n"));
-        print_usage(appl, LOG_NORMAL);
-        exit(-1);
-    }
-    if (decr_target != 0 && !decruncher)
-    {
-        LOG(LOG_ERROR,
-            ("Error: the -t<target> option must be combined with -s.\n"));
-        print_usage(appl, LOG_NORMAL);
-        exit(-1);
-    }
-    if (decr_effect_off && !decruncher)
-    {
-        LOG(LOG_ERROR,
-            ("Error: the -n option must be combined with -s.\n"));
-        print_usage(appl, LOG_NORMAL);
-        exit(-1);
-    }
-    /* end of option combination assertions */
-
-#if 0
-    LOG(LOG_DEBUG, ("flagind %d\n", flagind));
-    for (c = 0; c < argc; ++c)
-    {
-        if (c == flagind)
-        {
-            LOG(LOG_DEBUG, ("-----------------------\n"));
-        }
-        LOG(LOG_DEBUG, ("argv[%d] = \"%s\"\n", c, argv[c]));
-    }
-    exit(1);
-#endif
-
-    membuf_init(buf1);
-    in = buf1;
-    out = new_named_buffer("crunched_data");
+    membuf_init(in);
+    membuf_init(out);
 
     infilev = argv + flagind;
     infilec = argc - flagind;
@@ -571,130 +706,92 @@ main(int argc, char *argv[])
     if (infilec == 0)
     {
         LOG(LOG_ERROR, ("Error: no input files to process.\n"));
-        print_usage(appl, LOG_NORMAL);
+        print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
         exit(-1);
     }
 
-    if(reverse)
+    targetp = get_target_info(decr_target);
+    if(basic_txt_start == -1)
     {
-        for(c = 0; c <  infilec; ++c)
-        {
-            int start;
-            do_load(infilev[c], in);
-            start = membuf_memlen(out);
-            crunch_backwards(in, out, options, info);
-            p = membuf_get(out);
-            reverse_buffer(p + start, membuf_memlen(out) - start);
-        }
-        goto done;
+        basic_txt_start = targetp->basic_txt_start;
     }
 
-    targetp = NULL;
-    basic_var_startp = NULL;
-    if(decruncher)
     {
-        if(decr_target == 0)
-        {
-            /* if no set, default to 64 */
-            decr_target = 64;
-        }
-        targetp = get_target_info(decr_target);
-        if(outstart < 0)
-        {
-            /* We have a sysfinder or proper basic start, we need
-             * 'start of basic text' default unless its already set. */
-            if(basic_txt_start < 0)
-            {
-                basic_txt_start = targetp->basic_start;
-            }
-        }
-        if(outstart == -2)
-        {
-            /* We have a proper basic start, so we need to find the
-             * 'start of basic variables' inless its already set.*/
-            if(basic_var_start < 0)
-            {
-                basic_var_startp = &basic_var_start;
-            }
-        }
-    }
+        int in_len;
+        int safety;
+        int *basic_var_startp;
 
-    start = do_loads(infilec, infilev, in, basic_txt_start, basic_var_startp);
+        basic_var_startp = NULL;
+        if(basic_var_start == -1)
+        {
+            basic_var_startp = &basic_var_start;
+        }
 
-    if(decruncher)
-    {
-        LOG(LOG_NORMAL, ("self-decrunching %s executable", targetp->model));
-        if(outstart == -1)
-        {
-            outstart = find_sys((char*) membuf_get(in) +
-                                basic_txt_start - start);
-            if(outstart < 0)
-            {
-                LOG(LOG_ERROR, ("\nError: cant find sys address at basic "
-                                "text start ($%04X).\n", basic_txt_start));
-                exit(-1);
-            }
-        }
-        if(outstart != -2)
-        {
-            LOG(LOG_NORMAL, (",\n jmp address $%04X.\n", outstart));
-        }
-        else
-        {
-            LOG(LOG_NORMAL, (",\n basic start ($%04X-$%04X).\n",
-                             basic_txt_start, basic_var_start));
-        }
-    }
+        in_load = do_loads(infilec, infilev, in,
+                           basic_txt_start, basic_var_startp);
+        in_len = membuf_memlen(in);
 
-    if(loadaddr || decruncher)
-    {
+        /* make room for load addr */
         membuf_append(out, NULL, 2);
-    }
 
-    crunch_backwards(in, out, options, info);
-    safety = info->needed_safety_offset;
+        crunch_backwards(in, out, options, info);
+        safety = info->needed_safety_offset;
 
-    LOG(LOG_NORMAL, (" Literal sequences is %sused and",
-                     info->literal_sequences_used ? "" : "not "));
-    LOG(LOG_NORMAL, (" the safety offset is %d.\n", safety));
+        /* append the in_loading address of decrunching */
+        membuf_append_char(out, (in_load + in_len) & 255);
+        membuf_append_char(out, (in_load + in_len) >> 8);
 
-    p = membuf_get(out);
-    if(loadaddr || decruncher)
-    {
-        if(outload < 0)
+        /* prepend load addr */
         {
-            /* now we know the value of the safety */
-            outload = start - safety;
+            char *p;
+            p = membuf_get(out);
+            p[0] = (in_load - safety) & 255;
+            p[1] = (in_load - safety) >> 8;
         }
-        p[0] = outload & 255;
-        p[1] = outload >> 8;
     }
-    start += membuf_memlen(in);
-    membuf_append_char(out, start & 255);
-    membuf_append_char(out, start >> 8);
 
-    if(decruncher)
+    LOG(LOG_NORMAL, ("self-decrunching %s executable", targetp->model));
+    if(sys_addr == -1)
+    {
+        sys_addr = find_sys((char*) membuf_get(in) +
+                            basic_txt_start - in_load);
+        if(sys_addr < 0)
+        {
+            LOG(LOG_ERROR, ("\nError: cant find sys address at basic "
+                            "text start ($%04X).\n", basic_txt_start));
+            exit(-1);
+        }
+    }
+    if(sys_addr != -2)
+    {
+        LOG(LOG_NORMAL, (",\n jmp address $%04X.\n", sys_addr));
+    }
+    else
+    {
+        LOG(LOG_NORMAL, (",\n basic start ($%04X-$%04X).\n",
+                         basic_txt_start, basic_var_start));
+    }
+
     {
         /* add decruncher */
         struct membuf source[1];
 
         membuf_init(source);
-
         decrunch(LOG_DEBUG, prgdecr, source);
 
         in = out;
         out = buf1;
         membuf_clear(out);
 
-        new_symbol("i_start_addr", outstart);
+        new_symbol("i_start_addr", sys_addr);
         /*symbol_dump_resolved(LOG_NORMAL, "i_start_addr");*/
         new_symbol("i_target", decr_target);
         /*symbol_dump_resolved(LOG_NORMAL, "i_target");*/
 
-        if(outstart == -2)
+        if(sys_addr == -2)
         {
             /* only set this if its changed from the default. */
-            if(basic_txt_start != targetp->basic_start)
+            if(basic_txt_start != targetp->basic_txt_start)
             {
                 new_symbol("i_basic_txt_start", basic_txt_start);
                 symbol_dump_resolved(LOG_NORMAL, "i_basic_txt_start");
@@ -732,12 +829,53 @@ main(int argc, char *argv[])
 
         membuf_free(source);
     }
- done:
+
     write_file(flags->outfile, out);
 
-    membuf_free(buf1);
+    membuf_free(out);
+    membuf_free(in);
+}
 
-    parse_free();
+int
+main(int argc, char *argv[])
+{
+    const char *appl;
+
+    /* init logging */
+    LOG_INIT_CONSOLE(LOG_NORMAL);
+
+    if(argc < 2)
+    {
+        /* missing required command */
+        LOG(LOG_ERROR,
+            ("Error: required command is missing, please use level, "
+             "mem or sfx.\n"));
+        print_usage(appl, LOG_ERROR);
+        exit(-1);
+    }
+    appl = fixup_appl(argv[0]);
+    ++argv;
+    --argc;
+    if(strcmp(argv[0], "level") == 0)
+    {
+        level(appl, argc, argv);
+    }
+    else if(strcmp(argv[0], "mem") == 0)
+    {
+        mem(appl, argc, argv);
+    }
+    else if(strcmp(argv[0], "sfx") == 0)
+    {
+        sfx(appl, argc, argv);
+    }
+    else
+    {
+        /* unknown command */
+        LOG(LOG_ERROR,
+            ("Error: unrecognised command, please use level, mem or sfx.\n"));
+        print_usage(appl, LOG_ERROR);
+        exit(-1);
+    }
 
     LOG_FREE;
 

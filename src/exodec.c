@@ -128,7 +128,7 @@ dec_loop(struct dec_ctx *ctx)
             literal = 1;
 
             LOG(LOG_DEBUG, ("[%d] literal copy len %d\n",
-                            membuf_memlen(ctx->outbuf)));
+                            membuf_memlen(ctx->outbuf), len));
 
             goto literal;
         }
@@ -140,8 +140,8 @@ dec_loop(struct dec_ctx *ctx)
         val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
         offset = get_cooked_code_phase2(ctx, val);
 
-        LOG(LOG_DEBUG, ("[%d] sekvens offset = %d, len = %d\n",
-                        membuf_memlen(ctx->outbuf)));
+        LOG(LOG_DEBUG, ("[%d] sequence offset = %d, len = %d\n",
+                        membuf_memlen(ctx->outbuf), offset, len));
 
         src = membuf_memlen(ctx->outbuf) - offset;
 

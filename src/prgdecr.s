@@ -2,6 +2,7 @@
 ; -- i_start_addr, done /* required */
 ; -- i_target, done /* required */
 ; -- i_ram_on_exit, done /* defined if true, otherwise not */
+; -- i_literal_sequences_used, done /* defined if true, otherwise not */
 ; -- i_config_effect, done /* defined if true, 0=lower right, 1=border flash */
 ; -------------------------------------------------------------------
 .IF(!.DEFINED(i_target))

@@ -37,14 +37,18 @@
 #include "exo_helper.h"
 
 static
-void print_usage(const char *appl, enum log_level level)
+void print_usage(const char *appl, enum log_level level,
+                 const char *default_out_name)
 {
     LOG(level, ("usage: %s [option]... infile\n", appl));
     LOG(level,
-        ("  -b           crunch backwards\n"
-         "  -d           decrunch mode\n"));
-    print_shared_flags(level);
+        ("  -b            crunch/decrunch backwards\n"
+         "  -r            write outfile in reverse order\n"
+         "  -d            decrunch (instead of crunch)\n"));
+    print_shared_flags(level, default_out_name);
 }
+
+#define DEFAULT_OUTFILE "a.out"
 
 int
 main(int argc, char *argv[])
@@ -52,11 +56,12 @@ main(int argc, char *argv[])
     char flags_arr[32];
     int decrunch_mode = 0;
     int backwards_mode = 0;
+    int reverse_mode = 0;
     int c, infilec;
     char **infilev;
 
-    struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
-    struct common_flags flags[1] = {{ options, "a.out"}};
+    static struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
+    struct common_flags flags[1] = { {options, DEFAULT_OUTFILE} };
 
     struct membuf inbuf[1];
     struct membuf outbuf[1];
@@ -67,7 +72,7 @@ main(int argc, char *argv[])
     LOG_INIT_CONSOLE(LOG_NORMAL);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "bd%s", SHARED_FLAGS);
+    sprintf(flags_arr, "bdr%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
@@ -75,6 +80,9 @@ main(int argc, char *argv[])
         {
         case 'b':
             backwards_mode = 1;
+            break;
+        case 'r':
+            reverse_mode = 1;
             break;
         case 'd':
             decrunch_mode = 1;
@@ -89,8 +97,8 @@ main(int argc, char *argv[])
 
     if (infilec != 1)
     {
-        LOG(LOG_ERROR, ("error: zero or more than one input file.\n"));
-        print_usage(argv[0], LOG_NORMAL);
+        LOG(LOG_ERROR, ("Error: exactly one input file must be given.\n"));
+        print_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
         exit(-1);
     }
 
@@ -116,10 +124,10 @@ main(int argc, char *argv[])
             seems_forward = 1;
         }
 
-        // do we know what way it was crunched?
+        /* do we know what way it was crunched? */
         if((seems_backward ^ seems_forward) != 0)
         {
-            // yes, override option.
+            /* yes, override option. */
             backwards_mode = seems_backward;
         }
 
@@ -138,18 +146,30 @@ main(int argc, char *argv[])
     }
     else
     {
+        struct crunch_info info[1];
         if(backwards_mode)
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\" "
                              "backwards.\n", infilev[0], flags->outfile));
-            crunch_backwards(inbuf, outbuf, options, NULL);
+            crunch_backwards(inbuf, outbuf, options, info);
         }
         else
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
                              infilev[0], flags->outfile));
-            crunch(inbuf, outbuf, options, NULL);
+            crunch(inbuf, outbuf, options, info);
         }
+
+        LOG(LOG_NORMAL, (" Literal sequences are %sused and",
+                         info->literal_sequences_used ? "" : "not "));
+        LOG(LOG_NORMAL, (" the safety offset is %d.\n",
+                         info->needed_safety_offset));
+
+    }
+
+    if(reverse_mode)
+    {
+        reverse_buffer(membuf_get(outbuf), membuf_memlen(outbuf));
     }
 
     write_file(flags->outfile, outbuf);

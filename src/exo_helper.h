@@ -14,9 +14,10 @@ struct common_flags
 
 #define SHARED_FLAGS "ce:m:o:p:qv"
 
-void print_shared_flags(enum log_level level);
+void print_shared_flags(enum log_level level, const char *default_outfile);
 
-typedef void print_usage_f(const char *appl, enum log_level level);
+typedef void print_usage_f(const char *appl, enum log_level level,
+                           const char *default_outfile);
 
 void handle_shared_flags(int flag_char, /* IN */
                          const char *flag_arg, /* IN */

@@ -350,7 +350,7 @@ optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
     return inp;
 }
 
-static const char *export_helper(interval_nodep np)
+static const char *export_helper(interval_nodep np, int depth)
 {
     static char buf[20];
     char *p = buf;
@@ -358,6 +358,11 @@ static const char *export_helper(interval_nodep np)
     {
         p += sprintf(p, "%X", np->bits);
         np = np->next;
+        --depth;
+    }
+    while(depth-- > 0)
+    {
+        p += sprintf(p, "0");
     }
     return buf;
 }
@@ -371,10 +376,10 @@ const char *optimal_encoding_export(encode_match_data emd)
 
     data = emd->priv;
     offsets = (interval_nodep*)data->offset_f_priv;
-    p += sprintf(p, "%s", export_helper((interval_nodep)data->len_f_priv));
-    p += sprintf(p, ",%s", export_helper(offsets[0]));
-    p += sprintf(p, ",%s", export_helper(offsets[1]));
-    p += sprintf(p, ",%s", export_helper(offsets[7]));
+    p += sprintf(p, "%s", export_helper((interval_nodep)data->len_f_priv, 16));
+    p += sprintf(p, ",%s", export_helper(offsets[0], 4));
+    p += sprintf(p, ",%s", export_helper(offsets[1], 16));
+    p += sprintf(p, ",%s", export_helper(offsets[7], 16));
     return buf;
 }
 

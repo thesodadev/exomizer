@@ -404,13 +404,14 @@ void print_license()
          "nor affected by this license in any way.\n"));
 }
 
-void print_shared_flags(enum log_level level)
+void print_shared_flags(enum log_level level, const char *default_outfile)
 {
     LOG(level,
         ("  -c            compatibility mode, disables the use of literal sequences\n"
          "  -e <encoding> uses the given encoding for crunching\n"
          "  -m <offset>   limits the maximum offset size, default is 65535\n"
-         "  -o <outname>  sets the outfile name, default is \"a.prg\"\n"));
+         "  -o <outfile>  sets the outfile name, default is \"%s\"\n",
+         default_outfile));
     LOG(level,
         ("  -p <passes>   limits the number of optimization passes, default is 65535\n"
          "  -q            quiet mode, disables display output\n"
@@ -426,6 +427,7 @@ void handle_shared_flags(int flag_char, /* IN */
                          struct common_flags *flags) /* OUT */
 {
     struct crunch_options *options = flags->options;
+    const char *default_outfile = flags->outfile;
     switch(flag_char)
     {
     case 'c':
@@ -441,7 +443,7 @@ void handle_shared_flags(int flag_char, /* IN */
             LOG(LOG_ERROR,
                 ("Error: invalid offset for -m option, "
                  "must be in the range of [0 - 65535]\n"));
-            print_usage(appl, LOG_NORMAL);
+            print_usage(appl, LOG_NORMAL, default_outfile);
             exit(-1);
         }
         break;
@@ -455,7 +457,7 @@ void handle_shared_flags(int flag_char, /* IN */
             LOG(LOG_ERROR,
                 ("Error: invalid value for -p option, "
                  "must be in the range of [1 - 65535]\n"));
-            print_usage(appl, LOG_NORMAL);
+            print_usage(appl, LOG_NORMAL, default_outfile);
             exit(-1);
         }
         break;
@@ -476,7 +478,7 @@ void handle_shared_flags(int flag_char, /* IN */
             }
             LOG(LOG_ERROR, ("\n"));
         }
-        print_usage(appl, LOG_BRIEF);
+        print_usage(appl, LOG_BRIEF, default_outfile);
         exit(0);
     }
 }

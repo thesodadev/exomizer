@@ -101,7 +101,7 @@ int membuf_flip(struct membuf *sb, int pos)
     }
     if(pos != sb->len)
     {
-        memmove(sb->buf, sb->buf + pos, sb->len - pos);
+        memmove(sb->buf, (char*)sb->buf + pos, sb->len - pos);
     }
     sb->len -= pos;
     return sb->len;
