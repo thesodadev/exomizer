@@ -36,7 +36,8 @@
 #include "output.h"
 #include "getflag.h"
 #include "membuf_io.h"
-#include "sfx_config.h"
+#include "exo_helper.h"
+#include "parse.h"
 #include "named_buffer.h"
 
 extern struct membuf prgdecr[];
@@ -170,28 +171,35 @@ static void load_prg(char *filename, char mem[65536],
 static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
-         const struct sfx_config *sfx, int *basic_end)
+         int basic_txt_start, int *basic_var_startp)
 {
     int min_start = 65537;
     int max_end = -1;
+    int basic_code = 0;
     int i;
-    char *p;
+    unsigned char *p;
 
     membuf_clear(mem);
     membuf_append(mem, NULL, 65536);
+    p = membuf_get(mem);
 
     for (i = 0; i < filec; ++i)
     {
-        FILE *in;
         int start, end;
 
-        load_prg(filev[i], membuf_get(mem), &start, &end);
+        load_prg(filev[i], p, &start, &end);
 
-        /* if any file loads to the basic start, then communicate its end */
-        if(sfx != NULL && basic_end != NULL &&
-           start <= sfx->basic_start && end > sfx->basic_start)
+        /* if any file loads to the basic start */
+        if(basic_txt_start >= 0)
         {
-            *basic_end = end;
+            if(start <= basic_txt_start && end > basic_txt_start)
+            {
+                basic_code = 1;
+                if(basic_var_startp != NULL)
+                {
+                    *basic_var_startp = end;
+                }
+            }
         }
 
         if (start < min_start)
@@ -203,12 +211,88 @@ do_loads(int filec, char *filev[], struct membuf *mem,
             max_end = end;
         }
     }
+
+    if(basic_txt_start >= 0 && !basic_code)
+    {
+        /* no program loaded to the basic start */
+        LOG(LOG_ERROR, ("\nError: nothing loaded at the start of basic "
+                        "text address ($%04X).\n",
+                        basic_txt_start));
+        exit(-1);
+    }
+
+    if(basic_code)
+    {
+        int valuepos = basic_txt_start - 1;
+        /* the byte immediatley preceeding the basic start must be 0
+         * for basic to function properly. */
+        if(min_start < valuepos)
+        {
+            /* It not covered by the files to crunch. Since the
+             * default fill value is 0 we don't need to set it but we
+             * need to include that location in the crunch as well. */
+            min_start = valuepos;
+        }
+        else
+        {
+            int value = p[valuepos];
+            /* it has been covered by at least one file. Let's check
+             * if it is zero. */
+            if(value != 0)
+            {
+                /* Hm, its not, danger Will Robinson! */
+                LOG(LOG_WARNING,
+                    ("Warning, basic will probably not work since the value of"
+                     " the location \npreceeding the basic start ($%04X)"
+                     " is not 0 but %d.\n", valuepos, value));
+            }
+        }
+    }
+
     /* move memory to beginning of buffer */
     membuf_truncate(mem, max_end);
     membuf_flip(mem, min_start);
 
     LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ", min_start, max_end));
     return min_start;
+}
+
+struct target_info
+{
+    int id;
+    int basic_start;
+    const char *model;
+};
+
+static
+const struct target_info *
+get_target_info(int target)
+{
+    static const struct target_info targets[] =
+        {
+            {20,  0x1001, "vic20"},
+            {23,  0x0401, "vic20+3kB"},
+            {52,  0x1201, "vic20+32kB"},
+            {55,  0x1201, "vic20+3kB+32kB"},
+            {4,   0x1001, "plus4"},
+            {64,  0x0801, "c64"},
+            {128, 0x1c01, "c128"},
+            {0, 0, NULL}
+        };
+    const struct target_info *targetp;
+    for(targetp = targets; targetp->id != 0; ++targetp)
+    {
+        if(target == targetp->id)
+        {
+            break;
+        }
+        ++targetp;
+    }
+    if(targetp->id == 0)
+    {
+        targetp = NULL;
+    }
+    return targetp;
 }
 
 static
@@ -299,7 +383,6 @@ main(int argc, char *argv[])
     int decr_target = 0;
     int decr_effect_off = 0;
     int symbol_arg = 0;
-    int basic_end = -1;
     int loadaddr = 0;
     int outload = -1;
     int c, infilec;
@@ -307,19 +390,22 @@ main(int argc, char *argv[])
     char **infilev;
     int start;
     int safety;
-    int len;
     int max_offset = 65536;
     int max_passes = 65536;
-    const struct sfx_config *sfx;
 
     struct membuf buf1[1];
     struct membuf *in;
     struct membuf *out;
 
-    /* init logging */
-    LOG_INIT_CONSOLE(LOG_NORMAL);
+    const struct target_info *targetp;
+    int basic_txt_start = -1;
+    int basic_var_start = -1;
+    int basic_highest_addr = -1;
+    int *basic_var_startp;
 
-    sfx = get_sfx_config(64);
+    /* init logging */
+    LOG_INIT_CONSOLE(LOG_DEBUG);
+
     parse_init();
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
@@ -348,7 +434,7 @@ main(int argc, char *argv[])
             break;
         case 'l':
             loadaddr = 1;
-            if (strcmp(flagarg, "auto") != 0 && strcmp(flagarg, "AUTO") != 0 &&
+            if (strcmp(flagarg, "auto") != 0 &&
                 (str_to_int(flagarg, &outload) != 0 ||
                  outload < 0 || outload >= 65536))
             {
@@ -372,9 +458,57 @@ main(int argc, char *argv[])
             break;
         case 's':
             decruncher = 1;
-            if (strcmp(flagarg, "sys") != 0 && strcmp(flagarg, "SYS") != 0 &&
-                (str_to_int(flagarg, &outstart) != 0 ||
-                 outstart < 0 || outstart >= 65536))
+            p = strtok((char*)flagarg, ",");
+            if (strcmp(p, "sys") == 0)
+            {
+                outstart = -1;
+                p = strtok(NULL, ",");
+                if(p == NULL) break;
+                if(str_to_int(p, &basic_txt_start) != 0)
+                {
+                    LOG(LOG_ERROR,
+                        ("Error: invalid value for the start of basic text "
+                         "address.\n"));
+                    print_usage(argv[0], LOG_NORMAL);
+                    exit(-1);
+                }
+            }
+            else if(strcmp(p, "basic") == 0)
+            {
+                outstart = -2;
+                p = strtok(NULL, ",");
+                if(p == NULL) break;
+                if(str_to_int(p, &basic_txt_start) != 0)
+                {
+                    LOG(LOG_ERROR,
+                        ("Error: invalid value for the start of basic text "
+                         "address.\n"));
+                    print_usage(argv[0], LOG_NORMAL);
+                    exit(-1);
+                }
+                p = strtok(NULL, ",");
+                if(p == NULL) break;
+                if(str_to_int(p, &basic_var_start) != 0)
+                {
+                    LOG(LOG_ERROR,
+                        ("Error: invalid value for the start of basic "
+                         "variables address.\n"));
+                    print_usage(argv[0], LOG_NORMAL);
+                    exit(-1);
+                }
+                p = strtok(NULL, ",");
+                if(p == NULL) break;
+                if(str_to_int(p, &basic_highest_addr) != 0)
+                {
+                    LOG(LOG_ERROR,
+                        ("Error: invalid value for the highest address used "
+                         "by basic address.\n"));
+                    print_usage(argv[0], LOG_NORMAL);
+                    exit(-1);
+                }
+            }
+            else if(str_to_int(p, &outstart) != 0 ||
+                    outstart < 0 || outstart >= 65536)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid address for -s option, "
@@ -394,16 +528,14 @@ main(int argc, char *argv[])
             exit(0);
         case '4':
             decr_target = 4;
-            sfx = get_sfx_config(decr_target);
             break;
         case 't':
             if (str_to_int(flagarg, &decr_target) != 0 ||
-                (sfx = get_sfx_config(decr_target)) == NULL)
+                get_target_info(decr_target) == NULL)
             {
                 LOG(LOG_ERROR,
                     ("error: invalid value for -t option, "
-                     "must be one of "));
-                sfx_info_dump(LOG_ERROR);
+                     "must be one of 20, 23, 52, 55, 4, 64 or 128."));
                 print_usage(argv[0], LOG_NORMAL);
                 exit(-1);
             }
@@ -512,30 +644,61 @@ main(int argc, char *argv[])
         exit(-1);
     }
 
-    start = do_loads(infilec, infilev, in, sfx, &basic_end);
+    targetp = NULL;
+    basic_var_startp = NULL;
+    if(decruncher)
+    {
+        if(decr_target == 0)
+        {
+            /* if no set, default to 64 */
+            decr_target = 64;
+        }
+        targetp = get_target_info(decr_target);
+        if(outstart < 0)
+        {
+            /* We have a sysfinder or proper basic start, we need
+             * 'start of basic text' default unless its already set. */
+            if(basic_txt_start < 0)
+            {
+                basic_txt_start = targetp->basic_start;
+            }
+        }
+        if(outstart == -2)
+        {
+            /* We have a proper basic start, so we need to find the
+             * 'start of basic variables' inless its already set.*/
+            if(basic_var_start < 0)
+            {
+                basic_var_startp = &basic_var_start;
+            }
+        }
+    }
+
+    start = do_loads(infilec, infilev, in, basic_txt_start, basic_var_startp);
 
     if(decruncher)
     {
-        LOG(LOG_NORMAL, ("self-decrunching %s executable", sfx->model));
-        if(outstart < 0)
+        LOG(LOG_NORMAL, ("self-decrunching %s executable", targetp->model));
+        if(outstart == -1)
         {
-            if(basic_end < 0)
-            {
-                /* no program loaded to the basic start */
-                LOG(LOG_ERROR, ("\nError: nothing loaded at the basic "
-                                "start address ($%04X).\n",
-                                sfx->basic_start));
-                exit(-1);
-            }
             outstart = find_sys((char*) membuf_get(in) +
-                                sfx->basic_start - start);
+                                basic_txt_start - start);
             if(outstart < 0)
             {
-                LOG(LOG_ERROR, ("\nError: cant find sys address.\n"));
+                LOG(LOG_ERROR, ("\nError: cant find sys address at basic "
+                                "text start ($%04X).\n", basic_txt_start));
                 exit(-1);
             }
         }
-        LOG(LOG_NORMAL, (", jmp address $%04X\n", outstart));
+        if(outstart != -2)
+        {
+            LOG(LOG_NORMAL, (",\n jmp address $%04X.\n", outstart));
+        }
+        else
+        {
+            LOG(LOG_NORMAL, (",\n basic start ($%04X-$%04X).\n",
+                             basic_txt_start, basic_var_start));
+        }
     }
 
     if(loadaddr || decruncher)
@@ -585,6 +748,27 @@ main(int argc, char *argv[])
         new_symbol("i_target", decr_target);
         /*symbol_dump_resolved(LOG_NORMAL, "i_target");*/
 
+        if(outstart == -2)
+        {
+            /* only set this if its changed from the default. */
+            if(basic_txt_start != targetp->basic_start)
+            {
+                new_symbol("i_basic_txt_start", basic_txt_start);
+                symbol_dump_resolved(LOG_NORMAL, "i_basic_txt_start");
+            }
+            /* only set this if we've been given a value for it. */
+            if(basic_var_start != -1)
+            {
+                new_symbol("i_basic_var_start", basic_var_start);
+                symbol_dump_resolved(LOG_NORMAL, "i_basic_var_start");
+            }
+            /* only set this if we've been given a value for it. */
+            if(basic_highest_addr != -1)
+            {
+                new_symbol("i_basic_highest_addr", basic_highest_addr);
+                symbol_dump_resolved(LOG_NORMAL, "i_basic_highest_addr");
+            }
+        }
         /* new_symbol("i_ram_on_exit", 1);
            symbol_dump_resolved(LOG_NORMAL, "i_ram_on_exit"); */
 

@@ -170,12 +170,12 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
             np->next = NULL;
             rle_map[rle_len] = 1;
 
-            LOG(LOG_DEBUG, ("0) c = %d, added np idx %d -> %d\n", c, i, 0));
+            LOG(LOG_DUMP, ("0) c = %d, added np idx %d -> %d\n", c, i, 0));
 
             /* if we have a previous entry, let's chain it together */
             if(prev_np != NULL)
             {
-                LOG(LOG_DEBUG, ("1) c = %d, pointed np idx %d -> %d\n",
+                LOG(LOG_DUMP, ("1) c = %d, pointed np idx %d -> %d\n",
                                 c, prev_np->index, i));
                 prev_np->next = np;
             }
@@ -315,12 +315,12 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
             break;
         }
 
-        LOG(LOG_DEBUG, ("find lengths for index %d to index %d\n",
+        LOG(LOG_DUMP, ("find lengths for index %d to index %d\n",
                         index, np->index));
 
         /* get match len */
         mp_len = mp->offset > 0 ? mp->len : 0;
-        LOG(LOG_DEBUG, ("0) comparing with current best [%d] off %d len %d\n",
+        LOG(LOG_DUMP, ("0) comparing with current best [%d] off %d len %d\n",
                         index, mp->offset, mp_len));
 
         offset = np->index - index;
@@ -337,7 +337,7 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
             int offset2 = ctx->rle_r[pos + offset];
             int offset = offset1 < offset2 ? offset1 : offset2;
 
-            LOG(LOG_DEBUG, ("1) compared sucesssfully [%d] %d %d\n",
+            LOG(LOG_DUMP, ("1) compared sucesssfully [%d] %d %d\n",
                             index, pos, pos + offset));
 
             len -= 1 + offset;
@@ -365,7 +365,7 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
         pos = index - len;
         while(pos >= 0 && buf[pos] == buf[pos + offset])
         {
-            LOG(LOG_DEBUG, ("2) compared sucesssfully [%d] %d %d\n",
+            LOG(LOG_DUMP, ("2) compared sucesssfully [%d] %d %d\n",
                             index, pos, pos + offset));
             ++len;
             --pos;

@@ -5,7 +5,7 @@
 #CFLAGS = -Wall -O3 -ffast-math -mtune=i686 -fomit-frame-pointer -fgcse -pedantic
 #LDFLAGS = -s
 
-CFLAGS = -g -pg -mtune=i686
+CFLAGS = -g -pg -mtune=i686 -Wall
 LDFLAGS = -g -pg -mtune=i686
 
 SHARED_OBJS = getflag.o log.o membuf.o
@@ -13,8 +13,7 @@ RAW_OBJS = match.o search.o exo_raw.o optimal.o output.o membuf_io.o \
            chunkpool.o radix.o exo_helper.o exodec.o progress.o
 EXO_OBJS = match.o search.o exo_main.o optimal.o output.o membuf_io.o \
            chunkpool.o radix.o exo_helper.o exodec.o progress.o asm.tab.o \
-           lex.yy.o parse.o expr.o pc.o vec.o sfx_config.o named_buffer.o \
-           prgdecr.o
+           lex.yy.o parse.o expr.o pc.o vec.o named_buffer.o prgdecr.o
 BAS_OBJS = bas_main.o bprg_renumber.o bprg_link_patch.o bprg_trampoline.o \
            bprg.o vec.o
 ALL_OBJS = $(EXO_OBJS) $(RAW_OBJS) $(BAS_OBJS) $(SHARED_OBJS)

@@ -164,7 +164,7 @@ y		return Y;
 <SKIP_ALL>\r\n|\n	++num_lines;
 <SKIP_ALL>.
 
-<QUOTED_STRING>[^\"\r\n]*	{
+<QUOTED_STRING>[^\"]*	{
     yylval.str = strdupped_get(yytext);
     return STRING;
 }

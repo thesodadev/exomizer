@@ -364,7 +364,7 @@ static const char *export_helper(interval_nodep np)
 
 const char *optimal_encoding_export(encode_match_data emd)
 {
-    interval_nodep np, *offsets;
+    interval_nodep *offsets;
     static char buf[100];
     char *p = buf;
     encode_match_privp data;

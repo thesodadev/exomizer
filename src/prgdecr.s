@@ -45,7 +45,7 @@
   i_effect_char    = $07e7
   i_effect_color   = $dbe7
 .ELIF(i_target == 128)
-  i_basic_start    = $0801
+  i_basic_start    = $1c01
   i_end_of_mem_ram = $ffef
   i_end_of_mem_rom = $3fff
   i_effect_char    = $07e7
@@ -64,6 +64,10 @@ i_table_addr = $0334
 
 .IF(!.DEFINED(i_start_addr))
   .ERROR("Required symbol i_start_addr not defined.")
+.ENDIF
+
+.IF(i_start_addr == 0 && .DEFINED(i_ram_on_exit))
+  .ERROR("Basic start and ram on exit can't be combined.")
 .ENDIF
 
 i_safety_addr = .INCWORD("crunched_data", 0)
@@ -87,6 +91,72 @@ start_of_decrunchable_mem = i_table_addr + 156
 .IF(i_highest_addr > i_end_of_mem_rom || .DEFINED(i_ram_on_exit))
 config_ram_while_decrunch = 1
 .ENDIF
+; -------------------------------------------------------------------
+; -- The decruncher exit macro definition ---------------------------
+; -------------------------------------------------------------------
+.MACRO("run")
+  .IF(i_start_addr == -2)
+    .IF(i_target == 128)
+      .IF(.DEFINED(i_basic_txt_start))
+	lda #i_basic_txt_start % 256
+	sta <$2d
+	lda #i_basic_txt_start / 256
+	sta <$2e
+      .ENDIF
+      .IF(.DEFINED(i_basic_var_start))
+	lda #i_basic_var_start % 256
+	sta $1210
+	lda #i_basic_var_start / 256
+	sta $1211
+      .ENDIF
+      .IF(.DEFINED(i_basic_highest_addr))
+	lda #i_basic_highest_addr % 256
+	sta $1212
+	lda #i_basic_highest_addr / 256
+	sta $1213
+      .ENDIF
+    .ELSE
+      .IF(.DEFINED(i_basic_txt_start))
+	lda #i_basic_txt_start % 256
+	sta <$2b
+	lda #i_basic_txt_start / 256
+	sta <$2c
+      .ENDIF
+      .IF(.DEFINED(i_basic_var_start))
+	lda #i_basic_var_start % 256
+	sta <$2d
+	lda #i_basic_var_start / 256
+	sta <$2e
+      .ENDIF
+      .IF(.DEFINED(i_basic_highest_addr))
+	lda #i_basic_highest_addr % 256
+	sta <$37
+	lda #i_basic_highest_addr / 256
+	sta <$38
+      .ENDIF
+    .ENDIF
+    .IF(i_target == 20 || i_target == 23 || i_target == 52 || i_target == 55)
+	jsr $c659		; init
+	jsr $c533		; regenerate line links and set $2d/$2e
+	jmp $c7ae		; start
+    .ELIF(i_target == 4)
+	jsr $8bbe		; init
+	jsr $8818		; regenerate line links and set $2d/$2e
+	jsr $f3b5		; regen color table at $0113
+	jmp $8bdc		; start
+    .ELIF(i_target == 64)
+	jsr $a659		; init
+	jsr $a533		; regenerate line links and set $2d/$2e
+	jmp $a7ae		; start
+    .ELIF(i_target == 128)
+	jsr $5ab5		; init
+	jsr $4f4f		; regenerate line links and set $1210/$1211
+	jmp $4af6		; start
+    .ENDIF
+  .ELSE
+	jmp i_start_addr
+  .ENDIF
+.ENDMACRO
 ; -------------------------------------------------------------------
 ; -- The decrunch effect macro definition ---------------------------
 ; -------------------------------------------------------------------
@@ -425,7 +495,7 @@ skipcarry:
 	bcc copy_start
 decr_exit:
 	.INCLUDE("d2r")
-	jmp i_start_addr
+	.INCLUDE("run")
 ; -------------------------------------------------------------------
 ; two small static tables (6 bytes)
 ;
