@@ -16,10 +16,13 @@ int crunch(struct membuf *inbuf,
            int max_passes,
            int max_offset);
 
-void decrunch(struct membuf *inbuf,
+void decrunch(int level,
+              struct membuf *inbuf,
               struct membuf *outbuf);
 
-void decrunch_backwards(struct membuf *inbuf,
+void decrunch_backwards(int level,
+                        struct membuf *inbuf,
                         struct membuf *outbuf);
 
+void reverse_buffer(char *start, int len);
 #endif

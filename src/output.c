@@ -34,20 +34,13 @@
 void output_ctx_init(output_ctx ctx, struct membuf *out)    /* IN/OUT */
 {
     ctx->bitbuf = 1;
-    ctx->pos = 0;
-    ctx->start = 0;
+    ctx->pos = membuf_memlen(out);
     ctx->buf = out;
 }
 
 unsigned int output_get_pos(output_ctx ctx)     /* IN */
 {
     return ctx->pos;
-}
-
-void output_set_pos(output_ctx ctx,     /* IN */
-                    unsigned int pos)   /* IN */
-{
-    ctx->pos = pos;
 }
 
 void output_byte(output_ctx ctx,        /* IN/OUT */

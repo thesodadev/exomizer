@@ -45,9 +45,6 @@ void output_ctx_init(output_ctx ctx, struct membuf *out);   /* IN/OUT */
 
 unsigned int output_get_pos(output_ctx ctx);    /* IN */
 
-void output_set_pos(output_ctx ctx,     /* IN */
-                    unsigned int pos);  /* IN */
-
 void output_byte(output_ctx ctx,        /* IN/OUT */
                  unsigned char byte);   /* IN */
 

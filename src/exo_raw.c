@@ -207,7 +207,7 @@ main(int argc, char *argv[])
     {
         LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\".\n",
                          infilev[0], outfile));
-        decrunch(inbuf, outbuf);
+        decrunch(LOG_NORMAL, inbuf, outbuf);
     }
     else
     {

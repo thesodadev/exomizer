@@ -84,6 +84,29 @@ int membuf_memlen(struct membuf *sb)
     return sb->len;
 }
 
+void membuf_truncate(struct membuf *sb, int len)
+{
+    sb->len = len;
+}
+
+int membuf_flip(struct membuf *sb, int pos)
+{
+    if(pos < 0 || pos > sb->len)
+    {
+        return -1;
+    }
+    if(pos == 0)
+    {
+        return sb->len;
+    }
+    if(pos != sb->len)
+    {
+        memmove(sb->buf, sb->buf + pos, sb->len - pos);
+    }
+    sb->len -= pos;
+    return sb->len;
+}
+
 void *membuf_memcpy(struct membuf *sb, const void *mem, int len)
 {
     membuf_atleast(sb, len);
@@ -97,7 +120,14 @@ void *membuf_append(struct membuf *sb, const void *mem, int len)
     newlen = sb->len + len;
     membuf_atleast(sb, newlen);
     p = (char *) sb->buf + sb->len;
-    memcpy(p, mem, len);
+    if(mem == NULL)
+    {
+        memset(p, 0, len);
+    }
+    else
+    {
+        memcpy(p, mem, len);
+    }
     sb->len = newlen;
     return p;
 }

@@ -82,7 +82,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         float prev_score;
         float prev_offset_sum;
 
-#define COPY
+#undef COPY
 #ifdef COPY
         /* check if we can do even better with copy */
         snp = snp_arr[len];

@@ -225,7 +225,10 @@ int crunch_backwards(struct membuf *inbuf,
     static match_ctx ctx;
     encode_match_data emd;
     search_nodep snp;
+    int outlen;
+    int safety;
 
+    outlen = membuf_memlen(outbuf);
     emd->out = NULL;
     optimal_init(emd);
 
@@ -251,18 +254,18 @@ int crunch_backwards(struct membuf *inbuf,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
     LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
-    do_output(ctx, snp, emd, optimal_encode, outbuf);
-    LOG(LOG_NORMAL, (" Length of outdata: %d bytes.\n",
-                     membuf_memlen(outbuf)));
+    safety = do_output(ctx, snp, emd, optimal_encode, outbuf);
+    LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n",
+                     membuf_memlen(outbuf) - outlen));
 
     optimal_free(emd);
     search_node_free(snp);
     match_ctx_free(ctx);
 
-    return 0;
+    return safety;
 }
 
-static void reverse(char *start, int len)
+void reverse_buffer(char *start, int len)
 {
     char *end = start + len - 1;
     char tmp;
@@ -286,39 +289,41 @@ int crunch(struct membuf *inbuf,
 {
     int ret;
     int outpos;
-    reverse(membuf_get(inbuf), membuf_memlen(inbuf));
+    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     outpos = membuf_memlen(outbuf);
 
     ret = crunch_backwards(inbuf, outbuf, exported_encoding,
                            max_passes, max_offset);
 
-    reverse(membuf_get(inbuf), membuf_memlen(inbuf));
-    reverse((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
+    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
+    reverse_buffer((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
     return ret;
 }
 
-void decrunch(struct membuf *inbuf,
+void decrunch(int level,
+              struct membuf *inbuf,
               struct membuf *outbuf)
 {
     struct dec_ctx ctx[1];
     char *enc;
     enc = dec_ctx_init(ctx, inbuf, outbuf);
 
-    LOG(LOG_NORMAL, (" Encoding: %s\n", enc));
+    LOG(level, (" Encoding: %s\n", enc));
 
     dec_ctx_decrunch(ctx);
     dec_ctx_free(ctx);
 }
 
-void decrunch_backwards(struct membuf *inbuf,
+void decrunch_backwards(int level,
+                        struct membuf *inbuf,
                         struct membuf *outbuf)
 {
     int outpos;
-    reverse(membuf_get(inbuf), membuf_memlen(inbuf));
+    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     outpos = membuf_memlen(outbuf);
 
-    decrunch(inbuf, outbuf);
+    decrunch(level, inbuf, outbuf);
 
-    reverse(membuf_get(inbuf), membuf_memlen(inbuf));
-    reverse((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
+    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
+    reverse_buffer((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
 }
