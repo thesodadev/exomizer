@@ -1,14 +1,25 @@
-2004-04-13
+2004-05-29
 ----------
 1.1.4 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
++ added a section in the documentation about a fix for c16/+4 color corruption
+  after decrunch.
++ changed the noeffect decruncher for c16/+4 to allow decruncing of data
+  occupying $0400-$fcff.
++ added a contrib directory for distribution of contributed related material.
+  First out is Ninja/The Dreams with the source code to a very size-optimized
+  c64 decruncher for 4k-demos or similar usage where every byte counts. Please
+  see the "exo-4k.asm" file for information about how to use it.
++ normal decruncher source (exodecrunch.s) is now shorter and faster. Thanks to
+  Ninja/The Dreams for suggesting some of the changes.
 + the flag -l now also accepts the string auto as an argument. Giving this
   string results in that the cruncher will use the address of the infile with
   the lowest address decreased by the calculated minimum safety margin. Thanks
   to Ninja/The Dreams for suggesting this feature.
-+ normal decruncher source (exodecrunch.s) reworked  and just like the stream
++ normal decruncher source (exodecrunch.s) reworked and just like the stream
   decrunchers there's an example application for it included. All decruncher
   sourcecode + examples are located in the 'decruncher' directory and have been
   updated to work with the cc65 2.10 toolchain and gnu make.
++ fix some additional spelling errors.
 
 2003-08-21
 ----------

@@ -176,6 +176,13 @@ Is it possible to crunch a basic program and then start it?
   address used by basic" ($37/$38) as well.
 
 
+Why are the colors wrong after decrunching on the c16/+4?
+
+  The c16/+4 decruncher overwrites the Color/luminance table at $0113-$0123. A
+  "jsr $F3B5" at the beginnig of the basic trampoline or in the beginning of
+  the program will restore the table to the system default.
+
+
 How much overhead does the builtin decruncher add to a file?
 
   These numbers compares resulting file sizes when crunching a file with the

@@ -30,7 +30,7 @@
 #include "log.h"
 #include "output.h"
 
-#define DECOMP_MIN_ADDR 0x0c00
+#define DECOMP_MIN_ADDR 0x0400
 #define DECOMP_SAFETY 24
 #define DECOMP_LEN 0xb4
 

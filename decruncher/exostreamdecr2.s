@@ -63,7 +63,7 @@
 .export get_decrunched_chunk
 
 ; -------------------------------------------------------------------
-; zero page adresses used
+; zero page addresses used
 ; -------------------------------------------------------------------
 zp_src_lo = $a7
 zp_src_hi = zp_src_lo + 1
@@ -90,7 +90,7 @@ tabl_hi = decrunch_table + 104
 ; no code below this comment has to be modified in order to generate
 ; a working decruncher of this source file.
 ; However, you may want to relocate the tables last in the file to a
-; more suitable adress.
+; more suitable address.
 ; -------------------------------------------------------------------
 
 ; -------------------------------------------------------------------

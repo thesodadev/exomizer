@@ -39,15 +39,14 @@
 .export decrunch
 
 ; -------------------------------------------------------------------
-; zero page adresses used
+; zero page addresses used
 ; -------------------------------------------------------------------
 zp_len_lo = $a7
 
 zp_src_lo  = $ae
 zp_src_hi  = zp_src_lo + 1
 
-zp_bits_lo = $fb
-zp_bits_hi = zp_bits_lo + 1
+zp_bits_hi = $fc
 
 zp_bitbuf  = $fd
 zp_dest_lo = zp_bitbuf + 1	; dest addr lo
@@ -61,7 +60,7 @@ tabl_hi = decrunch_table + 104
 ; no code below this comment has to be modified in order to generate
 ; a working decruncher of this source file.
 ; However, you may want to relocate the tables last in the file to a
-; more suitable adress.
+; more suitable address.
 ; -------------------------------------------------------------------
 
 ; -------------------------------------------------------------------
@@ -81,7 +80,7 @@ init_zp:
 	dex
 	bne init_zp
 ; -------------------------------------------------------------------
-; calculate tables (49 bytes)
+; calculate tables (50 bytes)
 ; x and y must be #0 when entering
 ;
 nextone:
@@ -92,7 +91,7 @@ nextone:
 
 	txa			; this clears reg a
 	lsr a			; and sets the carry flag
-	ldx zp_bits_lo
+	ldx tabl_bi-1,y
 rolle:
 	rol a
 	rol zp_bits_hi
@@ -118,12 +117,7 @@ shortcut:
 	ldy #0
 	beq begin
 ; -------------------------------------------------------------------
-; get x + 1 bits (1 byte)
-;
-get_bit1:
-	inx
-; -------------------------------------------------------------------
-; get bits (31 bytes)
+; get bits (29 bytes)
 ;
 ; args:
 ;   x = number of bits to get
@@ -139,23 +133,24 @@ get_bit1:
 ; -------------------------------------------------------------------
 get_bits:
 	lda #$00
-	sta zp_bits_lo
 	sta zp_bits_hi
 	cpx #$01
 	bcc bits_done
-	lda zp_bitbuf
 bits_next:
-	lsr a
+	lsr zp_bitbuf
 	bne ok
+	pha
+literal_get_byte:
 	jsr get_crunched_byte
+	bcc literal_byte_gotten
 	ror a
+	sta zp_bitbuf
+	pla
 ok:
-	rol zp_bits_lo
+	rol a
 	rol zp_bits_hi
 	dex
 	bne bits_next
-	sta zp_bitbuf
-	lda zp_bits_lo
 bits_done:
 	rts
 ; -------------------------------------------------------------------
@@ -168,49 +163,51 @@ copy_next_hi:
 copy_next:
 	dey
 	lda (zp_src_lo),y
-literal_entry:
+literal_byte_gotten:
 	sta (zp_dest_lo),y
 copy_start:
 	tya
 	bne copy_next
+begin:
 	txa
 	bne copy_next_hi
 ; -------------------------------------------------------------------
-; decruncher entry point, needs calculated tables (5 bytes)
+; decruncher entry point, needs calculated tables (15 bytes)
 ; x and y must be #0 when entering
 ;
-begin:
-	jsr get_bit1
-	beq sequence
-; -------------------------------------------------------------------
-; literal handling (13 bytes)
-;
-literal_start:
-	lda zp_dest_lo
-	bne avoid_hi
-	dec zp_dest_hi
-avoid_hi:
-	dec zp_dest_lo
-	jsr get_crunched_byte
-	bcc literal_entry
-; -------------------------------------------------------------------
-; count zero bits + 1 to get length table index (10 bytes)
-; y = x = 0 when entering
-;
-sequence:
-next1:
+	dey
+begin2:
+	inx
+	jsr bits_next
+	lsr a
 	iny
-	jsr get_bit1
-	beq next1
+	bcc begin2
+	beq literal_start
 	cpy #$11
 	bcs bits_done
 ; -------------------------------------------------------------------
-; calulate length of sequence (zp_len) (17 bytes)
+; calulate length of sequence (zp_len) (11 bytes)
 ;
 	ldx tabl_bi - 1,y
 	jsr get_bits
-	adc tabl_lo - 1,y
+	adc tabl_lo - 1,y	; we have now calculated zp_len_lo ,c = 0
 	sta zp_len_lo
+; -------------------------------------------------------------------
+; Here we do the dest_lo -= len_lo subtraction to prepare zp_dest
+; but we do it backwards:	a == (a - 1) ^ ~0 (C-syntax)
+; (14 bytes)
+literal_start:			; literal enters here with y = 0, c = 1
+	sbc zp_dest_lo
+	bcc noborrow
+	dec zp_dest_hi
+noborrow:
+	eor #$ff
+	sta zp_dest_lo
+	cpy #$01		; y < 1 then literal
+	bcc literal_get_byte
+; -------------------------------------------------------------------
+; now do the hibyte of the sequence length calculation (6 bytes)
+	clc
 	lda zp_bits_hi
 	adc tabl_hi - 1,y
 	pha
@@ -228,17 +225,7 @@ size123:
 	ldx tabl_bit - 1,y
 	jsr get_bits
 	adc tabl_off - 1,y
-	tay
-; -------------------------------------------------------------------
-; prepare zp_dest (11 bytes)
-;
-	sec
-	lda zp_dest_lo
-	sbc zp_len_lo
-	sta zp_dest_lo
-	bcs noborrow
-	dec zp_dest_hi
-noborrow:
+	tay			; 1 <= y <= 50 here
 ; -------------------------------------------------------------------
 ; calulate absolute offset (zp_src) (27 bytes)
 ;
@@ -258,9 +245,9 @@ skipcarry:
 ; -------------------------------------------------------------------
 ; prepare for copy loop (6 bytes)
 ;
-	ldy zp_len_lo
 	pla
 	tax
+	ldy zp_len_lo
 	bcc copy_start
 ; -------------------------------------------------------------------
 ; two small static tables (6 bytes)
