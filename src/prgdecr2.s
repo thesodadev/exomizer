@@ -4,6 +4,7 @@
 ; -- i_ram_on_exit, done /* defined if true, otherwise not */
 ; -- i_literal_sequences_used, done /* defined if true, otherwise not */
 ; -- i_config_effect, done /* defined if true, 0=lower right, 1=border flash */
+; -- i_fast_effect, done /* defined if true, otherwise not */
 ; -------------------------------------------------------------------
 .IF(!.DEFINED(i_target))
   .ERROR("Required symbol i_target_addr not defined.")
@@ -11,44 +12,44 @@
 
 .IF(i_target == 20)
   i_basic_start    = $1001
-  i_end_of_mem_ram = $1fff
-  i_end_of_mem_rom = $1fff
+  i_end_of_mem_ram = $2000
+  i_end_of_mem_rom = $2000
   i_effect_char    = $1ff9
   i_effect_color   = $97f9
 .ELIF(i_target == 23)
   i_basic_start    = $0401
-  i_end_of_mem_ram = $1fff
-  i_end_of_mem_rom = $1fff
+  i_end_of_mem_ram = $2000
+  i_end_of_mem_rom = $2000
   i_effect_char    = $1ff9
   i_effect_color   = $97f9
 .ELIF(i_target == 52)
   i_basic_start    = $1201
-  i_end_of_mem_ram = $7fff
-  i_end_of_mem_rom = $7fff
+  i_end_of_mem_ram = $8000
+  i_end_of_mem_rom = $8000
   i_effect_char    = $11f9
   i_effect_color   = $95f9
 .ELIF(i_target == 55)
   i_basic_start    = $1201
-  i_end_of_mem_ram = $7fff
-  i_end_of_mem_rom = $7fff
+  i_end_of_mem_ram = $8000
+  i_end_of_mem_rom = $8000
   i_effect_char    = $11f9
   i_effect_color   = $95f9
 .ELIF(i_target == 4)
   i_basic_start    = $1001
-  i_end_of_mem_ram = $fcff
-  i_end_of_mem_rom = $3fff
+  i_end_of_mem_ram = $fd00
+  i_end_of_mem_rom = $4000
   i_effect_char    = $0fe7
   i_effect_color   = $0be7
 .ELIF(i_target == 64)
   i_basic_start    = $0801
-  i_end_of_mem_ram = $ffff
-  i_end_of_mem_rom = $9fff
+  i_end_of_mem_ram = $10000
+  i_end_of_mem_rom = $a000
   i_effect_char    = $07e7
   i_effect_color   = $dbe7
 .ELIF(i_target == 128)
   i_basic_start    = $1c01
-  i_end_of_mem_ram = $ffef
-  i_end_of_mem_rom = $3fff
+  i_end_of_mem_ram = $fff0
+  i_end_of_mem_rom = $4000
   i_effect_char    = $07e7
   i_effect_color   = $dbe7
 .ELSE
@@ -72,7 +73,11 @@ i_table_addr = $0334
 .ENDIF
 
 i_safety_addr = .INCWORD("crunched_data", 0)
-i_highest_addr = .INCWORD("crunched_data", -2)
+
+; -------------------------------------------------------------------
+; -- convert $0 to $10000 but leave $1 - $ffff ----------------------
+; -------------------------------------------------------------------
+i_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
 
 	.IF(i_target == 4 && .DEFINED(i_config_effect) &&
 	    i_effect_color > i_table_addr + 156)
@@ -83,7 +88,7 @@ start_of_decrunchable_mem = i_table_addr + 156
 
 	.IF((i_safety_addr < start_of_decrunchable_mem ||
 	     i_highest_addr > i_end_of_mem_ram) &&
-	    ((i_target != 20 && target != 52) ||
+	    ((i_target != 20 && i_target != 52) ||
 	     i_safety_addr < i_bank_ram ||
 	     i_highest_addr > i_bank_rom))
 	  .ERROR("This target can't support the memory demands of the data.")
@@ -169,7 +174,7 @@ config_ram_while_decrunch = 1
     .ELSE
 	stx i_effect_color
     .ENDIF
-  .ELSE
+  .ELIF(i_config_effect == 1)
     .IF(i_target == 20 || i_target == 23 || i_target == 52 || i_target == 55)
 	and #$07
 	ora #$18
@@ -180,6 +185,31 @@ config_ram_while_decrunch = 1
     .ELSE
 	sta $d020
     .ENDIF
+  .ELIF(i_config_effect == 2)
+    .IF(i_target == 20 || i_target == 23 || i_target == 52 || i_target == 55)
+	txa
+	and #$07
+	ora #$18
+	sta $900f
+    .ELIF(i_target == 4)
+	lda <$fd,x
+	sta $ff19
+    .ELSE
+	stx $d020
+    .ENDIF
+  .ELIF(i_config_effect == 3)
+    .IF(i_target == 20 || i_target == 23 || i_target == 52 || i_target == 55)
+	tya
+	and #$07
+	ora #$18
+	sta $900f
+    .ELIF(i_target == 4)
+	sty $ff19
+    .ELSE
+	sty $d020
+    .ENDIF
+  .ELSE
+    .ERROR("Unknown decrunch effect.")
   .ENDIF
 .ENDMACRO
 
@@ -334,7 +364,7 @@ transfer_len = file2start - i_safety_addr
 lowest_addr = i_safety_addr
 	.ENDIF
 	.INCBIN("crunched_data", transfer_len + 2, -2)
-	.WORD(i_highest_addr)
+	.WORD(i_highest_addr % 65536)
 file2end:
 ; -------------------------------------------------------------------
 ; -- end of file part 2 ---------------------------------------------
@@ -353,10 +383,10 @@ stage3start:
 ;   a = #bits_lo
 ;   x = #0
 ;   c = 0
+;   z = 1
 ;   zp_bits_hi = #bits_hi
 ; notes:
 ;   y is untouched
-;   other status bits are set to (a == #0)
 ; -------------------------------------------------------------------
 get_bits:
 	lda #$00
@@ -368,7 +398,7 @@ bits_next:
 	bne ok
 	pha
 literal_get_byte:
-	.IF(.DEFINED(i_config_effect) && i_config_effect == 1)
+	.IF(.DEFINED(i_config_effect) && .DEFINED(i_fast_effect))
 	  .INCLUDE("d2io")
 	  .INCLUDE("effect")
 	  .INCLUDE("io2d")
@@ -376,7 +406,7 @@ literal_get_byte:
 	lda get_byte_fixup + 1
 	bne get_byte_skip_hi
 	dec get_byte_fixup + 2
-	.IF(.DEFINED(i_config_effect)  && i_config_effect != 1)
+	.IF(.DEFINED(i_config_effect) && !.DEFINED(i_fast_effect))
 	  .INCLUDE("d2io")
 	  .INCLUDE("effect")
 	  .INCLUDE("io2d")
@@ -421,15 +451,23 @@ copy_start:
 ; x and y must be #0 when entering
 ;
 begin:
+.IF(.DEFINED(i_literal_sequences_used))
+	inx
+	jsr get_bits
+	tay
+	bne literal_start1
+.ELSE
 	dey
-	sty <zp_len_lo
+.ENDIF
 begin2:
 	inx
 	jsr bits_next
 	lsr
 	iny
 	bcc begin2
+.IF(!.DEFINED(i_literal_sequences_used))
 	beq literal_start
+.ENDIF
 	cpy #$11
 .IF(.DEFINED(i_literal_sequences_used))
 	bcc sequence_start
@@ -439,17 +477,18 @@ begin2:
 ;
 	ldx #$10
 	jsr get_bits
+literal_start1:
 	sta <zp_len_lo
 	ldx <zp_bits_hi
 	ldy #0
 	bcc literal_start
+sequence_start:
 .ELSE
 	bcs decr_exit
 .ENDIF
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (11 bytes)
 ;
-sequence_start:
 	ldx tabl_bi - 1,y
 	jsr get_bits
 	adc tabl_lo - 1,y	; we have now calculated zp_len_lo

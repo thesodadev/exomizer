@@ -3,16 +3,18 @@
 #include "log.h"
 #include <string.h>
 
+#define BAR_LENGTH 64
+
 void progress_init(struct progress p[1], char *msg, int start, int end)
 {
     if(start > end)
     {
-        p->factor = 50.0 / (end - start);
+        p->factor = (float)BAR_LENGTH / (end - start);
         p->offset = -start;
     }
     else
     {
-        p->factor = 50.0 / (start - end);
+        p->factor = (float)BAR_LENGTH / (start - end);
         p->offset = start;
     }
     p->last = -1;
@@ -33,8 +35,7 @@ void progress_bump(struct progress p[1], int pos)
     {
         if(p->last == -1)
         {
-            LOG(LOG_NORMAL,
-                ("                                                    ]\r ["));
+            LOG(LOG_NORMAL, ("  % *s]\r [", BAR_LENGTH, ""));
         }
         else
         {
