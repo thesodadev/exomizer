@@ -47,27 +47,48 @@ Is it possible to use hexadecimal numbers for load and start adresses?
   Yes, use a 0x prefix, like 0xc600.
 
 
+How much overhead does the builtin decruncher add to a file?
+
+  These numbers compares resulting file sizes when crunching a file with the -s
+  flag and crunching it with the -l flag. 
+
+  Files with [load adress < $074E] will get 293 bytes larger.
+  Files with [$074E <= load adress < $084E] will get 278 bytes larger.
+  Files with [$084E <= load adress] will get 272 bytes larger.
+
+
 What memory adresses does the decruncher clobber?
 
-    Eight zeropage adresses are used: $a7, $ae-$af, $fb-$ff.
-    The decruncher copies 187 bytes of itself to the stack at $0100-$01bb.
-    The tapebuffer is used for tables, 156 bytes in total at $0334-$03d0.
-    
-    The decruncher also clobbers the 48 bytes immediately preceding the start
-    adress of the decrunched data. This space is used as a safety buffer.
+  Except for the adresses covered by the file itself $0801-$XXXX, the
+  decruncher also clobbers the following adresses:
 
-    The exodecrunch.s decruncher defaults to using the same zeropage adresses
-    as the stand alone decruncher. It also uses a 156 byte tablespace. Both
-    the table area and the zeropage adresses can easily be relocated.
+  Eight zeropage adresses are used: $a7, $ae-$af, $fb-$ff.
+  The decruncher copies 186 bytes of itself to the stack at $0100-$01ba.
+  The tapebuffer is used for tables, 156 bytes in total at $0334-$03d0.
+  
+  If the start adress of the decrunched data is lower than $0817 then the
+  decruncher will clobber the memory from [(the start adress) - $30] to $0801.
+  This space is used as a safety buffer.
+
+  If the start adress of the decrunched data is between $0817 and $084D then
+  the decruncher will clobber the memory from $07E7 to $0801. This space
+  is used as a safety buffer.
+
+  If the start adress of the decrunched data is $084E or higher then no extra
+  space will be clobbered.
+ 
+  The exodecrunch.s decruncher defaults to using the same zeropage adresses
+  as the stand alone decruncher. It also uses a 156 byte tablespace. Both
+  the table area and the zeropage adresses can easily be relocated.
 
 
 How do I use the decruncher in the exodecrunch sourcecode?
 
-    You simply call jsr decrunch_file, but first you must have implemented a
-    suitable get_byte routine for it. The decruncher has only a simple
-    get_byte as an example. If you want to decrunch from file you have to
-    write the file handling routines yourselves. See the exodecrunch.s
-    for more info.
+  You simply call jsr decrunch_file, but first you must have implemented a
+  suitable get_byte routine for it. The decruncher has only a simple
+  get_byte as an example. If you want to decrunch from file you have to
+  write the file handling routines yourselves. See the exodecrunch.s
+  for more info.
 
 
 Some Performance numbers:

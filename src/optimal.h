@@ -25,7 +25,7 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * optimal.h, a part of the exomizer v1.0beta3 release
+ * optimal.h, a part of the exomizer v1.0 release
  *
  */
 #include "search.h"

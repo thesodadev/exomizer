@@ -25,7 +25,7 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * output.h, a part of the exomizer v1.0beta3 release
+ * output.h, a part of the exomizer v1.0 release
  *
  */
 

@@ -23,7 +23,7 @@
 ;   used to endorse or promote products derived from this software without
 ;   specific prior written permission.
 ;
-; exodecruncher.s, a part of the exomizer v1.0beta3 release
+; exodecruncher.s, a part of the exomizer v1.0 release
 ;
 ; -------------------------------------------------------------------
 ; zero page adresses used
@@ -37,8 +37,8 @@ zp_bits_lo = $fb
 zp_bits_hi = zp_bits_lo + 1
 
 zp_bitbuf  = $fd
-zp_dest_lo  = zp_bitbuf + 1		; dest addr lo
-zp_dest_hi  = zp_bitbuf + 2		; dest addr hi
+zp_dest_lo = $fe		; dest addr lo
+zp_dest_hi = zp_bitbuf + 1	; dest addr hi
 
 ; -------------------------------------------------------------------
 ; Here an example of how to call the decruncher.
@@ -52,28 +52,38 @@ zp_dest_hi  = zp_bitbuf + 2		; dest addr hi
 ; -------------------------------------------------------------------
 ; this is an example implementation of the get_byte routine.
 ; You may implement this yourselves to read bytes from any datasource.
-; The get_byte routine must not modify x-reg, y-reg, carry-flag.
+; The get_byte routine must not modify the x or y registers nor change
+; the carry or decimal flags
 ; -------------------------------------------------------------------	
 get_byte:
 	lda byte_lo
 	bne byte_skip_hi
-	dec $01			; assumes that $01 is #$38
- 	inc $d020		; lame depack effect here
+	dec $01		; assumes that $01 is #$38
+ 	inc $d020	; lame decrunch effect here :)
 	inc $01
 	dec byte_hi
 byte_skip_hi:
 	dec byte_lo
 byte_lo = * + 1
 byte_hi = * + 2
-	lda $FFFF		; needs to be set correctly before
+	lda $ffff	; needs to be set correctly before
 	rts		; before decrunch_file is called.
 ; -------------------------------------------------------------------
 ; no code below this comment has to be modified in order to generate
 ; a working decruncher of this source file.
 ; However, you may want to relocate the tables last in the file to a
 ; more suitable adress.	
-; -------------------------------------------------------------------	
+; -------------------------------------------------------------------
+
+; -------------------------------------------------------------------
+; jsr this label to decrunch, it will in turn init the tables and
+; call the decruncher
+; no constraints on register content, however the
+; decimal flag has to be #0 (it almost always is, otherwise do a cld)
 decrunch_file:	
+; -------------------------------------------------------------------
+; init zeropage (12 bytes)
+;
 	ldy #0
 	ldx #3
 init_zp:
@@ -81,7 +91,10 @@ init_zp:
 	sta zp_bitbuf - 1,x
 	dex
 	bne init_zp
-
+; -------------------------------------------------------------------
+; calculate tables (53 bytes)
+; x and y must be #0 when entering
+;
 nextone:
 	inx
 	tya
@@ -119,7 +132,12 @@ skip:
 	ldy #0
 	beq begin	
 ; -------------------------------------------------------------------
-; get bits (30 bytes)
+; get x + 1 bits (1 byte)
+;
+get_bit1:
+	inx
+; -------------------------------------------------------------------
+; get bits (31 bytes)
 ;
 ; args:
 ;   x = number of bits to get
@@ -133,8 +151,6 @@ skip:
 ;   y is untouched
 ;   other status bits are set to (a == #0)
 ; -------------------------------------------------------------------
-get_bit1:
-	inx
 get_bits:
 	lda #$00
 	sta zp_bits_lo
@@ -157,6 +173,8 @@ ok:
 bits_done:	
 	rts
 ; -------------------------------------------------------------------
+; main copy loop (16 bytes)
+;
 copy_next_hi:
 	dex
 	dec zp_dest_hi	
@@ -172,13 +190,15 @@ copy_start:
 	txa
 	bne copy_next_hi
 ; -------------------------------------------------------------------
-; we start here (7 bytes)
+; decruncher entry point, needs calculated tables (5 bytes)
 ; x and y must be #0 when entering
+;
 begin:
 	jsr get_bit1
 	beq sequence
 ; -------------------------------------------------------------------
-; literal handling (8 bytes)
+; literal handling (13 bytes)
+;
 literal_start:	
 	lda zp_dest_lo
 	bne avoid_hi
@@ -188,8 +208,9 @@ avoid_hi:
 	jsr get_byte
 	bcc literal_entry
 ; -------------------------------------------------------------------
-; get gamma code  (8 bytes)
+; count zero bits + 1 to get length table index (10 bytes)
 ; y = x = 0 when entering
+;
 sequence:	
 next1:
 	iny
@@ -198,28 +219,26 @@ next1:
 	cpy #$11
 	bcs bits_done
 ; -------------------------------------------------------------------
-; calulate length of sequence (zp_len) (19 bytes)
+; calulate length of sequence (zp_len) (17 bytes)
 ;
 	ldx tabl_bi - 1,y
 	jsr get_bits
 	adc tabl_lo - 1,y
 	sta zp_len_lo
-	tax
 	lda zp_bits_hi
 	adc tabl_hi - 1,y
 	pha
 ; -------------------------------------------------------------------
-; here we decide what offset table to use (18 bytes)
+; here we decide what offset table to use (20 bytes)
 ; x is 0 here
+;
 	bne nots123
-	cpx #$04
+	ldy zp_len_lo
+	cpy #$04
 	bcc size123
 nots123:	
-	ldx #$03
+	ldy #$03
 size123:	
-	txa
-	tay
-	
 	ldx tabl_bit - 1,y
 	jsr get_bits
 	adc tabl_off - 1,y
@@ -234,7 +253,6 @@ size123:
 	bcs noborrow
 	dec zp_dest_hi
 noborrow:
-
 ; -------------------------------------------------------------------
 ; calulate absolute offset (zp_src) (27 bytes)
 ;
@@ -251,11 +269,16 @@ skipcarry:
 	adc tabl_hi,y
 	adc zp_dest_hi
 	sta zp_src_hi
+; -------------------------------------------------------------------
+; prepare for copy loop (6 bytes)
 ;
 	ldy zp_len_lo
 	pla
 	tax
 	bcc copy_start
+; -------------------------------------------------------------------
+; two small static tables (6 bytes)
+;
 tabl_bit:
 	.byte 2,4,4
 tabl_off:
@@ -266,8 +289,8 @@ tabl_off:
 
 ; -------------------------------------------------------------------
 ; this table area may be relocated and clobbered between decrunches.
-; the ordering between the tabl_x lables must not be changed and
-; they must be adjacent in memory to each other like they are here.
+; the ordering between the tabl_xx labels must not be changed and they
+; must be adjacent in memory with 52 bytes between. like they are here.
 ; -------------------------------------------------------------------
 tabl_bi:
 	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

@@ -23,7 +23,7 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * log.c, a part of the exomizer v1.0beta3 release
+ * log.c, a part of the exomizer v1.0 release
  *
  */
 
@@ -132,13 +132,12 @@ void raw_log_formatter(FILE * out,      /* IN */
     fflush(out);
 }
 
-void 
-log_vlog(struct log_ctx *ctx,     /* IN */
-               enum log_level level,    /* IN */
-               const char *context,     /* IN */
-               log_formatter_f * f,     /* IN */
-               const char *printf_str,  /* IN */
-               va_list argp)
+void log_vlog(struct log_ctx *ctx,      /* IN */
+              enum log_level level,     /* IN */
+              const char *context,      /* IN */
+              log_formatter_f * f,      /* IN */
+              const char *printf_str,   /* IN */
+              va_list argp)
 {
     int len;
     int i;
@@ -148,41 +147,27 @@ log_vlog(struct log_ctx *ctx,     /* IN */
         /* don't log this */
         return;
     }
-    
-len = 0;
-    
+
+    len = 0;
     do
-        
     {
-        
-if (len >= ctx->buf_len)
-            
+        if (len >= ctx->buf_len)
         {
-            
-ctx->buf_len = len + 1024;
-            
-ctx->buf = realloc(ctx->buf, ctx->buf_len);
-            
-if (ctx->buf == NULL)
-                
+            ctx->buf_len = len + 1024;
+            ctx->buf = realloc(ctx->buf, ctx->buf_len);
+            if (ctx->buf == NULL)
             {
-                
-fprintf(stderr,
-                         
-"fatal error, can't allocate memory for log log\n");
-                
-exit(1);
-            
-}
-        
-}
-        
-len = vsnprintf(ctx->buf, ctx->buf_len, printf_str, argp);
-    
-}
+                fprintf(stderr,
+                        "fatal error, can't allocate memory for log log\n");
+                exit(1);
+            }
+        }
+        len = vsnprintf(ctx->buf, ctx->buf_len, printf_str, argp);
+    }
+
     while (len >= ctx->buf_len);
-    
-for (i = 0; i < ctx->out_len; ++i)
+
+    for (i = 0; i < ctx->out_len; ++i)
     {
         struct log_output *o = &ctx->out[i];
         log_formatter_f *of = f;
@@ -206,9 +191,8 @@ for (i = 0; i < ctx->out_len; ++i)
     }
 }
 
-void 
-log_log_default(const char *printf_str,   /* IN */
-                      ...)
+void log_log_default(const char *printf_str,    /* IN */
+                     ...)
 {
     va_list argp;
     va_start(argp, printf_str);
@@ -216,13 +200,12 @@ log_log_default(const char *printf_str,   /* IN */
              NULL, raw_log_formatter, printf_str, argp);
 }
 
-void 
-log_log(struct log_ctx *ctx,      /* IN */
-              enum log_level level,     /* IN */
-              const char *context,      /* IN */
-              log_formatter_f * f,      /* IN */
-              const char *printf_str,   /* IN */
-              ...)
+void log_log(struct log_ctx *ctx,       /* IN */
+             enum log_level level,      /* IN */
+             const char *context,       /* IN */
+             log_formatter_f * f,       /* IN */
+             const char *printf_str,    /* IN */
+             ...)
 {
     va_list argp;
     va_start(argp, printf_str);

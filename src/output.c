@@ -23,7 +23,7 @@
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
- * output.c, a part of the exomizer v1.0beta3 release
+ * output.c, a part of the exomizer v1.0 release
  *
  */
 

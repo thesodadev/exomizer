@@ -1,17 +1,25 @@
-2002-04-13
+2002-05-01
 ----------
-beta3 released, win32 (exomizer.exe) and Linux (exomizer.lnx) binaries.
-win32 exe built using visual studio 6.0. The linux binary was built on
-A redhat 7.2 system. It uses no fancy system stuff so it should be runnable
-on any glibc2 based linux system. However, this has not been tested.
+1.0 released, win32 and linux binaries (compressed with upx) + sourcecode.
++ Really fixed the bug I said I fixed in the last beta. If the beta3 exomizer
+  was run without any of the -l, -r or -s flags to produce a memory decrunch-
+  able file without a start address, the output file was generated as if the -r
+  flag was specified. Not anymore.
++ Corrected/adjusted comments in the exodecrunch.s file.
++ 1 byte shorter decruncher, both builtin and source code version.
++ Wrote a special routine to copy crunched data if copy length <= 256. This
+  makes -s the decruncher for files with [$074E <= load adress < $084E] 15
+  bytes shorter than in beta3.
++ Made -s decruncher for files with [$084E <= load adress] 3 bytes longer than
+  in beta3. This was done in order to make the previously invisible decrunch
+  effect visible. Not such a big loss considering that it now is 6 bytes
+  shorter than the decruncher for files with [$074E <= load adress < $084E] and
+  21 bytes shorter than the one for files with [load adress < $074E].
++ updated exomizer-1.0.txt with info about builtin decruncher sizes.
 
-+ sourcecode and a Linux Makefile in the exomizer-src-1.0beta3.zip file.
-  To build on Linux just type make.
-  To build in visual studio, just create a console app project and add
-  all the *.c and *.h files. The exomizer uses a lot of stackspace so
-  in order to run properly on win32 the stack size has to be increased.
-  The visual studio linker option /stack:0x800000 sets the stacksize to be
-  the same size that Linux defaults to. 
+2002-04-06
+----------
+beta3 released, win32 and linux binaries + sourcecode.
 + new feature, a -q option for quiet mode. The exomizer only outputs one line
   on stdout if it is invoked with this flag.
 + A bug has been fixed, if exomizer was run without any of the -l, -r or -s
