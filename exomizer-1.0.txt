@@ -1,26 +1,26 @@
-Exomizer beta
+----------------------------------------------------------------------------
 
-This is a beta test version, please don't spread it
-It may contain embarassing bugs. Contact me instead.
+Exomizer 1.0
+------------
 
 What is it?
 
   Exomizer is a cross-cruncher that runs on win32 or Linux as a command-line
-  tool but processes and generates files for the c64 computer.
+  tool, but processes and generates files for the c64 computer.
 
    1) It is a file-compressor that compresses c64 files.
    2) It can produce stand-alone self-decompressing c64-files.
    3) It can produce files for both "in memory" or "from disk" decompression.
    3) It compresses rle-sequences well.
-   4) It's stand-alone decompressor can decompress $0400-$ffff
+   4) It's stand-alone decompressor can decompress $0400-$ffff.
 
 Why is it called exomizer?
 
   More than ten years ago, I made some packers for the c64 that were named
-  [groupname]mizer depending on which group I was a member in at the time.
-  Since I'm not a member of any group now and it is a cross cruncher i
-  figured exo was a perfect prefix and mizer is a suffix I am/was used to
-  using.
+  [groupname]mizer depending on which group I was a member of at the time.
+  Since I'm not a member of any group now and it is a cross cruncher I
+  figured 'exo' was the perfect prefix. The 'mizer' suffix I just kept for
+  nostalgic reasons.
 
 What sets this program apart from similar programs like PuCrunch?
 
@@ -37,8 +37,7 @@ What sets this program apart from similar programs like PuCrunch?
 
 Are you releasing the source code?
 
-  I'm considering this.
-
+  Yes, when first non-beta version is released.
 
 Some Performance numbers:
   These tests are made on a AMD duron 700MHz. the byteboiler+rle sizes for
@@ -99,6 +98,4 @@ What else have you made?
     it. It was never released to the public and I haven't been able to find
     it on the net. (Not that I mind them using it.)
 
-    A side note:
-     My packer was totally dissed by skyflash in the introtext to hackpack3
-     or so. Those were the days. :)
+----------------------------------------------------------------------------

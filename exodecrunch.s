@@ -1,34 +1,58 @@
+;
+; Copyright (c) 2002 Magnus Lind.
+;
+; This software is provided 'as-is', without any express or implied warranty.
+; In no event will the authors be held liable for any damages arising from
+; the use of this software.
+;
+; Permission is granted to anyone to use this software for any purpose,
+; including commercial applications, and to alter it and redistribute it
+; freely, subject to the following restrictions:
+;
+;   1. The origin of this software must not be misrepresented; you must not
+;   claim that you wrote the original software. If you use this software in a
+;   product, an acknowledgment in the product documentation would be
+;   appreciated but is not required.
+;
+;   2. Altered source versions must be plainly marked as such, and must not
+;   be misrepresented as being the original software.
+;
+;   3. This notice may not be removed or altered from any source distribution.
+;
+;   4. The names of this software and/or it's copyright holders may not be
+;   used to endorse or promote products derived from this software without
+;   specific prior written permission.
+;
+; exodecruncher.s, a part of the exomizer v1.0beta2 release
+;
 ; -------------------------------------------------------------------
 ; zero page adresses used
 ; -------------------------------------------------------------------
 zp_src_lo  = $ae
-zp_src_hi  = $af
+zp_src_hi  = zp_src_lo + 1
 
 zp_bits_lo = $fa
-zp_bits_hi = $fb
+zp_bits_hi = zp_bits_lo + 1
 
-zp_bitbuf  = $fc
-	
-zp_dest_lo  = $fd		; dest addr lo
-zp_dest_hi  = $fe		; dest addr hi
+zp_bitbuf  = $fc		
+zp_dest_lo  = zp_bitbuf + 1		; dest addr lo
+zp_dest_hi  = zp_bitbuf + 2		; dest addr hi
 
 zp_len_lo = $ff
 
 ; -------------------------------------------------------------------
-; start here, but first make sure that byte_lo and byte_hi in the
-; 'get_byte' routine is initialized properly.
+; Here an example of how to call the decruncher.
 ; -------------------------------------------------------------------
 	sei
 	inc $01			; assumes that $01 is #$37
-	ldx #0
-	ldy #0
 	jsr decrunch_file
 	dec $01
 	cli
 	rts
 ; -------------------------------------------------------------------
-; get byte, must not modify x-reg, y-reg, carry-flag.
-; may be exchanged for a routine that reads a byte from disc.
+; this is an example implementation of the get_byte routine.
+; You may implement this yourselves to read bytes from and datasource.
+; The get_byte routine must not modify x-reg, y-reg, carry-flag.
 ; -------------------------------------------------------------------	
 get_byte:
 	lda byte_lo
@@ -41,8 +65,8 @@ byte_skip_hi:
 	dec byte_lo
 byte_lo = * + 1
 byte_hi = * + 2
-	lda $FFFF		; needs to be set correctly
-	rts
+	lda $FFFF		; needs to be set correctly before
+	rts		; before decrunch_file is called.
 ; -------------------------------------------------------------------
 ; no code below this comment has to be modified in order to generate
 ; a working decruncher of this source file.
@@ -50,6 +74,14 @@ byte_hi = * + 2
 ; more suitable adress.	
 ; -------------------------------------------------------------------	
 decrunch_file:	
+	ldy #0
+	ldx #3
+init_zp:
+	jsr get_byte
+	sta zp_bitbuf - 1,x
+	dex
+	bne init_zp
+
 nextone:
 	inx
 	tya
@@ -164,7 +196,7 @@ next1:
 	jsr get_bit1
 	beq next1
 	cpy #$11
-	bcs begin
+	bcs bits_done
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (19 bytes)
 ;
@@ -224,16 +256,6 @@ skipcarry:
 	pla
 	tax
 	bcc copy_start
-; -------------------------------------------------------------------
-; calctable x = 0, y = 0;
-; -------------------------------------------------------------------
-copy2zp:
-nextzp:	
-	jsr get_byte
-	sta zp_bitbuf - 1,x
-	dex
-	bne nextzp
-	rts
 ; -------------------------------------------------------------------
 ; these tables may be relocated
 ; -------------------------------------------------------------------

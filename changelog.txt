@@ -1,0 +1,54 @@
+2002-03-17
+----------
+win32 only beta2 released.
+There is no changes in compression rates since beta1.
+The binary itself is now compressed with upx-1.20.
+
+This beta release includes some changes to the licensing. Now, the software may
+only be used for non-commercial purposes. However, the files it generates and
+the decruncher sourcecode may be used for commercial purposes. This may sound
+conflicting but I want to avoid the situation where the binary itself or it's
+sourcecode is used and/or distributed as a part of a commercial application.
+
+2002-03-11
+----------
+internal release.
+To use the decrunch routine in your own projects you have to implement your
+own get_byte routine. This routine reads the next byte from the compressed
+data stream. This stream may be stored on disc or in memory - It's up to you.
+The decruncher doesn't care. All it needs to know is what routine to jsr to
+get the next byte.
+
+All implementations of the get_byte routine have to preserve the values of the
+x and y registers and the carry flag state. The decruncher depends on those
+being unchanged.
+
+When the decruncher is done it will rts nicely to the caller. This means that
+you can make a stream consisting of more than one compressed data file and jsr
+the decruncher the corresponding number of times, without the need to
+reinitialize the stream in between.
+
+
+2002-03-08
+----------
+internal release.
+This beta release features an updated exodecrunch.s. This version is tested and
+works.
+
+This release also introduces copyright notices and a usage license,
+updated texts in the binary and an updated exomiser_beta.txt file.
+
+
+2002-03-06
+----------
+beta1 released.
+The program should be quite self explanatory, just run it with the -? option.
+The exodecrunch.s is a asm sourcefile that assembles with the ca65 assembler
+included in the cc65 compiler package. The decruncher sourcefile is based on
+the one used in the sfx-routines but with an easily exchangeable get_byte
+routine. It may contain silly bugs, but they should be easy to spot.
+
+/Regards
+
+Magnus Lind
+magli143@teila.com
