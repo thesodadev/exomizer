@@ -1,0 +1,104 @@
+Exomizer beta
+
+This is a beta test version, please don't spread it
+It may contain embarassing bugs. Contact me instead.
+
+What is it?
+
+  Exomizer is a cross-cruncher that runs on win32 or Linux as a command-line
+  tool but processes and generates files for the c64 computer.
+
+   1) It is a file-compressor that compresses c64 files.
+   2) It can produce stand-alone self-decompressing c64-files.
+   3) It can produce files for both "in memory" or "from disk" decompression.
+   3) It compresses rle-sequences well.
+   4) It's stand-alone decompressor can decompress $0400-$ffff
+
+Why is it called exomizer?
+
+  More than ten years ago, I made some packers for the c64 that were named
+  [groupname]mizer depending on which group I was a member in at the time.
+  Since I'm not a member of any group now and it is a cross cruncher i
+  figured exo was a perfect prefix and mizer is a suffix I am/was used to
+  using.
+
+What sets this program apart from similar programs like PuCrunch?
+
+  This program has been designed with ONLY the compression rate in mind. No
+  compromises has been made in the effort to achieve the highest compression
+  rates possible. As a result of this Exomizer has some drawbacks:
+
+   1) it may use up to 50MB of internal memory for worst case files.
+   2) it may take several minutes to compress a file on a modern PC.
+
+  On the other hand it produces shorter files than any c64 file compressor I
+  know of.
+
+
+Are you releasing the source code?
+
+  I'm considering this.
+
+
+Some Performance numbers:
+  These tests are made on a AMD duron 700MHz. the byteboiler+rle sizes for
+  the delenn.bin sheridan.bin and ivanova.bin has been taken from the home-
+  page of pucrunch. I could not get them so small myself and I really want
+  to show the best possible figures for any cruncher.
+
+  fist.bin          time           size         extra flags
+  --------         ------         ------        -----------
+  exomizer          42.6s          35929
+  byteboiler+rle                   36602
+  pucrunch           0.2s          37230        -fshort
+
+  bofh.bin (pucrunch-crunched leveldata)
+  --------         ------         ------        -----------
+  exomizer          66.7s          29426
+  byteboiler+rle                   29708
+  pucrunch           0.2s          30111        -fshort
+
+  bofh.bin (exomizer-crunched leveldata)
+  --------         ------         ------        -----------
+  exomizer          85.9s          28881
+  byteboiler+rle                   29235
+  pucrunch           0.2s          29556        -fshort
+
+
+And some files known from the pucrunch homepage.
+  delenn.bin
+  ----------       ------         ------        -----------
+  exomizer          64.3s          18865
+  pucrunch           0.3s          19709        -p2 -fshort
+  byteboiler+rle                   19838
+
+  sheridan.bin
+  ------------     ------         ------        -----------
+  exomizer          76.7s          12173
+  byteboiler+rle                   12478
+  pucrunch           0.3s          12501        -p2 -fshort
+
+  ivanova.bin
+  -----------      ------         ------        -----------
+  exomizer          94.0s           9513
+  byteboiler+rle                    9812
+  pucrunch           0.3s           9819        -p2 -fshort
+
+who made it?
+
+    My name is Magnus Lind.
+    I am reachable by email: magli143@telia.com
+
+What else have you made?
+
+    I have previously made some native packers for the c64 and an iffl-
+    system, but that was at least ten years ago or so.
+
+    The iffl system has been used recently by Nostalgia in some of their
+    retro cracks. This is funny, because I have NO idea how they have gotten
+    it. It was never released to the public and I haven't been able to find
+    it on the net. (Not that I mind them using it.)
+
+    A side note:
+     My packer was totally dissed by skyflash in the introtext to hackpack3
+     or so. Those were the days. :)
