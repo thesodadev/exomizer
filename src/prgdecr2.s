@@ -37,7 +37,7 @@
 .ELIF(i_target == 4)
   i_basic_start    = $1001
   i_end_of_mem_ram = $fd00
-  i_end_of_mem_rom = $4000
+  i_end_of_mem_rom = $8000
   i_effect_char    = $0fe7
   i_effect_color   = $0be7
 .ELIF(i_target == 64)
@@ -449,13 +449,13 @@ literal_byte_gotten:
 copy_start:
 	tya
 	bne copy_next
+begin:
 	txa
 	bne copy_next_hi
 ; -------------------------------------------------------------------
 ; decruncher entry point, needs calculated tables (15 bytes)
 ; x and y must be #0 when entering
 ;
-begin:
 .IF(.DEFINED(i_literal_sequences_used))
 	inx
 	jsr get_bits
@@ -665,7 +665,7 @@ copy2_start:
 	.ENDIF
 	.IF(.DEFINED(i_config_effect) && i_config_effect == 0)
 	  .IF(i_effect_char < lowest_addr || i_effect_char > i_highest_addr)
-	sta i_effect_char
+	sty i_effect_char
 	  .ENDIF
 	.ENDIF
 	jmp begin

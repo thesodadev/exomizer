@@ -759,15 +759,21 @@ void sfx(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
         int *basic_var_startp;
+        int basic_start;
 
         basic_var_startp = NULL;
         if(sys_addr == -2 && basic_var_start == -1)
         {
             basic_var_startp = &basic_var_start;
         }
+        basic_start = -1;
+        if(sys_addr < 0)
+        {
+            basic_start = basic_txt_start;
+        }
 
         in_load = do_loads(infilec, infilev, in,
-                           basic_txt_start, basic_var_startp);
+                           basic_start, basic_var_startp);
         in_len = membuf_memlen(in);
 
         /* make room for load addr */
