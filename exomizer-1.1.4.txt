@@ -70,7 +70,8 @@ How do I invoke the exomizer?
    -r           writes the outfile backwards without load address, this is
                 suitable for files that are to be decompressed directly
                 from disk, can't be combined with -l or -s
-   -l <address> adds load address to the outfile, can't be combined
+   -l <address> adds load address to the outfile, using "auto" as <address>
+                will enable load address auto detection, can't be combined
                 with -r or -s, default is no load address
    -s <address> adds basic-line and decruncher that exits with a jmp <address>,
                 using "sys" as <address> will enable basic-sys address auto

@@ -1,4 +1,4 @@
-2004-04-05
+2004-04-13
 ----------
 1.1.4 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
 + the flag -l now also accepts the string auto as an argument. Giving this

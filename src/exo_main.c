@@ -243,6 +243,7 @@ generate_output(match_ctx ctx,
     int pos;
     int pos_diff;
     int max_diff;
+    int diff;
     static output_ctx out;
     output_ctxp old;
 
@@ -277,6 +278,12 @@ generate_output(match_ctx ctx,
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
     output_gamma_code(out, 17);
 
+    diff = output_get_pos(out) - pos_diff;
+    if(diff > max_diff)
+    {
+        max_diff = diff;
+    }
+
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
     LOG(LOG_DUMP, ("------------\n"));
 
@@ -287,30 +294,22 @@ generate_output(match_ctx ctx,
         mp = snp->match;
         if (mp != NULL && mp->len > 0)
         {
-            int diff;
             if (mp->offset == 0)
             {
                 /* literal */
                 output_byte(out, ctx->buf[snp->index]);
                 output_bits(out, 1, 1);
-
-                diff = output_get_pos(out) - pos_diff;
-                if(diff > max_diff)
-                {
-                    max_diff = diff;
-                }
-                ++pos_diff;
             } else
             {
                 f(mp, emd);
                 output_bits(out, 1, 0);
+            }
 
-                diff = output_get_pos(out) - pos_diff;
-                if(diff > max_diff)
-                {
-                    max_diff = diff;
-                }
-                pos_diff += mp->offset;
+            pos_diff += mp->len;
+            diff = output_get_pos(out) - pos_diff;
+            if(diff > max_diff)
+            {
+                max_diff = diff;
             }
         }
         LOG(LOG_DUMP, ("------------\n"));
