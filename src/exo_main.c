@@ -101,7 +101,7 @@ open_file(char *name, int *load_addr)
             /* we have succeded in opening the file */
             break;
         }
-        
+
         /* hmm, let's see if the user is trying to relocate it */
         load_str = strrchr(name, ',');
         if (load_str == NULL)
@@ -122,7 +122,7 @@ open_file(char *name, int *load_addr)
                 (" can't parse load address from \"%s\"\n", load_str));
             exit(1);
         }
-         
+
         in = fopen(name, "rb");
 
     } while (0);
@@ -146,6 +146,47 @@ open_file(char *name, int *load_addr)
         }
     }
     return in;
+}
+
+static int find_sys(const unsigned char *buf)
+{
+    int outstart = -1;
+    int state = 1;
+    int i = 0;
+    /* skip línk and line number */
+    buf += 4;
+    /* exit loop at line end */
+    while(i < 1000 && buf[i] != '\0')
+    {
+        unsigned char *sys_end;
+        int c = buf[i];
+        switch(state)
+        {
+            /* look for and consume sys token */
+        case 1:
+            if(c == 0x9e) state = 2;
+            break;
+            /* skip spaces and left parenthesis, if any */
+        case 2:
+            if(strchr(" (", c) != NULL) break;
+            state = 3;
+            /* convert string number to int */
+        case 3:
+            outstart = strtol((char*)(buf + i), (char**)&sys_end, 10);
+            if((buf + i) == sys_end)
+            {
+                /* we got nothing */
+                outstart = -1;
+            }
+            state = 4;
+            break;
+        case 4:
+            break;
+        }
+        ++i;
+    }
+    LOG(LOG_ERROR, ("state when leaving: %d.\n", state));
+    return outstart;
 }
 
 static
@@ -320,7 +361,7 @@ generate_output(match_ctx ctx,
 
 static
 search_nodep
-do_compress(match_ctx ctx, encode_match_data emd)
+do_compress(match_ctx ctx, encode_match_data emd, int max_passes)
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
@@ -362,14 +403,18 @@ do_compress(match_ctx ctx, encode_match_data emd)
             break;
         }
 
-        ++pass;
-
         if (best_snp != NULL)
         {
             search_node_free(best_snp);
         }
         best_snp = snp;
         old_size = size;
+        ++pass;
+
+        if(pass > max_passes)
+        {
+            break;
+        }
 
         optimal_free(emd);
         optimal_init(emd);
@@ -416,7 +461,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v1.1.2b2, Copyright (c) 2002, 2003 Magnus Lind. (magli143@telia.com)\n"
+         "Exomizer v1.1.3, Copyright (c) 2002, 2003 Magnus Lind. (magli143@comhem.se)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -463,22 +508,24 @@ void print_usage(const char *appl, enum log_level level)
     LOG(level,
         ("  -r           writes the outfile backwards without load address, this is\n"
          "               suitable for files that are to be decompressed directly\n"
-         "               from disc, can't be combined with -l or -s\n"
+         "               from disk, can't be combined with -l or -s\n"
          "  -l <address> adds load address to the outfile, can't be combined\n"
          "               with -r or -s, default is no load address\n"
-         "  -s <address> adds basic-line and decruncher, after decrunching it will jmp\n"
-         "               to <address>, can't be combined with -r or -l\n"));
+         "  -s <address> adds basic-lins and decruncher that exits with a jmp <address>,\n"
+         "               using \"sys\" as <address> will enable basic-sys address auto\n"));
     LOG(level,
-        ("  -o <outname> sets the outfile name, default is \"a.prg\"\n"
+        ("               detection, can't be combined with -r or -l\n"
+         "  -o <outname> sets the outfile name, default is \"a.prg\"\n"
          "  -q           enable quiet mode, display output is reduced to one line\n"
          "  -4           the decruncher targets the c16/+4 computers instead of the c64,\n"
          "               must be combined with -s\n"
          "  -n           turn off the decrunch effect shown by the decruncher, must be\n"
          "               combined with -s\n"
-         "  -m <offset>  limits the maximum offset size to <offset>, default is 65535\n"
-         "  --           treat all args to the right as non-options\n"));
+         "  -m <offset>  limits the maximum offset size\n"));
     LOG(level,
-        ("  -?           displays this help screen\n"
+        ("  -p <passes>  limits the maximum number of optimization passes\n"
+         "  --           treat all args to the right as non-options\n"
+         "  -?           displays this help screen\n"
          "  -v           displays version and the usage license\n"
          " All infiles are merged into the outfile. They are loaded in the order\n"
          " they are given on the command-line, from left to right.\n"));
@@ -490,12 +537,14 @@ main(int argc, char *argv[])
     const char *outfile = "a.prg";
     int reverse = 0;
     int outstart = -1;
+    int decruncher = 0;
     int outload = -1;
     int c, infilec;
     char **infilev;
     int load;
     int len;
     int max_offset = 65536;
+    int max_passes = 65536;
     static unsigned char mem[65536];
     static match_ctx ctx;
     encode_match_data emd;
@@ -507,7 +556,9 @@ main(int argc, char *argv[])
 #define DECR_TYPE_STANDARD 0
 #define DECR_TYPE_NO_EFFECT 1
 
-    struct sfx_decruncher *decr_matrix[2][2] = {
+    int basic_start[] = {0x801, 0x1001};
+
+    struct sfx_decruncher *decr_matrix[][2] = {
         {sfx_c64, sfx_c64ne}, {sfx_c264, sfx_c264ne}};
     int decr_target = DECR_TARGET_C64;
     int decr_type = DECR_TYPE_STANDARD;
@@ -517,7 +568,7 @@ main(int argc, char *argv[])
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     outload = -1;
-    while ((c = getflag(argc, argv, "m:4qrnl:s:o:v")) != -1)
+    while ((c = getflag(argc, argv, "m:4qrnl:s:o:vp:")) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch (c)
@@ -550,9 +601,22 @@ main(int argc, char *argv[])
                 exit(1);
             }
             break;
+        case 'p':
+            if (str_to_int(flagarg, &max_passes) != 0 ||
+                max_passes < 1 || max_passes >= 65536)
+            {
+                LOG(LOG_ERROR,
+                    ("error: invalid value for -p option, "
+                     "must be in the range of [1 - 0xffff]\n"));
+                print_usage(argv[0], LOG_ERROR);
+                exit(1);
+            }
+            break;
         case 's':
-            if (str_to_int(flagarg, &outstart) != 0 ||
-                outstart < 0 || outstart >= 65536)
+            decruncher = 1;
+            if (strcmp(flagarg, "sys") != 0 && strcmp(flagarg, "SYS") != 0 &&
+                (str_to_int(flagarg, &outstart) != 0 ||
+                 outstart < 0 || outstart >= 65536))
             {
                 LOG(LOG_ERROR,
                     ("error: invalid address for -s option, "
@@ -604,23 +668,21 @@ main(int argc, char *argv[])
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if ((reverse != 0) + (outload != -1) + (outstart != -1) > 1)
+    if (reverse + (outload != -1) + decruncher > 1)
     {
         LOG(LOG_ERROR,
             ("error: the -r, -l or -s options can't be combined.\n"));
         print_usage(argv[0], LOG_ERROR);
         exit(1);
     }
-    if (decr_target == DECR_TARGET_C264 && outstart == -1)
-
+    if (decr_target == DECR_TARGET_C264 && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -4 option must be combined with -s.\n"));
         print_usage(argv[0], LOG_ERROR);
         exit(1);
     }
-    if (decr_type == DECR_TYPE_NO_EFFECT && outstart == -1)
-
+    if (decr_type == DECR_TYPE_NO_EFFECT && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -n option must be combined with -s.\n"));
@@ -639,7 +701,7 @@ main(int argc, char *argv[])
     {
         LOG(LOG_NORMAL, ("decompression from file\n"));
         outstart = -2;
-    } else if (outstart < 0)
+    } else if (!decruncher)
     {
         LOG(LOG_NORMAL, ("decompression from memory"));
         if (outload != -1)
@@ -648,8 +710,23 @@ main(int argc, char *argv[])
             outstart = outload + 0x10000;
         }
         LOG(LOG_NORMAL, ("\n"));
-    } else
+    }
+
+    /* zero fill mem */
+    memset(mem, 0, sizeof(mem));
+    do_load(infilec, infilev, mem, &load, &len);
+
+    if(decruncher)
     {
+        if(outstart < 0)
+        {
+            outstart = find_sys(mem + basic_start[decr_type]);
+            if(outstart < 0)
+            {
+                LOG(LOG_ERROR, ("error: cant find sys address.\n"));
+                exit(1);
+            }
+        }
         LOG(LOG_NORMAL,
             ("self-decompressing %s executable, jmp address $%04X\n",
              decr_matrix[decr_target][decr_type]->text, outstart));
@@ -659,9 +736,6 @@ main(int argc, char *argv[])
         ("\nPhase 1: Instrumenting input file(s)"
          "\n------------------------------------\n"));
 
-    /* zero fill mem */
-    memset(mem, 0, sizeof(mem));
-    do_load(infilec, infilev, mem, &load, &len);
     match_ctx_init(ctx, mem + load, len, max_offset);
 
     LOG(LOG_NORMAL, (" Instrumenting file(s), done.\n"));
@@ -674,7 +748,7 @@ main(int argc, char *argv[])
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snp = do_compress(ctx, emd);
+    snp = do_compress(ctx, emd, max_passes);
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,

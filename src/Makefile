@@ -26,7 +26,8 @@ exobasic: deps $(BAS_OBJS) $(SHARED_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(BAS_OBJS) $(SHARED_OBJS)
 
 clean:
-	-$(RM) $(EXO_OBJS) $(BAS_OBJS) $(SHARED_OBJS) exomizer exobasic deps
+	-$(RM) $(EXO_OBJS) $(BAS_OBJS) $(SHARED_OBJS) \
+	exomizer exobasic exomizer.exe exobasic.exe deps
 
 -include deps
 
