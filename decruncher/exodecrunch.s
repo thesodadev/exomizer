@@ -24,6 +24,21 @@
 ;   specific prior written permission.
 ;
 ; -------------------------------------------------------------------
+; The decruncher jsr:s to the get_crunched_byte address when it wants to
+; read a crunched byte. This subroutine has to preserve x and y register
+; and must not modify the state of the carry flag.
+; -------------------------------------------------------------------
+.import get_crunched_byte
+; -------------------------------------------------------------------
+; this function is the heart of the decruncher.
+; It initializes the decruncher zeropage locations and precalculates the
+; decrunch tables and decrunches the data
+; This function will not change the interrupt status bit and it will not
+; modify the memory configuration.
+; -------------------------------------------------------------------
+.export decrunch
+
+; -------------------------------------------------------------------
 ; zero page adresses used
 ; -------------------------------------------------------------------
 zp_len_lo = $a7
@@ -43,34 +58,6 @@ tabl_lo = decrunch_table + 52
 tabl_hi = decrunch_table + 104
 
 ; -------------------------------------------------------------------
-; Here an example of how to call the decruncher.
-; -------------------------------------------------------------------
-	sei
-	inc $01			; assumes that $01 is #$37
-	jsr decrunch_file
-	dec $01
-	cli
-	rts
-; -------------------------------------------------------------------
-; this is an example implementation of the get_byte routine.
-; You may implement this yourselves to read bytes from any datasource.
-; The get_byte routine must not modify the x or y registers nor change
-; the carry or decimal flags
-; -------------------------------------------------------------------
-get_byte:
-	lda byte_lo
-	bne byte_skip_hi
-	dec $01		; assumes that $01 is #$38
- 	inc $d020	; lame decrunch effect here :)
-	inc $01
-	dec byte_hi
-byte_skip_hi:
-	dec byte_lo
-byte_lo = * + 1
-byte_hi = * + 2
-	lda $ffff	; needs to be set correctly before
-	rts		; before decrunch_file is called.
-; -------------------------------------------------------------------
 ; no code below this comment has to be modified in order to generate
 ; a working decruncher of this source file.
 ; However, you may want to relocate the tables last in the file to a
@@ -82,14 +69,14 @@ byte_hi = * + 2
 ; call the decruncher
 ; no constraints on register content, however the
 ; decimal flag has to be #0 (it almost always is, otherwise do a cld)
-decrunch_file:
+decrunch:
 ; -------------------------------------------------------------------
 ; init zeropage, x and y regs. (12 bytes)
 ;
 	ldy #0
 	ldx #3
 init_zp:
-	jsr get_byte
+	jsr get_crunched_byte
 	sta zp_bitbuf - 1,x
 	dex
 	bne init_zp
@@ -160,7 +147,7 @@ get_bits:
 bits_next:
 	lsr a
 	bne ok
-	jsr get_byte
+	jsr get_crunched_byte
 	ror a
 ok:
 	rol zp_bits_lo
@@ -204,7 +191,7 @@ literal_start:
 	dec zp_dest_hi
 avoid_hi:
 	dec zp_dest_lo
-	jsr get_byte
+	jsr get_crunched_byte
 	bcc literal_entry
 ; -------------------------------------------------------------------
 ; count zero bits + 1 to get length table index (10 bytes)

@@ -3,17 +3,13 @@
 ; It has not been tested with any other assemblers or linkers.
 ; -------------------------------------------------------------------
 ; -------------------------------------------------------------------
-; example usage do the stream decruncher
+; example usage of the standard decruncher
 ; this program will just decrunch some data to memory and print
 ; the amount of time it took.
 ; -------------------------------------------------------------------
-.import init_decruncher
-.import get_decrunched_byte
+.import decrunch
 .export get_crunched_byte
 .import end_of_data
-
-.export buffer_start_hi
-.export buffer_len_hi
 
 	.byte $01,$08,$0b,$08,<2003,>2003,$9e,'2','0','6','1',0,0,0
 ; -------------------------------------------------------------------
@@ -22,44 +18,23 @@
 	sei
 	jsr reset_cia1_tod
 	inc $01
-	jsr init_decruncher
-	lda #0
-	sta $0400
-_sample_next:
-	jsr get_decrunched_byte
-	bcs _sample_end
-	;; do whatever you wish with the value in the accumulator
-	ldx store_lo
-	bne skip_store_dec_hi
-	dec store_hi
-skip_store_dec_hi:
-	dec store_lo
-store_lo = * + 1
-store_hi = * + 2
-	.byte $8d, 0, 0 		;sta $0000
-
+	jsr decrunch
+	dec $01
+	jsr print_cia1_tod
+	cli
+	rts
+; -------------------------------------------------------------------
+get_crunched_byte:
+	lda _byte_lo
+	bne _byte_skip_hi
+	dec _byte_hi
+_byte_skip_hi:
 	dec $01
 	sta $d020
 	eor $0400
 	sta $0400
 	inc $01
 
-	jmp _sample_next
-_sample_end:
-	dec $01
-
-	jsr print_cia1_tod
-	cli
-	rts
-; -------------------------------------------------------------------
-; for this get_crunched_byte routine to work the crunched data has to be
-; crunced using the -m <buffersize> and possibly the -l flags. Any other
-; flag will just mess things up.
-get_crunched_byte:
-	lda _byte_lo
-	bne _byte_skip_hi
-	dec _byte_hi
-_byte_skip_hi:
 	dec _byte_lo
 _byte_lo = * + 1
 _byte_hi = * + 2
@@ -147,9 +122,3 @@ hextab:
 tabell:
 	.byte 0,0,0,0
 ; -------------------------------------------------------------------
-
-buffer_len_hi	= 4 		; 1k
-unaligned_buffer:
-	.res (buffer_len_hi * 256) + 255
-buffer_start_hi = (unaligned_buffer + 255) / 256
-

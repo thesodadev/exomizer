@@ -1,3 +1,14 @@
+2004-03-23
+----------
+1.1.4 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
++ the flag -l now also accepts the string auto as an argument. Giving this
+  string results in that the cruncher will use the address of the infile with
+  the lowest address. Thanks to Ninja/The Dreams for suggesting this feature.
++ normal decruncher source (exodecrunch.s) reworked  and just like the stream
+  decrunchers there's an example application for it included. All decruncher
+  sourcecode + examples are located in the 'decruncher' directory and have been
+  updated to work with the cc65 2.10 toolchain and gnu make.
+
 2003-08-21
 ----------
 1.1.3 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
@@ -5,10 +16,10 @@
   combined with the -m flag like this: -p1 -m1024, will make the exomizer a lot
   faster at the expense of the crunch ratio. Something for your test builds
   perhaps? Thanks to Lasse Öörni for suggeting this feature.
-+ the flag -s now als accepts the string sys as an argument. Giving this string
-  results in that the cruncher will look in the infiles for a basic sysline and
-  use the adress the sys command targets. Thanks to Ninja/The Dreams for
-  suggesting this feature.
++ the flag -s now also accepts the string sys as an argument. Giving this
+  string results in that the cruncher will look in the infiles for a basic
+  sysline and use the address the sys command targets. Thanks to Ninja/The
+  Dreams for suggesting this feature.
 - No work has been made on the exobasic tool. I assume it works since I have
   received no feedback for it at all since the 1.1.2 release. :)
 - I have new email address, magli143@comhem.se.

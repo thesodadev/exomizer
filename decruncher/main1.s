@@ -8,15 +8,12 @@
 ; the amount of time it took.
 ; -------------------------------------------------------------------
 .import init_decruncher
-.import get_decrunched_chunk
+.import get_decrunched_byte
 .export get_crunched_byte
 .import end_of_data
 
-.export buffer_start_hi
-.export buffer_len_hi
-.export decrunched_chunk_size
-
-decrunched_chunk_size = 128
+.export buffer_start_hi:	absolute
+.export buffer_len_hi:		absolute
 
 	.byte $01,$08,$0b,$08,<2003,>2003,$9e,'2','0','6','1',0,0,0
 ; -------------------------------------------------------------------
@@ -29,29 +26,18 @@ decrunched_chunk_size = 128
 	lda #0
 	sta $0400
 _sample_next:
-	jsr get_decrunched_chunk
+	jsr get_decrunched_byte
 	bcs _sample_end
 	;; do whatever you wish with the value in the accumulator
-
-.if 1
-	lda store_lo
-	sec
-	sbc #<(decrunched_chunk_size)
-	sta store_lo
-	bcs skip_store_dec_hi
+	ldx store_lo
+	bne skip_store_dec_hi
 	dec store_hi
 skip_store_dec_hi:
-
-	ldy #<(decrunched_chunk_size - 1)
-_next_byte_in_chunk:
-	lda ($fe),y
+	dec store_lo
 store_lo = * + 1
 store_hi = * + 2
-	.byte $99, 0, 0 		;sta $0000
-	dey
-	bpl _next_byte_in_chunk
+	.byte $8d, 0, 0 		;sta $0000
 
-.endif
 	dec $01
 	sta $d020
 	eor $0400
@@ -161,6 +147,7 @@ hextab:
 tabell:
 	.byte 0,0,0,0
 ; -------------------------------------------------------------------
+
 buffer_len_hi	= 4 		; 1k
 unaligned_buffer:
 	.res (buffer_len_hi * 256) + 255

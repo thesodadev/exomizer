@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------
 
-Exomizer 1.1.3
+Exomizer 1.1.4
 --------------
 
 What is it?
@@ -70,9 +70,10 @@ How do I invoke the exomizer?
    -r           writes the outfile backwards without load address, this is
                 suitable for files that are to be decompressed directly
                 from disk, can't be combined with -l or -s
-   -l <address> adds load address to the outfile, can't be combined
+   -l <address> adds load address to the outfile, using "auto" as <address>
+                will enable load address auto detection, can't be combined
                 with -r or -s, default is no load address
-   -s <address> adds basic-lins and decruncher that exits with a jmp <address>,
+   -s <address> adds basic-line and decruncher that exits with a jmp <address>,
                 using "sys" as <address> will enable basic-sys address auto
                 detection, can't be combined with -r or -l
    -o <outname> sets the outfile name, default is "a.prg"
@@ -111,7 +112,7 @@ Is it possible to use hexadecimal numbers for load and start addresses?
 Is it possible to crunch a basic program and then start it?
 
   Yes, but it requires a trampoline machine code routine to set up the basic
-  environment. The exomiser decruncher has to be set to jmp to the start of
+  environment. The exomizer decruncher has to be set to jmp to the start of
   the trampoline. It then set things up and starts the basic interpreter.
 
   You may do this manually as described below, or use the exobasic tool also

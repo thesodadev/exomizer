@@ -185,7 +185,8 @@ static int find_sys(const unsigned char *buf)
         }
         ++i;
     }
-    LOG(LOG_ERROR, ("state when leaving: %d.\n", state));
+
+    LOG(LOG_DEBUG, ("state when leaving: %d.\n", state));
     return outstart;
 }
 
@@ -461,7 +462,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v1.1.3, Copyright (c) 2002, 2003 Magnus Lind. (magli143@comhem.se)\n"
+         "Exomizer v1.1.4, Copyright (c) 2002 - 2004 Magnus Lind. (magli143@comhem.se)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -509,21 +510,22 @@ void print_usage(const char *appl, enum log_level level)
         ("  -r           writes the outfile backwards without load address, this is\n"
          "               suitable for files that are to be decompressed directly\n"
          "               from disk, can't be combined with -l or -s\n"
-         "  -l <address> adds load address to the outfile, can't be combined\n"
+         "  -l <address> adds load address to the outfile, using \"auto\" as <address>\n"
+         "               will enable load address auto detection, can't be combined\n"
          "               with -r or -s, default is no load address\n"
-         "  -s <address> adds basic-lins and decruncher that exits with a jmp <address>,\n"
-         "               using \"sys\" as <address> will enable basic-sys address auto\n"));
+         "  -s <address> adds basic-line and decruncher that exits with a jmp <address>,\n"));
     LOG(level,
-        ("               detection, can't be combined with -r or -l\n"
+        ("               using \"sys\" as <address> will enable basic-sys address auto\n"
+         "               detection, can't be combined with -r or -l\n"
          "  -o <outname> sets the outfile name, default is \"a.prg\"\n"
          "  -q           enable quiet mode, display output is reduced to one line\n"
          "  -4           the decruncher targets the c16/+4 computers instead of the c64,\n"
          "               must be combined with -s\n"
          "  -n           turn off the decrunch effect shown by the decruncher, must be\n"
-         "               combined with -s\n"
-         "  -m <offset>  limits the maximum offset size\n"));
+         "               combined with -s\n"));
     LOG(level,
-        ("  -p <passes>  limits the maximum number of optimization passes\n"
+        ("  -m <offset>  limits the maximum offset size\n"
+         "  -p <passes>  limits the maximum number of optimization passes\n"
          "  --           treat all args to the right as non-options\n"
          "  -?           displays this help screen\n"
          "  -v           displays version and the usage license\n"
@@ -538,6 +540,7 @@ main(int argc, char *argv[])
     int reverse = 0;
     int outstart = -1;
     int decruncher = 0;
+    int loadaddr = 0;
     int outload = -1;
     int c, infilec;
     char **infilev;
@@ -591,8 +594,10 @@ main(int argc, char *argv[])
             }
             break;
         case 'l':
-            if (str_to_int(flagarg, &outload) != 0 ||
-                outload < 0 || outload >= 65536)
+            loadaddr = 1;
+            if (strcmp(flagarg, "auto") != 0 && strcmp(flagarg, "AUTO") != 0 &&
+                (str_to_int(flagarg, &outload) != 0 ||
+                 outload < 0 || outload >= 65536))
             {
                 LOG(LOG_ERROR,
                     ("error: invalid address for -l option, "
@@ -668,7 +673,7 @@ main(int argc, char *argv[])
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if (reverse + (outload != -1) + decruncher > 1)
+    if (reverse + loadaddr + decruncher > 1)
     {
         LOG(LOG_ERROR,
             ("error: the -r, -l or -s options can't be combined.\n"));
@@ -696,40 +701,43 @@ main(int argc, char *argv[])
         exit(1);
     }
 
+    /* zero fill mem */
+    memset(mem, 0, sizeof(mem));
+    do_load(infilec, infilev, mem, &load, &len);
+
     LOG(LOG_NORMAL, ("Mode for target file: "));
     if (reverse)
     {
         LOG(LOG_NORMAL, ("decompression from file\n"));
         outstart = -2;
-    } else if (!decruncher)
+    } else if(decruncher)
     {
-        LOG(LOG_NORMAL, ("decompression from memory"));
-        if (outload != -1)
-        {
-            LOG(LOG_NORMAL, (", loading to: $%04X", outload));
-            outstart = outload + 0x10000;
-        }
-        LOG(LOG_NORMAL, ("\n"));
-    }
-
-    /* zero fill mem */
-    memset(mem, 0, sizeof(mem));
-    do_load(infilec, infilev, mem, &load, &len);
-
-    if(decruncher)
-    {
+        LOG(LOG_NORMAL,
+            ("self-decompressing %s executable",
+             decr_matrix[decr_target][decr_type]->text));
         if(outstart < 0)
         {
             outstart = find_sys(mem + basic_start[decr_type]);
             if(outstart < 0)
             {
-                LOG(LOG_ERROR, ("error: cant find sys address.\n"));
+                LOG(LOG_ERROR, ("\nerror: cant find sys address.\n"));
                 exit(1);
             }
         }
-        LOG(LOG_NORMAL,
-            ("self-decompressing %s executable, jmp address $%04X\n",
-             decr_matrix[decr_target][decr_type]->text, outstart));
+        LOG(LOG_NORMAL, (", jmp address $%04X\n", outstart));
+    }else
+    {
+        LOG(LOG_NORMAL, ("decompression from memory"));
+        if (loadaddr)
+        {
+            if(outload < 0)
+            {
+                outload = load;
+            }
+            LOG(LOG_NORMAL, (", loading to: $%04X", outload));
+            outstart = outload + 0x10000;
+        }
+        LOG(LOG_NORMAL, ("\n"));
     }
 
     LOG(LOG_NORMAL,
