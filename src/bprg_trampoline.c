@@ -28,6 +28,8 @@
 #include "bprg.h"
 #include "log.h"
 
+#include <stdlib.h>
+
 struct trampoline {
     int init;
     int start;
@@ -107,6 +109,10 @@ bprg_trampoline_add(struct bprg_ctx *ctx,
     {
         t->size += 3;
     }
+    if(flags & TRAMPOLINE_FLAG_C264_COLOR_REGEN)
+    {
+        t->size += 3;
+    }
     bprg_lines_mutate(ctx, trampoline_cb_line_mutate, t);
 
     endpos = ctx->start + ctx->len;
@@ -116,6 +122,7 @@ bprg_trampoline_add(struct bprg_ctx *ctx,
                         "must be >= basic vars at $%04X\n",
                         endpos,
                         *var));
+        exit(-1);
     }
     ctx->start = *start;
     ctx->basic_start = ctx->start + t->size;
@@ -181,8 +188,17 @@ bprg_trampoline_add(struct bprg_ctx *ctx,
             ctx->mem[i++] = 0x18;
             ctx->mem[i++] = 0x88;
         }
+
+        if(flags & TRAMPOLINE_FLAG_C264_COLOR_REGEN)
+        {
+            /* jsr $F3B5 */
+            ctx->mem[i++] = 0x20;
+            ctx->mem[i++] = 0xB5;
+            ctx->mem[i++] = 0xF3;
+        }
+
         /* jmp $8BDC */
-        ctx->mem[i++] = 0x8B;
+        ctx->mem[i++] = 0x4C;
         ctx->mem[i++] = 0xDC;
         ctx->mem[i++] = 0x8B;
     } else /* c64 trampoline */

@@ -93,6 +93,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
     while (len >= 0 &&
            (mp = matches_get(ctx, (unsigned short) (len - 1))) != NULL)
     {
+        float prev_score;
 #undef COPY
 #ifdef COPY
         /* check if we can do even better with copy */
@@ -239,34 +240,68 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         }
         /* end of rle optimization */
 
-        LOG(LOG_DEBUG,
+        LOG(LOG_DUMP,
             ("matches for index %d with total score %0.1f\n",
              len - 1, snp->total_score));
 
+        prev_score = snp_arr[len]->total_score;
         while (mp != NULL)
         {
-            float score;
-            float prev_score;
-            float total_score;
+            matchp next;
+            int end_len;
 
+            match tmp;
 
-            prev_score = snp_arr[len]->total_score;
-
-            score = f(mp, emd);
-            total_score = prev_score + score;
-
-            snp = snp_arr[len - mp->len];
-            if ((total_score < 1000000.0) &&
-                (snp->match->len == 0 ||
-                 total_score < snp->total_score))
+            next = mp->next;
+            end_len = 1;
+#if 0
+            if(next != NULL)
             {
-                snp->index = len - mp->len;
-                *snp->match = *mp;
-                snp->match_score = score;
-                snp->total_score = total_score;
-                snp->prev = snp_arr[len];
+                end_len = next->len + (next->offset > 0);
             }
-            mp = mp->next;
+#endif
+            *tmp = *mp;
+            for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
+            {
+                float score;
+                float total_score;
+
+                LOG(LOG_DUMP, ("mp[%d, %d], tmp[%d, %d]\n",
+                               mp->offset, mp->len,
+                               tmp->offset, tmp->len));
+
+                score = f(tmp, emd);
+                total_score = prev_score + score;
+
+                snp = snp_arr[len - tmp->len];
+
+                LOG(LOG_DUMP,
+                    ("[%05d] cmp [%05d, %05d score %.1f + %.1f] with %.1f",
+                     len, tmp->offset, tmp->len,
+                     prev_score, score, snp->total_score));
+
+                if ((total_score < 1000000.0) &&
+                    (snp->match->len == 0 ||
+                     total_score < snp->total_score ||
+                     (total_score == snp->total_score &&
+                      (tmp->offset == 0 ||
+                       (snp->match->len == tmp->len &&
+                        snp->match->offset > tmp->offset)))))
+                {
+                    LOG(LOG_DUMP, (", replaced"));
+                    snp->index = len - tmp->len;
+                    *snp->match = *tmp;
+                    snp->match_score = score;
+                    snp->total_score = total_score;
+                    snp->prev = snp_arr[len];
+                }
+                LOG(LOG_DUMP, ("\n"));
+            }
+            LOG(LOG_DUMP, ("tmp->len %d, ctx->rle[%d] %d\n",
+                           tmp->len, len - tmp->len,
+                           ctx->rle[len - tmp->len]));
+
+            mp = next;
         }
 
         /* slow way to get to the next node for cur */

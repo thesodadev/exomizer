@@ -119,7 +119,7 @@ open_file(const char *name, int *load_addr)
             /* we fail */
             LOG(LOG_FATAL,
                 (" can't parse load address from \"%s\"\n", load_str));
-            exit(1);
+            exit(-1);
         }
 
         in = fopen(name, "rb");
@@ -129,7 +129,7 @@ open_file(const char *name, int *load_addr)
     {
         LOG(LOG_FATAL,
             (" can't open file \"%s\" for input\n", name));
-        exit(1);
+        exit(-1);
     }
 
     /* set the load address */
@@ -153,7 +153,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exobasic v1.0b1, Copyright (c) 2003 Magnus Lind. (magli143@telia.com)\n"
+         "Exobasic v1.0b2, Copyright (c) 2003 Magnus Lind. (magli143@comhem.se)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -211,9 +211,12 @@ void print_usage(const char *appl, enum log_level level)
          "  -t           generate c64 trampoline, the trampoline routine will be\n"
          "               located at the beginning of the outfile and is started by\n"
          "               jmp:ing to the first address it loads to.\n"
-         "  -4           makes -t flag generate c16/plus4 trampoline instead of c64.\n"));
+         "  -c           trampoline will also recreate the stack color table, must be\n"
+         "               combined with -t and -4.\n"));
     LOG(level,
-        ("  --           treat all args to the right as non-options\n"
+        ("  -4           generate c16/plus4 trampoline instead of c64, must be combined\n"
+         "               with -t.\n"
+         "  --           treat all args to the right as non-options\n"
          "  -?           displays this help screen\n"
          "  -v           displays version and the usage license\n"
          " The name of the outfile(s) will be the name of the infile(s) with a suffix of\n"
@@ -230,6 +233,7 @@ int main(int argc, char *argv[])
     int renumber = 0;
     int reNumber = 0;
     int trampoline = 0;
+    int c264_color = 0;
     int c264 = 0;
     int *t_start = NULL;
     int *t_var = NULL;
@@ -242,7 +246,7 @@ int main(int argc, char *argv[])
     LOG_INIT_CONSOLE(LOG_NORMAL);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    while ((c = getflag(argc, argv, "s:n:Nprt4v")) != -1)
+    while ((c = getflag(argc, argv, "s:n:Nprt4cv")) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch (c)
@@ -271,7 +275,7 @@ int main(int argc, char *argv[])
                     ("error: invalid number for -n option, "
                      "must be in the range of [0 - 63999]\n"));
                 print_usage(argv[0], LOG_ERROR);
-                exit(1);
+                exit(-1);
             }
             LOG(LOG_DEBUG, ("option -n: nice renumber, "
                             "start with %d, increment %d\n",
@@ -282,13 +286,17 @@ int main(int argc, char *argv[])
             LOG(LOG_DEBUG, ("option -t: adding trampoline\n"));
             trampoline = 1;
             break;
+        case 'c':
+            LOG(LOG_DEBUG, ("option -c: adding c264 color table regen.\n"));
+            c264_color = 1;
+            break;
         case '4':
             LOG(LOG_DEBUG, ("option -4: using c264 trampoline\n"));
             c264 = 1;
             break;
         case 'v':
             print_license();
-            exit(1);
+            exit(0);
         default:
             if (flagflag != '?')
             {
@@ -301,10 +309,21 @@ int main(int argc, char *argv[])
                 LOG(LOG_ERROR, ("\n"));
             }
             print_usage(argv[0], LOG_BRIEF);
-            exit(1);
+            exit(0);
         }
     }
-
+#if 0
+    LOG(LOG_DEBUG, ("flagind %d\n", flagind));
+    for (c = 0; c < argc; ++c)
+    {
+        if (c == flagind)
+        {
+            LOG(LOG_DEBUG, ("-----------------------\n"));
+        }
+        LOG(LOG_DEBUG, ("argv[%d] = \"%s\"\n", c, argv[c]));
+    }
+    exit(1);
+#endif
     if(renumber && reNumber)
     {
         LOG(LOG_ERROR, ("error: the -N and -n options can't be combined.\n"));
@@ -314,7 +333,14 @@ int main(int argc, char *argv[])
     if(c264 && !trampoline)
     {
         LOG(LOG_ERROR,
-            ("error: the -4 option must be combined with -s.\n"));
+            ("error: the -4 option must be combined with -t.\n"));
+        print_usage(argv[0], LOG_ERROR);
+        exit(1);
+    }
+    if(c264_color && !c264)
+    {
+        LOG(LOG_ERROR,
+            ("error: the -c option must be combined with -t and -4.\n"));
         print_usage(argv[0], LOG_ERROR);
         exit(1);
     }
@@ -360,6 +386,7 @@ int main(int argc, char *argv[])
             flags = 0;
             flags |= patch_links ? TRAMPOLINE_FLAG_REGEN: 0;
             flags |= c264 ? TRAMPOLINE_FLAG_C264: 0;
+            flags |= c264_color ? TRAMPOLINE_FLAG_C264_COLOR_REGEN: 0;
 
             if(flags & TRAMPOLINE_FLAG_C264)
             {
@@ -367,7 +394,11 @@ int main(int argc, char *argv[])
             }
             if(flags & TRAMPOLINE_FLAG_REGEN)
             {
-                LOG(LOG_NORMAL, (" that regenerates line links"));
+                LOG(LOG_NORMAL, (" that recreates links"));
+            }
+            if(flags & TRAMPOLINE_FLAG_C264_COLOR_REGEN)
+            {
+                LOG(LOG_NORMAL, (" and color table"));
             }
 
             bprg_trampoline_add(ctx, t_start, t_var, t_end, flags);

@@ -30,8 +30,7 @@
 #include "log.h"
 #include "output.h"
 
-#define DECOMP_MIN_ADDR 0x0c00
-#define DECOMP_SAFETY 24
+#define DECOMP_MIN_ADDR 0x0400
 #define DECOMP_LEN 0xb4
 
 static const unsigned char stage1[] = {
@@ -122,10 +121,10 @@ void load(output_ctx out,       /* IN/OUT */
     new_load = STAGE1_END;
 
     /* do we have enough decompression buffer safety? */
-    if (load - DECOMP_SAFETY < STAGE1_END)
+    if (load < STAGE1_END)
     {
         /* no, we need to transfer bytes */
-        new_load = load - DECOMP_SAFETY;
+        new_load = load;
     }
     output_set_pos(out, new_load);
 

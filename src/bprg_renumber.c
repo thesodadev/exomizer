@@ -329,7 +329,7 @@ renumber2_cb_line_mutate(const unsigned char *in, /* IN */
             /* write new line number */
             i += sprintf((char*)mem + start + i, "%d", target->new_line);
             /* skip old in input */
-            strtol((char*)in, (char**)&in, 10);
+            strtol((char*)in, (void*)&in, 10);
 
             /* set where to next fixup */
             rctx->fixup = vec_iterator_next(rctx->i);

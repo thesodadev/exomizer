@@ -61,6 +61,7 @@ typedef struct _dep_ctx *dep_ctxp;
 #if STAT
 static FILE *stat = NULL;
 #endif
+static int bits_read;
 static int bytes_read;
 static int bytes_written;
 static int literal_counter;
@@ -100,6 +101,7 @@ get_byte(dep_ctxp ctx)
     }
 
     ++bytes_read;
+    bits_read += 8;
 
     return c;
 }
@@ -115,11 +117,13 @@ get_bits(dep_ctxp ctx, int count)
     while(count-- > 0) {
         if((ctx->bitbuf & 0x1FF) == 1) {
             ctx->bitbuf = get_byte(ctx) | 0x100;
+            bits_read -= 8;
         }
         val <<= 1;
         val |= ctx->bitbuf & 0x1;
         ctx->bitbuf >>= 1;
         /*printf("bit read %d\n", val &1);*/
+        ++bits_read;
     }
     /*printf(" val = %d\n", val);*/
     return val;
@@ -152,6 +156,7 @@ get_cooked_code_phase2(dep_ctxp ctx, int index)
 void
 dep_loop(dep_ctxp ctx)
 {
+    int bits;
     int val;
     int i;
     int len;
@@ -161,6 +166,7 @@ dep_loop(dep_ctxp ctx)
     for(;;)
     {
         int literal = 0;
+        bits = bits_read;
         if(get_bits(ctx, 1))
         {
             ++literal_counter;
@@ -238,6 +244,9 @@ dep_loop(dep_ctxp ctx)
                 bytes_written, bytes_read, bytes_written - bytes_read,
                 literal_counter, sequence_counter);
 #endif
+#ifdef STAT2
+        printf("bits read for this iteration %d.\n", bits_read - bits);
+#endif
     }
 }
 
@@ -314,7 +323,7 @@ table_dump(dep_tablep tp)
 
     for(i = 0; i < 16; ++i)
     {
-        printf("%d", tp->table_bi[i]);
+        printf("%X", tp->table_bi[i]);
     }
     for(j = 0; j < 3; ++j)
     {
@@ -325,7 +334,7 @@ table_dump(dep_tablep tp)
         end = start + (1 << tp->table_bit[j]);
         for(i = start; i < end; ++i)
         {
-            printf("%d", tp->table_bi[i]);
+            printf("%X", tp->table_bi[i]);
         }
     }
     printf("\n");

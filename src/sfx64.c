@@ -31,9 +31,7 @@
 #include "output.h"
 
 #define DECOMP_EFFECT_ADDR 0x07e7
-#define DECOMP_MIN_ADDR 0x0400
-#define DECOMP_SAFETY_SOFT 25
-#define DECOMP_SAFETY_HARD 24
+#define DECOMP_MIN_ADDR 0x03d0
 #define DECOMP_LEN 0xba
 
 static const unsigned char stage1[] = {
@@ -123,20 +121,15 @@ void load(output_ctx out,       /* IN/OUT */
     new_load = STAGE1_END;
 
     /* do we have enough decompression buffer safety? */
-    if (load - DECOMP_SAFETY_HARD < STAGE1_END)
+    if (load < STAGE1_END)
     {
         /* no, we need to transfer bytes */
-        new_load = load - DECOMP_SAFETY_SOFT;
+        new_load = load;
         /* make sure that the depack effect is visible */
 	if(new_load > DECOMP_EFFECT_ADDR)
 	{
 	    new_load = DECOMP_EFFECT_ADDR;
 	}
-        /* use the hard safety if we are lower than the min addr */
-	if(new_load < DECOMP_MIN_ADDR - DECOMP_SAFETY_HARD)
-        {
-	    new_load = DECOMP_MIN_ADDR - DECOMP_SAFETY_HARD;
-        }
     }
     output_set_pos(out, new_load);
 

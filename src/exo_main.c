@@ -120,7 +120,7 @@ open_file(char *name, int *load_addr)
             /* we fail */
             LOG(LOG_FATAL,
                 (" can't parse load address from \"%s\"\n", load_str));
-            exit(1);
+            exit(-1);
         }
 
         in = fopen(name, "rb");
@@ -130,7 +130,7 @@ open_file(char *name, int *load_addr)
     {
         LOG(LOG_FATAL,
             (" can't open file \"%s\" for input\n", name));
-        exit(1);
+        exit(-1);
     }
 
     /* set the load address */
@@ -160,6 +160,7 @@ static int find_sys(const unsigned char *buf)
     {
         unsigned char *sys_end;
         int c = buf[i];
+
         switch(state)
         {
             /* look for and consume sys token */
@@ -172,7 +173,7 @@ static int find_sys(const unsigned char *buf)
             state = 3;
             /* convert string number to int */
         case 3:
-            outstart = strtol((char*)(buf + i), (char**)&sys_end, 10);
+            outstart = strtol((char*)(buf + i), (void*)&sys_end, 10);
             if((buf + i) == sys_end)
             {
                 /* we got nothing */
@@ -185,7 +186,8 @@ static int find_sys(const unsigned char *buf)
         }
         ++i;
     }
-    LOG(LOG_ERROR, ("state when leaving: %d.\n", state));
+
+    LOG(LOG_DEBUG, ("state when leaving: %d.\n", state));
     return outstart;
 }
 
@@ -232,46 +234,6 @@ do_load(int filec, char *filev[], unsigned char *buf, int *load, int *len)
 
 static
 int
-calculate_safety(search_nodep snp)
-{
-    int size = 0;
-    float total_score = 0.0;
-    int max_diff = 0;
-
-    while (snp != NULL)
-    {
-	int diff;
-        const_matchp mp;
-
-        mp = snp->match;
-        if (mp != NULL && mp->len > 0)
-        {
-            if (mp->offset == 0)
-            {
-                /* literal */
-		++size;
-            } else
-            {
-		/* sequence */
-		size += mp->len;
-            }
-        }
-	total_score += snp->match_score;
-	diff = (((int)total_score + 7) >> 3) - size;
-	if(diff > max_diff)
-	{
-	    max_diff = diff;
-	}
-        snp = snp->prev;
-    }
-
-    LOG(LOG_DUMP, ("max diff %d", max_diff));
-
-    return max_diff;
-}
-
-static
-int
 generate_output(match_ctx ctx,
                 search_nodep snp,
                 struct sfx_decruncher *decr,
@@ -280,6 +242,9 @@ generate_output(match_ctx ctx,
                 int load, int len, int start, FILE * of)
 {
     int pos;
+    int pos_diff;
+    int max_diff;
+    int diff;
     static output_ctx out;
     output_ctxp old;
 
@@ -291,13 +256,14 @@ generate_output(match_ctx ctx,
     if (start >= 0 && start < 0x10000)
     {
         /* -s given */
-	calculate_safety(snp);
-
-        decr->load(out, (unsigned short int) load);
     } else if (start >= 0x10000 && start < 0x20000)
     {
         /* -l given */
         output_word(out, (unsigned short int) (start - 0x10000));
+    } else if (start >= 0x20000 && start < 0x30000)
+    {
+        /* -l auto given */
+        output_word(out, (unsigned short int)0);
     } else if (start == -2)
     {
         /* -r given */
@@ -306,12 +272,22 @@ generate_output(match_ctx ctx,
 
     pos = output_get_pos(out);
 
+    pos_diff = pos;
+    max_diff = 0;
+
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    output_gamma_code(out, 17);
+    output_gamma_code(out, 16);
     output_bits(out, 1, 0); /* 1 bit out */
+
+    diff = output_get_pos(out) - pos_diff;
+    if(diff > max_diff)
+    {
+        max_diff = diff;
+    }
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
     LOG(LOG_DUMP, ("------------\n"));
+
     while (snp != NULL)
     {
         const_matchp mp;
@@ -321,31 +297,20 @@ generate_output(match_ctx ctx,
         {
             if (mp->offset == 0)
             {
-                if(mp->len == 1)
-                {
-                    /* literal */
-                    output_byte(out, ctx->buf[snp->index]);
-                    output_bits(out, 1, 1);
-                }
-                else
-                {
-                    int i;
-                    for(i = 0; i < mp->len; ++i)
-                    {
-                        /* literal */
-                        output_byte(out, ctx->buf[snp->index + i]);
-                    }
-                    output_bits(out, 16, mp->len); /* 16 bits out */
-                    output_gamma_code(out, 16); /* 17 bits out */
-                    output_bits(out, 1, 0); /* 1 bit out */
-
-                    LOG(LOG_DEBUG, ("copy index %d, len %d\n",
-                                     snp->index, mp->len));
-                }
+                /* literal */
+                output_byte(out, ctx->buf[snp->index]);
+                output_bits(out, 1, 1);
             } else
             {
                 f(mp, emd);
                 output_bits(out, 1, 0);
+            }
+
+            pos_diff += mp->len;
+            diff = output_get_pos(out) - pos_diff;
+            if(diff > max_diff)
+            {
+                max_diff = diff;
             }
         }
         LOG(LOG_DUMP, ("------------\n"));
@@ -363,12 +328,30 @@ generate_output(match_ctx ctx,
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
 
     LOG(LOG_NORMAL,
-        ("  length of compressed data (including header): %d\n",
+        ("  length of compressed data (including header): %d bytes\n",
          output_get_pos(out) - pos));
 
     if (start >= 0 && start < 0x10000)
     {
+        /* -s given */
+        len = output_get_pos(out);
+        decr->load(out, (unsigned short int) load - max_diff);
+        output_copy_bytes(out, 0, len);
+
+        /* second stage of decruncher */
         decr->stages(out, (unsigned short int) start);
+    } else if (start >= 0x20000 && start < 0x30000)
+    {
+        /* update auto load address */
+        load = start - 0x20000 - max_diff;
+        LOG(LOG_NORMAL,
+            ("  final load address determined by auto setting to $%04X\n",
+             load));
+
+        pos = output_get_pos(out);
+        output_set_pos(out, 0);
+        output_word(out, (unsigned short int)load);
+        output_set_pos(out, pos);
     }
 
     len = output_ctx_close(out, of);
@@ -419,6 +402,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
             exit(-1);
         }
+
         size = snp->total_score;
         LOG(LOG_NORMAL, ("  size %0.1f bits ~%d bytes\n",
                          size, (((int) size) + 7) >> 3));
@@ -471,7 +455,7 @@ do_output(match_ctx ctx,
     if (outfile == NULL)
     {
         LOG(LOG_ERROR, (" can't open file \"%s\" for output\n", outname));
-        exit(1);
+        exit(-1);
     }
 
     len = generate_output(ctx, snp, decr, optimal_encode, emd,
@@ -487,7 +471,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v1.1.3, Copyright (c) 2002, 2003 Magnus Lind. (magli143@comhem.se)\n"
+         "Exomizer v1.1.4, Copyright (c) 2002 - 2004 Magnus Lind. (magli143@comhem.se)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -535,10 +519,10 @@ void print_usage(const char *appl, enum log_level level)
         ("  -r           writes the outfile backwards without load address, this is\n"
          "               suitable for files that are to be decompressed directly\n"
          "               from disk, can't be combined with -l or -s\n"
-         "  -l <address> adds load address to the outfile, can't be combined\n"
+         "  -l <address> adds load address to the outfile, using \"auto\" as <address>\n"
+         "               will enable load address auto detection, can't be combined\n"
          "               with -r or -s, default is no load address\n"
-         "  -s <address> adds basic-lins and decruncher that exits with a jmp <address>,\n"
-         "               using \"sys\" as <address> will enable basic-sys address auto\n"));
+         "  -s <address> adds basic-line and decruncher that exits with a jmp <address>,\n"));
     LOG(level,
         ("               detection, can't be combined with -r or -l\n"
          "  -o <outname> sets the outfile name, default is \"a.prg\"\n"
@@ -546,10 +530,10 @@ void print_usage(const char *appl, enum log_level level)
          "  -4           the decruncher targets the c16/+4 computers instead of the c64,\n"
          "               must be combined with -s\n"
          "  -n           turn off the decrunch effect shown by the decruncher, must be\n"
-         "               combined with -s\n"
-         "  -m <offset>  limits the maximum offset size\n"));
+         "               combined with -s\n"));
     LOG(level,
-        ("  -p <passes>  limits the maximum number of optimization passes\n"
+        ("  -m <offset>  limits the maximum offset size\n"
+         "  -p <passes>  limits the maximum number of optimization passes\n"
          "  --           treat all args to the right as non-options\n"
          "  -?           displays this help screen\n"
          "  -v           displays version and the usage license\n"
@@ -565,6 +549,7 @@ main(int argc, char *argv[])
     int reverse = 0;
     int outstart = -1;
     int decruncher = 0;
+    int loadaddr = 0;
     int outload = -1;
     int c, infilec;
     char **infilev;
@@ -612,19 +597,21 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid offset for -m option, "
                      "must be in the range of [0 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
-                exit(1);
+                print_usage(argv[0], LOG_NORMAL);
+                exit(-1);
             }
             break;
         case 'l':
-            if (str_to_int(flagarg, &outload) != 0 ||
-                outload < 0 || outload >= 65536)
+            loadaddr = 1;
+            if (strcmp(flagarg, "auto") != 0 && strcmp(flagarg, "AUTO") != 0 &&
+                (str_to_int(flagarg, &outload) != 0 ||
+                 outload < 0 || outload >= 65536))
             {
                 LOG(LOG_ERROR,
                     ("error: invalid address for -l option, "
                      "must be in the range of [0 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
-                exit(1);
+                print_usage(argv[0], LOG_NORMAL);
+                exit(-1);
             }
             break;
         case 'p':
@@ -634,8 +621,8 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid value for -p option, "
                      "must be in the range of [1 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
-                exit(1);
+                print_usage(argv[0], LOG_NORMAL);
+                exit(-1);
             }
             break;
         case 's':
@@ -647,8 +634,8 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR,
                     ("error: invalid address for -s option, "
                      "must be in the range of [0 - 0xffff]\n"));
-                print_usage(argv[0], LOG_ERROR);
-                exit(1);
+                print_usage(argv[0], LOG_NORMAL);
+                exit(-1);
             }
             break;
         case 'o':
@@ -659,7 +646,7 @@ main(int argc, char *argv[])
             break;
         case 'v':
             print_license();
-            exit(1);
+            exit(0);
         case '4':
             decr_target = DECR_TARGET_C264;
             break;
@@ -678,75 +665,94 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR, ("\n"));
             }
             print_usage(argv[0], LOG_BRIEF);
-            exit(1);
+            exit(0);
         }
     }
+#if 0
+    LOG(LOG_DEBUG, ("flagind %d\n", flagind));
+    for (c = 0; c < argc; ++c)
+    {
+        if (c == flagind)
+        {
+            LOG(LOG_DEBUG, ("-----------------------\n"));
+        }
+        LOG(LOG_DEBUG, ("argv[%d] = \"%s\"\n", c, argv[c]));
+    }
+    exit(1);
+#endif
 
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if (reverse + (outload != -1) + decruncher > 1)
+    if (reverse + loadaddr + decruncher > 1)
     {
         LOG(LOG_ERROR,
             ("error: the -r, -l or -s options can't be combined.\n"));
-        print_usage(argv[0], LOG_ERROR);
-        exit(1);
+        print_usage(argv[0], LOG_NORMAL);
+        exit(-1);
     }
     if (decr_target == DECR_TARGET_C264 && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -4 option must be combined with -s.\n"));
-        print_usage(argv[0], LOG_ERROR);
-        exit(1);
+        print_usage(argv[0], LOG_NORMAL);
+        exit(-1);
     }
     if (decr_type == DECR_TYPE_NO_EFFECT && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -n option must be combined with -s.\n"));
-        print_usage(argv[0], LOG_ERROR);
-        exit(1);
+        print_usage(argv[0], LOG_NORMAL);
+        exit(-1);
     }
     if (infilec == 0)
     {
         LOG(LOG_ERROR, ("error: no input files to process.\n"));
-        print_usage(argv[0], LOG_ERROR);
-        exit(1);
-    }
-
-    LOG(LOG_NORMAL, ("Mode for target file: "));
-    if (reverse)
-    {
-        LOG(LOG_NORMAL, ("decompression from file\n"));
-        outstart = -2;
-    } else if (!decruncher)
-    {
-        LOG(LOG_NORMAL, ("decompression from memory"));
-        if (outload != -1)
-        {
-            LOG(LOG_NORMAL, (", loading to: $%04X", outload));
-            outstart = outload + 0x10000;
-        }
-        LOG(LOG_NORMAL, ("\n"));
+        print_usage(argv[0], LOG_NORMAL);
+        exit(-1);
     }
 
     /* zero fill mem */
     memset(mem, 0, sizeof(mem));
     do_load(infilec, infilev, mem, &load, &len);
 
-    if(decruncher)
+    LOG(LOG_NORMAL, ("Mode for target file: "));
+    if (reverse)
     {
+        LOG(LOG_NORMAL, ("decompression from file\n"));
+        outstart = -2;
+    } else if(decruncher)
+    {
+        LOG(LOG_NORMAL,
+            ("self-decompressing %s executable",
+             decr_matrix[decr_target][decr_type]->text));
         if(outstart < 0)
         {
-            outstart = find_sys(mem + basic_start[decr_type]);
+            outstart = find_sys(mem + basic_start[decr_target]);
             if(outstart < 0)
             {
-                LOG(LOG_ERROR, ("error: cant find sys address.\n"));
-                exit(1);
+                LOG(LOG_ERROR, ("\nerror: cant find sys address.\n"));
+                exit(-1);
             }
         }
-        LOG(LOG_NORMAL,
-            ("self-decompressing %s executable, jmp address $%04X\n",
-             decr_matrix[decr_target][decr_type]->text, outstart));
+        LOG(LOG_NORMAL, (", jmp address $%04X\n", outstart));
+    }else
+    {
+        LOG(LOG_NORMAL, ("decompression from memory"));
+        if (loadaddr)
+        {
+            if(outload < 0)
+            {
+                outload = load;
+                LOG(LOG_NORMAL, (", loading to: $%04X - safety", outload));
+                outstart = outload + 0x20000;
+            } else
+            {
+                LOG(LOG_NORMAL, (", loading to: $%04X", outload));
+                outstart = outload + 0x10000;
+            }
+        }
+        LOG(LOG_NORMAL, ("\n"));
     }
 
     LOG(LOG_NORMAL,

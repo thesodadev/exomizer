@@ -2,7 +2,7 @@
 # Makefile for exomizer
 #
 
-CFLAGS = -Wall -O3 -ffast-math -mcpu=i686 -fomit-frame-pointer -fgcse -pedantic
+CFLAGS = -Wall -O3 -ffast-math -mtune=i686 -fomit-frame-pointer -fgcse -pedantic
 LDFLAGS = -s
 
 #CFLAGS = -g
@@ -14,6 +14,8 @@ EXO_OBJS = match.o search.o exo_main.o optimal.o output.o sfx264.o sfx64.o \
 BAS_OBJS = bas_main.o bprg_renumber.o bprg_link_patch.o bprg_trampoline.o \
 	   bprg.o vec.o membuf.o
 ALL_OBJS = $(EXO_OBJS) $(BAS_OBJS) $(SHARED_OBJS)
+
+#.SILENT:
 
 .PHONY: build
 
