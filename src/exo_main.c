@@ -394,6 +394,7 @@ main(int argc, char *argv[])
             exit(0);
         case '4':
             decr_target = 4;
+            sfx = get_sfx_config(decr_target);
             break;
         case 't':
             if (str_to_int(flagarg, &decr_target) != 0 ||
@@ -515,7 +516,7 @@ main(int argc, char *argv[])
 
     if(decruncher)
     {
-        LOG(LOG_NORMAL, ("self-decompressing %s executable", sfx->model));
+        LOG(LOG_NORMAL, ("self-decrunching %s executable", sfx->model));
         if(outstart < 0)
         {
             if(basic_end < 0)
@@ -526,7 +527,8 @@ main(int argc, char *argv[])
                                 sfx->basic_start));
                 exit(-1);
             }
-            outstart = find_sys((char*) membuf_get(in) + sfx->basic_start);
+            outstart = find_sys((char*) membuf_get(in) +
+                                sfx->basic_start - start);
             if(outstart < 0)
             {
                 LOG(LOG_ERROR, ("\nError: cant find sys address.\n"));
@@ -579,32 +581,9 @@ main(int argc, char *argv[])
         membuf_clear(out);
 
         new_symbol("i_start_addr", outstart);
-
-        /* add decruncher */
-        new_symbol("i_basic_start", sfx->basic_start);
-        symbol_dump_resolved(LOG_NORMAL, "i_basic_start");
-        new_symbol("i_basic_picky", sfx->basic_picky);
-        symbol_dump_resolved(LOG_NORMAL, "i_basic_picky");
-        new_symbol("i_table_addr", sfx->table_addr);
-        symbol_dump_resolved(LOG_NORMAL, "i_table_addr");
-        new_symbol("i_bank_mode", sfx->bank_mode);
-        symbol_dump_resolved(LOG_NORMAL, "i_bank_mode");
-        new_symbol("i_bank_addr", sfx->bank_addr);
-        symbol_dump_resolved(LOG_NORMAL, "i_bank_addr");
-        new_symbol("i_bank_ram", sfx->bank_ram);
-        symbol_dump_resolved(LOG_NORMAL, "i_bank_ram");
-        new_symbol("i_bank_rom", sfx->bank_rom);
-        symbol_dump_resolved(LOG_NORMAL, "i_bank_rom");
-        new_symbol("i_end_of_mem_ram", sfx->end_of_mem_ram);
-        symbol_dump_resolved(LOG_NORMAL, "i_end_of_mem_ram");
-        new_symbol("i_end_of_mem_rom", sfx->end_of_mem_rom);
-        symbol_dump_resolved(LOG_NORMAL, "i_end_of_mem_rom");
-        new_symbol("i_effect_char", sfx->effect_char);
-        symbol_dump_resolved(LOG_NORMAL, "i_effect_char");
-        new_symbol("i_effect_color", sfx->effect_color);
-        symbol_dump_resolved(LOG_NORMAL, "i_effect_color");
-        new_symbol("i_effect_border", sfx->effect_border);
-        symbol_dump_resolved(LOG_NORMAL, "i_effect_border");
+        /*symbol_dump_resolved(LOG_NORMAL, "i_start_addr");*/
+        new_symbol("i_target", decr_target);
+        /*symbol_dump_resolved(LOG_NORMAL, "i_target");*/
 
         /* new_symbol("i_ram_on_exit", 1);
            symbol_dump_resolved(LOG_NORMAL, "i_ram_on_exit"); */

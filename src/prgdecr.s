@@ -1,36 +1,75 @@
 ; -------------------------------------------------------------------
-; -- i_start_addr, done
-; -- i_safety_addr, done
-; -- i_highest_addr, done
+; -- i_start_addr, done /* required */
+; -- i_target, done /* required */
 ; -- i_ram_on_exit, done /* defined if true, otherwise not */
 ; -- i_config_effect, done /* defined if true, 0=lower right, 1=border flash */
 ; -------------------------------------------------------------------
-; -- i_basic_start, done
-; -- i_basic_picky, done
-; -- i_table_addr, done
-; -- i_bank_mode, done
-; -- i_bank_addr, done
-; -- i_bank_ram, done
-; -- i_bank_rom, done
-; -- i_end_of_mem_ram, done
-; -- i_end_of_mem_rom, done
-; -- i_effect_char, done
-; -- i_effect_color, done
-; -- i_effect_border, done
-; -------------------------------------------------------------------
-	.IF(!.DEFINED(i_start_addr))
-	  .ERROR("Required symbol i_start_addr not defined.")
-	.ENDIF
-	i_safety_addr = .INCWORD("crunched_data", 0)
-	.IF(!.DEFINED(i_safety_addr))
-	  .ERROR("Required symbol i_safety_addr not defined.")
-	.ENDIF
-	i_highest_addr = .INCWORD("crunched_data", -2)
-	.IF(!.DEFINED(i_highest_addr))
-	  .ERROR("Required symbol i_highest_addr not defined.")
-	.ENDIF
+.IF(!.DEFINED(i_target))
+  .ERROR("Required symbol i_target_addr not defined.")
+.ENDIF
 
-	.IF(i_bank_mode == 2 && .DEFINED(i_config_effect) &&
+.IF(i_target == 20)
+  i_basic_start    = $1001
+  i_end_of_mem_ram = $1fff
+  i_end_of_mem_rom = $1fff
+  i_effect_char    = $1ff9
+  i_effect_color   = $97f9
+.ELIF(i_target == 23)
+  i_basic_start    = $0401
+  i_end_of_mem_ram = $1fff
+  i_end_of_mem_rom = $1fff
+  i_effect_char    = $1ff9
+  i_effect_color   = $97f9
+.ELIF(i_target == 52)
+  i_basic_start    = $1201
+  i_end_of_mem_ram = $7fff
+  i_end_of_mem_rom = $7fff
+  i_effect_char    = $11f9
+  i_effect_color   = $95f9
+.ELIF(i_target == 55)
+  i_basic_start    = $1201
+  i_end_of_mem_ram = $7fff
+  i_end_of_mem_rom = $7fff
+  i_effect_char    = $11f9
+  i_effect_color   = $95f9
+.ELIF(i_target == 4)
+  i_basic_start    = $1001
+  i_end_of_mem_ram = $fcff
+  i_end_of_mem_rom = $3fff
+  i_effect_char    = $0fe7
+  i_effect_color   = $0be7
+.ELIF(i_target == 64)
+  i_basic_start    = $0801
+  i_end_of_mem_ram = $ffff
+  i_end_of_mem_rom = $9fff
+  i_effect_char    = $07e7
+  i_effect_color   = $dbe7
+.ELIF(i_target == 128)
+  i_basic_start    = $0801
+  i_end_of_mem_ram = $ffef
+  i_end_of_mem_rom = $3fff
+  i_effect_char    = $07e7
+  i_effect_color   = $dbe7
+.ELSE
+  .ERROR("Symbol i_target_addr has an invalid value.")
+.ENDIF
+
+.IF(!.DEFINED(i_table_addr))
+  .IF(i_target == 128)
+i_table_addr = $0b00
+  .ELSE
+i_table_addr = $0334
+  .ENDIF
+.ENDIF
+
+.IF(!.DEFINED(i_start_addr))
+  .ERROR("Required symbol i_start_addr not defined.")
+.ENDIF
+
+i_safety_addr = .INCWORD("crunched_data", 0)
+i_highest_addr = .INCWORD("crunched_data", -2)
+
+	.IF(i_target == 4 && .DEFINED(i_config_effect) &&
 	    i_effect_color > i_table_addr + 156)
 start_of_decrunchable_mem = i_effect_color
 	.ELSE
@@ -39,99 +78,109 @@ start_of_decrunchable_mem = i_table_addr + 156
 
 	.IF((i_safety_addr < start_of_decrunchable_mem ||
 	     i_highest_addr > i_end_of_mem_ram) &&
-	    (i_bank_mode != 0 || i_safety_addr < i_bank_ram ||
+	    ((i_target != 20 && target != 52) ||
+	     i_safety_addr < i_bank_ram ||
 	     i_highest_addr > i_bank_rom))
 	  .ERROR("This target can't support the memory demands of the data.")
 	.ENDIF
 
-	.IF(i_highest_addr > i_end_of_mem_rom)
+.IF(i_highest_addr > i_end_of_mem_rom || .DEFINED(i_ram_on_exit))
 config_ram_while_decrunch = 1
-	.ENDIF
+.ENDIF
 ; -------------------------------------------------------------------
 ; -- The decrunch effect macro definition ---------------------------
 ; -------------------------------------------------------------------
 .MACRO("effect")
   .IF(i_config_effect == 0)
-    .IF(i_effect_color == $0be7)
+    .IF(i_target == 4)
 	lda <$fd,x
 	sta i_effect_color
     .ELSE
 	stx i_effect_color
     .ENDIF
   .ELSE
-    .IF(i_effect_border == $900f)
-	txa
+    .IF(i_target == 20 || i_target == 23 || i_target == 52 || i_target == 55)
+	and #$07
 	ora #$18
-	sta i_effect_border
-    .ELIF(i_effect_border == $ff19)
-	lda <$fd,x
-	sta i_effect_border
+	sta $900f
+    .ELIF(i_target == 4)
+	ora #$30
+	sta $ff19
     .ELSE
-	stx i_effect_border
+	sta $d020
     .ENDIF
   .ENDIF
 .ENDMACRO
 
 .IF(.DEFINED(config_ram_while_decrunch))
-  .IF(i_bank_mode == 3)
 ; -------------------------------------------------------------------
-; -- The bank switch definitions for mode 3 (c64 & c128) ------------
+; -- The ram/rom switch macros for decrunching in ram mode ----------
+; -------------------------------------------------------------------
+  .IF(i_target == 64)
+; -------------------------------------------------------------------
+; -- The ram/rom switch macros for c64 ------------------------------
 ; -------------------------------------------------------------------
     .MACRO("b2d")
 	sei
-      .IF(i_bank_ram == $38 && i_bank_addr == $01)
 	inc <$01
-      .ELSE
-	lda #i_bank_ram
-	sta i_bank_addr
-      .ENDIF
     .ENDMACRO
     .MACRO("d2io")
-      .IF(i_bank_rom == $37 && i_bank_ram == $38 && i_bank_addr == $01)
 	dec <$01
-      .ELSE
-	lda #i_bank_rom
-	sta i_bank_addr
-      .ENDIF
     .ENDMACRO
     .MACRO("d2r")
       .IF(!.DEFINED(i_ram_on_exit))
-        .IF(i_bank_rom == $37 && i_bank_ram == $38 && i_bank_addr == $01)
 	dec <$01
-	.ELSE
-	lda #i_bank_rom
-	sta i_bank_addr
-	.ENDIF
 	cli
       .ENDIF
     .ENDMACRO
     .MACRO("io2d")
-      .IF(i_bank_rom == $37 && i_bank_ram == $38 && i_bank_addr == $01)
 	inc <$01
-      .ELSE
-	lda #i_bank_ram
-	sta i_bank_addr
-      .ENDIF
     .ENDMACRO
-  .ELIF(i_bank_mode == 2)
+  .ELIF(i_target == 128)
 ; -------------------------------------------------------------------
-; -- The bank switch definitions for mode 2 (c16/+4) ----------------
+; -- The ram/rom switch macros for c128 -----------------------------
 ; -------------------------------------------------------------------
     .MACRO("b2d")
-	sta i_bank_ram
+	sei
+	lda #$3f
+	sta $fff0
+    .ENDMACRO
+    .MACRO("d2io")
+	lda #$00
+	sta $fff0
+    .ENDMACRO
+    .MACRO("d2r")
+      .IF(!.DEFINED(i_ram_on_exit))
+	lda #$00
+	sta $fff0
+	cli
+      .ENDIF
+    .ENDMACRO
+    .MACRO("io2d")
+	lda #$3f
+	sta $fff0
+    .ENDMACRO
+  .ELIF(i_target == 4)
+; -------------------------------------------------------------------
+; -- The ram/rom switch macros for c16/+4 ---------------------------
+; -------------------------------------------------------------------
+    .MACRO("b2d")
+	sei
+	sta $ff3f
     .ENDMACRO
     .MACRO("d2io")
     .ENDMACRO
     .MACRO("d2r")
       .IF(!.DEFINED(i_ram_on_exit))
-	sta i_bank_rom
+	sta $ff3e
+	cli
       .ENDIF
     .ENDMACRO
     .MACRO("io2d")
     .ENDMACRO
   .ELSE
 ; -------------------------------------------------------------------
-; -- The bank switch definitions for mode 1 & 2 (c20) ---------------
+; -- The ram/rom switch definitions for c20 -------------------------
 ; -------------------------------------------------------------------
     .MACRO("b2d")
     .ENDMACRO
@@ -143,25 +192,14 @@ config_ram_while_decrunch = 1
     .ENDMACRO
   .ENDIF
 .ELSE
+; -------------------------------------------------------------------
+; -- The ram/rom switch macros for decrunching in rom mode ----------
+; -------------------------------------------------------------------
   .MACRO("b2d")
   .ENDMACRO
   .MACRO("d2io")
   .ENDMACRO
   .MACRO("d2r")
-    .IF(.DEFINED(i_ram_on_exit))
-      .IF(i_bank_mode == 3)
-	sei
-        .IF(i_bank_ram == $38 && i_bank_addr == $01)
-	inc <$01
-        .ELSE
-	lda #i_bank_ram
-	sta i_bank_addr
-        .ENDIF
-      .ELIF(i_bank_mode == 2)
-	sta i_bank_ram
-      .ELSE
-      .ENDIF
-    .ENDIF
   .ENDMACRO
   .MACRO("io2d")
   .ENDMACRO
@@ -190,7 +228,7 @@ stage1start:
 	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0)
 basic_end:
 ; -------------------------------------------------------------------
-	.IF(i_basic_picky == 1)
+	.IF(i_target == 4 || i_target == 128)
 	  .BYTE(0, 0)
 	.ENDIF
 decr_start:
@@ -261,22 +299,20 @@ bits_next:
 	bne ok
 	pha
 literal_get_byte:
-	lda get_byte_fixup + 1
-	bne get_byte_skip_hi
-	dec get_byte_fixup + 2
-	.IF(.DEFINED(i_config_effect))
-	  .IF(i_config_effect == 1)
-get_byte_skip_hi:
-	  .ENDIF
+	.IF(.DEFINED(i_config_effect) && i_config_effect == 1)
 	  .INCLUDE("d2io")
 	  .INCLUDE("effect")
 	  .INCLUDE("io2d")
-	  .IF(i_config_effect != 1)
-get_byte_skip_hi:
-	  .ENDIF
-	.ELSE
-get_byte_skip_hi:
 	.ENDIF
+	lda get_byte_fixup + 1
+	bne get_byte_skip_hi
+	dec get_byte_fixup + 2
+	.IF(.DEFINED(i_config_effect)  && i_config_effect != 1)
+	  .INCLUDE("d2io")
+	  .INCLUDE("effect")
+	  .INCLUDE("io2d")
+	.ENDIF
+get_byte_skip_hi:
 	dec get_byte_fixup + 1
 get_byte_fixup:
 	lda file2end - 3
@@ -456,10 +492,10 @@ shortcut:
 copy1_loop:
 	    .IF(transfer_len == 256)
 	lda file1start,y
-	sta i_safety_addr,y
+	sta lowest_addr,y
 	    .ELSE
 	lda file1start - 1,y
-	sta i_safety_addr - 1,y
+	sta lowest_addr - 1,y
 	    .ENDIF
 	dey
 	bne copy1_loop

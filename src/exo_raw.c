@@ -88,7 +88,8 @@ void print_usage(const char *appl, enum log_level level)
     LOG(level,
         ("  -o <outname> sets the outfile name, default is \"a.out\"\n"
          "  -q           enable quiet mode, display output is reduced to one line\n"
-         "  -e <encoding> forces the usage of the given encoding\n"
+         "  -e <encoding> uses the given encoding\n"
+         "  -b           crunch backwards"
          "  -d           decrunch mode"));
     LOG(level,
         ("  -m <offset>  limits the maximum offset size\n"
@@ -106,6 +107,7 @@ main(int argc, char *argv[])
     const char *outfile = "a.out";
     const char *exported_encoding = NULL;
     int decrunch_mode = 0;
+    int backwards_mode = 0;
     int c, infilec;
     char **infilev;
     int max_offset = 65536;
@@ -118,13 +120,16 @@ main(int argc, char *argv[])
     LOG_INIT_CONSOLE(LOG_NORMAL);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    while ((c = getflag(argc, argv, "m:qo:vp:e:d")) != -1)
+    while ((c = getflag(argc, argv, "bm:qo:vp:e:d")) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch (c)
         {
         case 'd':
             decrunch_mode = 1;
+            break;
+        case 'b':
+            backwards_mode = 1;
             break;
         case 'q':
             LOG_SET_LEVEL(LOG_BRIEF);
@@ -205,15 +210,56 @@ main(int argc, char *argv[])
 
     if(decrunch_mode)
     {
-        LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\".\n",
-                         infilev[0], outfile));
-        decrunch(LOG_NORMAL, inbuf, outbuf);
+        int seems_backward = 0;
+        int seems_forward = 0;
+        unsigned char *p;
+
+        p = membuf_get(inbuf);
+        if(p[0] == 0x80 && p[1] == 0x0)
+        {
+            seems_backward = 1;
+        }
+        p += membuf_memlen(inbuf);
+        if(p[-1] == 0x80 && p[-2] == 0x0)
+        {
+            seems_forward = 1;
+        }
+
+        // do we know what way it was crunched?
+        if((seems_backward ^ seems_forward) != 0)
+        {
+            // yes, override option.
+            backwards_mode = seems_backward;
+        }
+
+        if(backwards_mode)
+        {
+            LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\" "
+                             " backwards.\n", infilev[0], outfile));
+            decrunch_backwards(LOG_NORMAL, inbuf, outbuf);
+        }
+        else
+        {
+            LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\".\n",
+                             infilev[0], outfile));
+            decrunch(LOG_NORMAL, inbuf, outbuf);
+        }
     }
     else
     {
-        LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
-                         infilev[0], outfile));
-        crunch(inbuf, outbuf, exported_encoding, max_passes, max_offset);
+        if(backwards_mode)
+        {
+            LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\" "
+                             "backwards.\n", infilev[0], outfile));
+            crunch_backwards(inbuf, outbuf, exported_encoding,
+                             max_passes, max_offset);
+        }
+        else
+        {
+            LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
+                             infilev[0], outfile));
+            crunch(inbuf, outbuf, exported_encoding, max_passes, max_offset);
+        }
     }
 
     write_file(outfile, outbuf);
