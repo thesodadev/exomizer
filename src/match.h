@@ -41,7 +41,7 @@ typedef const struct match *const_matchp;
 
 struct pre_calc {
     struct match_node *single;
-    struct match *cache;
+    const struct match *cache;
 };
 
 typedef struct pre_calc pre_calc[1];
@@ -77,6 +77,7 @@ void match_delete(match_ctx ctx,        /* IN/OUT */
 struct matchp_cache_enum {
     match_ctxp ctx;
     const_matchp next;
+    match tmp;
     int pos;
 };
 

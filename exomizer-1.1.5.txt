@@ -5,16 +5,16 @@ Exomizer 1.1.4
 
 What is it?
 
-  The Exomizer is a cross-cruncher that runs on win32 or Linux as a command-
-  line tool, but processes and generates files for the c64 and the c16/+4
-  computers.
+  The Exomizer is a cross-cruncher that runs on win32, dos or Linux as a
+  command-line tool, but processes and generates files for the c64 and the
+  c16/+4 computers.
 
    1) It is a cruncher that crunches c64/c16/+4 files.
    2) It can produce stand-alone self-decompressing c64/c16/+4-files.
    3) It can produce files for both "in memory" or "from disk" decrunching.
    4) It handles RLE-sequences well and fast, no packer is necessary.
    5) It's stand-alone decompressor can decompress $0400-$ffff (c64) or
-      $0c00-$ffff (c16/+4)
+      $0400-$fcff (c16/+4)
    6) It is able to crunch more than one infile into the same outfile (link).
    7) It is able to load infiles to any given address (simple relocate).
 
@@ -51,13 +51,10 @@ What sets this program apart from similar programs like PuCrunch?
    1) it may use up to 50MB of internal memory for worst case files.
    2) it may take several minutes to compress a file on a modern PC.
 
-  On the other hand it produces shorter files than any c64 file compressor I
-  know of.
-
 
 Are you releasing the source code?
 
-  It is available.
+  It is available in the distribution.
 
 
 How do I invoke the exomizer?
@@ -99,7 +96,7 @@ Is it possible to specify an explicit load address for an infile ?
   prompt> exomizer -s0x1234 -o out.prg intro.prg program.prg,0x1000
 
   This will load the program.prg file beginning at $1000 while the intro.prg
-  will load to it's normal address. Pleas note that there must not be any
+  will load to it's normal address. Please note that there must not be any
   spaces between the filename, the ',' and the address.
 
 
@@ -126,13 +123,11 @@ What load addresses are valid for memory decrunching?
   sometimes be larger depending on the crunched file.
 
   This all sounds very complicated, so why not just decide on a margin that is
-  safe enough? Well, this is how it is done in the built-in decruncher. it uses
-  a safety margin of 24 and just hopes that no infiles will fail with that.
-  However when memory decrunching this solution is just not good enough for all
-  situations. Sometimes there may just not be any memory available to waste on
-  decrunch safety margins.
+  safe enough? Well, sometimes there may just not be any memory available to
+  waste on decrunch safety margins and there may always be files for which the
+  decided margin isn't big enough.
 
-  But now Exomizer comes to the rescue. The -l flag also takes the string
+  But now Exomizer comes to the rescue. The -l flag now also takes the string
   literal "auto" as an argument. This argument tells the Exomizer to calculate
   the minimum safety necessary for the infile and use the original load
   address decreased by that amount. So back to the previous example: if the
@@ -209,13 +204,13 @@ What memory addresses does the decruncher clobber?
   186 bytes of itself (and possibly some more) to the stack at $0100-$01xx. The
   tape buffer is used for tables, 156 bytes in total at $0334-$03d0.
 
-  If the start address of the decrunched data, [start], is lower than $0835
-  then the decruncher will clobber the memory from MIN([start] - 25, $07e7) to
-  but not including $081d too. This space is used as a safety buffer.
+  The built-in decruncher will possibly transfer some of the crunched data
+  before decrunching it. This copying assures that <start of crunched data> <=
+  (<uncrunched data start> - <decrunch safety margin>). This is necessary in
+  order for the data to decrunch properly.
 
-  In all cases the address $07e7 (c64) will be overwritten in order to make the
-  decrunch effect visible. This address is the lower right corner of the
-  screen.
+  The decrunchers with decrunch effects will naturally clobber the addresses of
+  the effect bytes too.
 
   The exodecrunch.s decruncher defaults to using the same zeropage addresses
   as the stand alone decruncher. It also uses a 156 byte table. However both
@@ -231,7 +226,7 @@ How do I use the decruncher sourcecode?
   for more info.
 
 
-Does it have any known weak points?
+Does it have any weak points?
 
   Yes, it is not very good at crunching already crunched data. It has not been
   a priority for me to fix this because I feel that crunching already crunched
@@ -302,22 +297,29 @@ What else c64-related have you made?
 
 
 Credits
-
+-------
   Inspiration:
-   PuCrunch and the Oneway family of crunchers
-   Count Zer0
+   The Oneway crunchers: Byteboiler, The Cruncher AB and CruelCrunch.
+   Pasi Ojala's PuCrunch
 
   Beta testing:
    Lasse Öörni
    Csabo / LOD
    Overkiller / Hokuto Force / PoL
+   iAN CooG / Hokuto Force
    Rafal Szyja
    bubis / Resource
+   Ninja / The Dreams
 
   Bug Reporting:
    Csabo / LOD
    Soci / Singular
    6R6 / Nostalgia
+   Ninja / The Dreams
+
+  Feedback:
+   Count Zer0
+   bubis / Resource
    Ninja / The Dreams
 
 ----------------------------------------------------------------------------

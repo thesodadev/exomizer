@@ -120,7 +120,7 @@ open_file(char *name, int *load_addr)
             /* we fail */
             LOG(LOG_FATAL,
                 (" can't parse load address from \"%s\"\n", load_str));
-            exit(1);
+            exit(-1);
         }
 
         in = fopen(name, "rb");
@@ -130,7 +130,7 @@ open_file(char *name, int *load_addr)
     {
         LOG(LOG_FATAL,
             (" can't open file \"%s\" for input\n", name));
-        exit(1);
+        exit(-1);
     }
 
     /* set the load address */
@@ -173,7 +173,7 @@ static int find_sys(const unsigned char *buf)
             state = 3;
             /* convert string number to int */
         case 3:
-            outstart = strtol((char*)(buf + i), (char**)&sys_end, 10);
+            outstart = strtol((char*)(buf + i), (void*)&sys_end, 10);
             if((buf + i) == sys_end)
             {
                 /* we got nothing */
@@ -276,7 +276,8 @@ generate_output(match_ctx ctx,
     max_diff = 0;
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    output_gamma_code(out, 17);
+    output_gamma_code(out, 16);
+    output_bits(out, 1, 0); /* 1 bit out */
 
     diff = output_get_pos(out) - pos_diff;
     if(diff > max_diff)
@@ -445,7 +446,7 @@ do_output(match_ctx ctx,
     if (outfile == NULL)
     {
         LOG(LOG_ERROR, (" can't open file \"%s\" for output\n", outname));
-        exit(1);
+        exit(-1);
     }
 
     len = generate_output(ctx, snp, decr, optimal_encode, emd,
@@ -589,7 +590,7 @@ main(int argc, char *argv[])
                     ("error: invalid offset for -m option, "
                      "must be in the range of [0 - 0xffff]\n"));
                 print_usage(argv[0], LOG_NORMAL);
-                exit(1);
+                exit(-1);
             }
             break;
         case 'l':
@@ -602,7 +603,7 @@ main(int argc, char *argv[])
                     ("error: invalid address for -l option, "
                      "must be in the range of [0 - 0xffff]\n"));
                 print_usage(argv[0], LOG_NORMAL);
-                exit(1);
+                exit(-1);
             }
             break;
         case 'p':
@@ -613,7 +614,7 @@ main(int argc, char *argv[])
                     ("error: invalid value for -p option, "
                      "must be in the range of [1 - 0xffff]\n"));
                 print_usage(argv[0], LOG_NORMAL);
-                exit(1);
+                exit(-1);
             }
             break;
         case 's':
@@ -626,7 +627,7 @@ main(int argc, char *argv[])
                     ("error: invalid address for -s option, "
                      "must be in the range of [0 - 0xffff]\n"));
                 print_usage(argv[0], LOG_NORMAL);
-                exit(1);
+                exit(-1);
             }
             break;
         case 'o':
@@ -637,7 +638,7 @@ main(int argc, char *argv[])
             break;
         case 'v':
             print_license();
-            exit(1);
+            exit(0);
         case '4':
             decr_target = DECR_TARGET_C264;
             break;
@@ -653,7 +654,7 @@ main(int argc, char *argv[])
                 LOG(LOG_ERROR, ("\n"));
             }
             print_usage(argv[0], LOG_BRIEF);
-            exit(1);
+            exit(0);
         }
     }
 #if 0
@@ -677,27 +678,27 @@ main(int argc, char *argv[])
         LOG(LOG_ERROR,
             ("error: the -r, -l or -s options can't be combined.\n"));
         print_usage(argv[0], LOG_NORMAL);
-        exit(1);
+        exit(-1);
     }
     if (decr_target == DECR_TARGET_C264 && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -4 option must be combined with -s.\n"));
         print_usage(argv[0], LOG_NORMAL);
-        exit(1);
+        exit(-1);
     }
     if (decr_type == DECR_TYPE_NO_EFFECT && !decruncher)
     {
         LOG(LOG_ERROR,
             ("error: the -n option must be combined with -s.\n"));
         print_usage(argv[0], LOG_NORMAL);
-        exit(1);
+        exit(-1);
     }
     if (infilec == 0)
     {
         LOG(LOG_ERROR, ("error: no input files to process.\n"));
         print_usage(argv[0], LOG_NORMAL);
-        exit(1);
+        exit(-1);
     }
 
     /* zero fill mem */
@@ -720,7 +721,7 @@ main(int argc, char *argv[])
             if(outstart < 0)
             {
                 LOG(LOG_ERROR, ("\nerror: cant find sys address.\n"));
-                exit(1);
+                exit(-1);
             }
         }
         LOG(LOG_NORMAL, (", jmp address $%04X\n", outstart));

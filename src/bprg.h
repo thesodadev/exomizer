@@ -86,6 +86,7 @@ bprg_rem_remove(struct bprg_ctx *ctx);
 
 #define TRAMPOLINE_FLAG_C264 1
 #define TRAMPOLINE_FLAG_REGEN 2
+#define TRAMPOLINE_FLAG_C264_COLOR_REGEN 4
 
 void
 bprg_trampoline_add(struct bprg_ctx *ctx,

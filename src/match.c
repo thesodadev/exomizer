@@ -193,8 +193,13 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
 
     for (i = buf_len - 1; i >= 0; --i)
     {
+        const_matchp matches;
         /* let's populate the cache */
-        matches_calc(ctx, (unsigned short) i);
+        matches = matches_calc(ctx, (unsigned short) i);
+
+        /* add to cache */
+        ctx->info[i]->cache = matches;
+
         if (!(i & 0xFF))
         {
             LOG(LOG_NORMAL, ("."));
@@ -267,8 +272,9 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
     for (; np != NULL; np = np->next)
     {
         int mp_len;
-        int our_pos;
-        int np_pos;
+        int len;
+        int pos;
+        int offset;
 
         /* limit according to max offset */
         if(np->index > index + ctx->max_offset)
@@ -281,28 +287,29 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
 
         /* get match len */
         mp_len = mp->offset > 0 ? mp->len : 0;
-        LOG(LOG_DEBUG, ("0) comparing current offset length [%d] %d %d\n",
+        LOG(LOG_DEBUG, ("0) comparing with current best [%d] off %d len %d\n",
                         index, mp->offset, mp_len));
-        our_pos = index - mp_len + 1;
-        np_pos = np->index - mp_len + 1;
+
+        offset = np->index - index;
+        len = mp_len;
+        pos = index + 1 - len;
         /* Compare the first <previous len> bytes backwards. We can
          * skip some comparisons by increasing by the rle count. We
          * don't need to compare the first byte, hence > 1 instead of
          * > 0 */
-        while(mp_len > 1 && buf[our_pos] == buf[np_pos])
+        while(len > 1 && buf[pos] == buf[pos + offset])
         {
-            int offset1 = ctx->rle_r[our_pos];
-            int offset2 = ctx->rle_r[np_pos];
+            int offset1 = ctx->rle_r[pos];
+            int offset2 = ctx->rle_r[pos + offset];
             int offset = offset1 < offset2 ? offset1 : offset2;
 
             LOG(LOG_DEBUG, ("1) compared sucesssfully [%d] %d %d\n",
-                            index, our_pos, np_pos));
+                            index, pos, pos + offset));
 
-            mp_len -= 1 + offset;
-            our_pos += 1 + offset;
-            np_pos += 1 + offset;
+            len -= 1 + offset;
+            pos += 1 + offset;
         }
-        if(mp_len > 1)
+        if(len > 1)
         {
             /* sequence length too short, skip this match */
             continue;
@@ -310,27 +317,26 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
 
         /* Here we know that the current match is atleast as long as
          * the previuos one. let's compare further. */
-        mp_len = mp->offset > 0 ? mp->len : 0;
-        our_pos = index - mp_len;
-        np_pos = np->index - mp_len;
-        while(our_pos >= 0 && buf[our_pos] == buf[np_pos])
+        len = mp_len;
+        pos = index - len;
+        while(pos >= 0 && buf[pos] == buf[pos + offset])
         {
             LOG(LOG_DEBUG, ("2) compared sucesssfully [%d] %d %d\n",
-                            index, our_pos, np_pos));
-            --our_pos;
-            --np_pos;
-            /* allocate match struct and add it to matches */
-            mp = match_new(ctx, &matches, index - our_pos, np->index - index);
+                            index, pos, pos + offset));
+            ++len;
+            --pos;
         }
-        if(our_pos < 0)
+        if(len > mp_len)
+        {
+            /* allocate match struct and add it to matches */
+            mp = match_new(ctx, &matches, index - pos, offset);
+        }
+        if(pos < 0)
         {
             /* we have reached the eof, no better matches can be found */
             break;
         }
     }
-    /* add to cache */
-    ctx->info[index]->cache = matches;
-
     LOG(LOG_DEBUG, ("adding matches for index %d to cache\n", index));
     dump_matches(matches);
 
@@ -350,21 +356,14 @@ matchp_keep_this(const_matchp mp)
             val = 0;
         }
     }
-    else if(mp->len == 2)
-    {
-        if(mp->offset > 8192)
-        {
-            val = 1;
-        }
-    }
-
     return val;
 }
 
 static
 void
 matchp_cache_peek(struct match_ctx *ctx, int pos,
-                  const_matchp *litpp, const_matchp *seqpp)
+                  const_matchp *litpp, const_matchp *seqpp,
+                  matchp tmp)
 {
     const_matchp litp, seqp, val;
 
@@ -380,21 +379,36 @@ matchp_cache_peek(struct match_ctx *ctx, int pos,
         }
         while(val != NULL)
         {
-            if(matchp_keep_this(val) && val->offset != 0)
+            if(val->offset != 0)
             {
-                if(seqp == NULL || val->len > seqp->len)
+                if(matchp_keep_this(val))
                 {
-                    seqp = val;
+                    if(seqp == NULL || val->len > seqp->len)
+                    {
+                        seqp = val;
+                    }
                 }
-                if(val->len == 1 &&
-                   (litp->offset == 0 || litp->offset > val->offset))
+                if(litp->offset == 0 || litp->offset > val->offset)
                 {
-                    litp = val;
+                    if(tmp != NULL)
+                    {
+                        *tmp = *val;
+                        tmp->len = 1;
+                        if(matchp_keep_this(tmp))
+                        {
+                            litp = tmp;
+                        }
+                    }
                 }
             }
             val = val->next;
         }
 
+    }
+
+    if(litpp != NULL && litp != NULL && litp->offset == 0 && seqp != NULL && seqp->len == 1)
+    {
+        printf("seqp %d, %d\n", seqp->offset, seqp->len);
     }
 
     if(litpp != NULL) *litpp = litp;
@@ -406,8 +420,7 @@ void matchp_cache_get_enum(match_ctx ctx,       /* IN */
 {
     mpce->ctx = ctx;
     mpce->pos = ctx->len - 1;
-    /*mpce->next = NULL;*/ /* two iterations */
-    mpce->next = (void*)mpce; /* just one */
+    mpce->next = NULL;
 }
 
 const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
@@ -417,31 +430,20 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
 
     mpce = matchp_cache_enum;
 
- restart:
-    matchp_cache_peek(mpce->ctx, mpce->pos, &lit, &seq);
+    matchp_cache_peek(mpce->ctx, mpce->pos, &lit, &seq, mpce->tmp);
     val = lit;
     if(lit == NULL)
     {
         /* the end, restart and return NULL */
         mpce->pos = mpce->ctx->len - 1;
-        if(mpce->next == NULL)
-        {
-            mpce->next = (void*)mpce;
-            goto restart;
-        }
-        else
-        {
-            mpce->next = NULL;
-        }
     }
     else
     {
         if(seq != NULL)
         {
             const_matchp next;
-            matchp_cache_peek(mpce->ctx, mpce->pos - 1, NULL, &next);
-            if(next == NULL ||
-               (next->len + (mpce->next != NULL && next->len < 3) <= seq->len))
+            matchp_cache_peek(mpce->ctx, mpce->pos - 1, NULL, &next, NULL);
+            if(next == NULL || (next->len + (next->len < 3) <= seq->len))
             {
                 /* nope, next is not better, use this sequence */
                 val = seq;
@@ -450,7 +452,7 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
     }
     if(val != NULL)
     {
-        LOG(LOG_DUMP, ("Using len %d, offset, %d\n", val->len, val->offset));
+        LOG(LOG_DEBUG, ("Using len %05d, offset, %05d\n", val->len, val->offset));
         mpce->pos -= val->len;
     }
     return val;

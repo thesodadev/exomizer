@@ -133,9 +133,6 @@ float optimal_encode_int(int arg, void *priv, output_ctxp out)
     if (inp != NULL)
     {
         val = (float) (inp->prefix + inp->bits);
-    } else
-    {
-        val += (float) (arg - end);
     }
     /*LOG(LOG_DUMP, ("encoding %d to %0.1f bits\n", arg, val)); */
     if (out)
@@ -663,7 +660,7 @@ void interval_out(output_ctx out, interval_nodep inp1, int size)
 
     count = 0;
 
-    memset(buffer, 0, sizeof(buffer));
+    memset(buffer, 15, sizeof(buffer));
     inp = inp1;
     while (inp != NULL)
     {
