@@ -154,7 +154,7 @@ bprg_lines_mutate(struct bprg_ctx *ctx,
 {
     unsigned short pos;
     unsigned short len;
-    unsigned char mem[65536];
+    static unsigned char mem[65536];
     unsigned char *p;
 
     memset(mem, 0, sizeof(mem));

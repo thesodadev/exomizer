@@ -1,8 +1,33 @@
-2003-04-??
+2003-06-14
+----------
+1.1.2 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
++ this release now includes the exobasic tool (v1.0b1). This tool makes it
+  easier to crunch basic programs. It takes care of setting all those zero page
+  values and also includes a whitespace/remark remover and a line renumberer.
+  Please see the exobasic-1.0b1.txt file for more info.
++ new flag, -n, that removes the decrunch effect of the -s decruncher.
+- due to the new handling of files with really long rle-sequences, some files
+  may actually crunch a few bytes worse than with the 1.1.1 version.
++ two kinds of stream decrunchers included, one 'get next byte' kind
+  (exostreamdecr1.s) and one faster 'get next chunk' kind (exostreamdecr2.s).
+  the chunk version has several limitations:
+    1) the chunk size has to be 2^x where 0 <= x <= 7
+    2) the size of the decrunched data has to be a multiple of the chunk size.
+  Both versions has the following limitations:
+    1) the circular buffer must be page-aligned and it's size must be a
+       multiple of 256.
+  Since this is beginnig to get non-trivial there's an example application
+  included. To compile it out of the box, you need a gnu compatible make
+  program and the exellent cc65 toolchain available from www.cc65.org.
+
+2003-04-27
 ----------
 1.1.2beta2
 + documentation fixes, Thanks to Ninja/The Dreams for pointing them out to me.
 + faster 'pull' decruncher.
++ by popular demand, new -n option that removes the decrunch effect of the
+  built-in decruncher. The generated decruncher is a few bytes smaller than the
+  normal one for both c64 and c16/plus4.
 
 2003-03-29
 ----------

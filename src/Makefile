@@ -4,6 +4,7 @@
 
 CFLAGS = -Wall -O3 -ffast-math -mcpu=i686 -fomit-frame-pointer -fgcse -pedantic
 LDFLAGS = -s
+
 #CFLAGS = -g
 #LDFLAGS = -g
 
