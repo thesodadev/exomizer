@@ -117,7 +117,7 @@ float optimal_encode_int(int arg, void *priv, output_ctxp out)
     float val;
 
     inp = (interval_nodep) priv;
-    val = 1000000.0;
+    val = 100000000.0;
     end = 0;
     while (inp != NULL)
     {
@@ -284,7 +284,7 @@ optimize1(optimize_arg arg, int start, int depth, int init)
                     inp->next = optimize1(arg, end, depth + 1, i);
                 }
                 /* get the penalty for skipping */
-                penalty = 1000000;
+                penalty = 100000000;
                 if (arg->stats2 != NULL)
                 {
                     penalty = arg->stats2[end];
@@ -295,7 +295,7 @@ optimize1(optimize_arg arg, int start, int depth, int init)
                 }
                 inp->score += penalty;
             }
-            if (best_inp == NULL || inp->score <= best_inp->score)
+            if (best_inp == NULL || inp->score < best_inp->score)
             {
                 /* it's the new best in town, use it */
                 if (best_inp == NULL)
@@ -523,17 +523,34 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
 
     /* first the lens */
     priv1 = matchp_enum;
+    while ((mp = f(priv1)) != NULL)
+    {
+        LOG(LOG_DEBUG, ("%p len %d offset %d\n", mp, mp->len, mp->offset));
+    }
+    if(mp->len < 0)
+    {
+        LOG(LOG_ERROR, ("the horror, negative len!\n"));
+    }
+
     while ((mp = f(priv1)) != NULL && mp->len > 0)
     {
         if (mp->offset > 0)
         {
             len_arr[mp->len] += 1;
+            if(len_arr[mp->len] < 0)
+            {
+                LOG(LOG_ERROR, ("len counter wrapped!\n"));
+            }
         }
     }
 
     for (i = 65534; i >= 0; --i)
     {
         len_arr[i] += len_arr[i + 1];
+        if(len_arr[i] < 0)
+        {
+            LOG(LOG_ERROR, ("len counter wrapped!\n"));
+        }
     }
 
     data->len_f_priv = optimize(len_arr, NULL, 16, -1);
@@ -551,20 +568,32 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
             switch (mp->len)
             {
             case 0:
-                LOG(LOG_NORMAL, ("bad len\n"));
+                LOG(LOG_ERROR, ("bad len\n"));
                 exit(0);
                 break;
             case 1:
                 offset_parr[0][mp->offset] += treshold;
                 offset_arr[0][mp->offset] += 1;
+                if(offset_arr[0][mp->offset] < 0)
+                {
+                    LOG(LOG_ERROR, ("offset0 counter wrapped!\n"));
+                }
                 break;
             case 2:
                 offset_parr[1][mp->offset] += treshold;
                 offset_arr[1][mp->offset] += 1;
+                if(offset_arr[1][mp->offset] < 0)
+                {
+                    LOG(LOG_ERROR, ("offset1 counter wrapped!\n"));
+                }
                 break;
             default:
                 offset_parr[7][mp->offset] += treshold;
                 offset_arr[7][mp->offset] += 1;
+                if(offset_arr[7][mp->offset] < 0)
+                {
+                    LOG(LOG_ERROR, ("offset7 counter wrapped!\n"));
+                }
                 break;
             }
         }

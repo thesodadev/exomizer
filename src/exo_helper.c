@@ -174,7 +174,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
     /*optimal_dump(emd);*/
 
     best_snp = NULL;
-    old_size = 1000000.0;
+    old_size = 100000000.0;
 
     for (;;)
     {

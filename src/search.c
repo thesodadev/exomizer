@@ -85,8 +85,8 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 #ifdef COPY
         /* check if we can do even better with copy */
         snp = snp_arr[len];
-        if(best_copy_snp->total_score+best_copy_len*8.0 -
-           snp->total_score > 0.0)
+        if(best_copy_snp->total_score+best_copy_len * 8.0 -
+           snp->total_score > 0.0 || best_copy_len > 65535)
         {
             /* found a better copy endpoint */
             LOG(LOG_DEBUG,
@@ -102,7 +102,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                 ("total score %0.1f, copy total score %0.1f\n",
                  snp->total_score, total_copy_score));
 
-            if(snp->total_score > total_copy_score)
+            if(snp->total_score > total_copy_score )
             {
                 match local_mp;
                 /* here it is good to just copy instead of crunch */
@@ -222,6 +222,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                 snp->total_score = total_rle_score;
                 snp->total_offset = best_rle_snp->total_offset + 1;
                 snp->prev = best_rle_snp;
+
                 *snp->match = *local_mp;
             }
         }
@@ -250,7 +251,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 #endif
             *tmp = *mp;
             tmp->next = NULL;
-            for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
+            /*   for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))*/
             {
                 float score;
                 float total_score;
@@ -270,7 +271,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                      len, tmp->offset, tmp->len,
                      prev_score, score, snp->total_score));
 
-                if ((total_score < 1000000.0) &&
+                if ((total_score < 100000000.0) &&
                     (snp->match->len == 0 ||
                      total_score < snp->total_score ||
                      (total_score == snp->total_score &&
@@ -278,6 +279,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                 {
                     LOG(LOG_DUMP, (", replaced"));
                     snp->index = len - tmp->len;
+
                     *snp->match = *tmp;
                     snp->total_offset = total_offset;
                     snp->total_score = total_score;
@@ -293,14 +295,18 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         }
 
         /* slow way to get to the next node for cur */
-        do
+        --len;
+        ++best_copy_len;
+        if(snp_arr[len]->match == NULL)
         {
-            --len;
-            ++best_copy_len;
+            LOG(LOG_ERROR, ("Found unreachable node at len %d.\n", len));
         }
-        while (snp_arr[len]->match == NULL);
 
         progress_bump(prog, len);
+    }
+    if(len > 0 && mp == NULL)
+    {
+        LOG(LOG_ERROR, ("No matches at len %d.\n", len));
     }
     LOG(LOG_NORMAL, ("\n"));
 
@@ -324,64 +330,15 @@ const_matchp matchp_snp_enum_get_next(void *matchp_snp_enum)
     snpe = matchp_snp_enum;
 
     val = NULL;
-    while (snpe->currp != NULL && val == NULL)
+    if (snpe->currp != NULL)
     {
         val = snpe->currp->match;
         snpe->currp = snpe->currp->prev;
     }
-
-    if (snpe->currp == NULL)
+    else
     {
         snpe->currp = snpe->startp;
     }
-    return val;
-}
 
-
-void matchp_snp_rle_get_enum(const_search_nodep snp,    /* IN */
-                             matchp_snp_rle_enum snpe)  /* IN/OUT */
-{
-    snpe->startp = snp;
-    snpe->currp = snp;
-}
-
-const_matchp matchp_snp_rle_enum_get_next(void *matchp_snp_enum)
-{
-    int c, p;
-    matchp val;
-    const_matchp mp;
-    matchp_snp_rle_enump snpe;
-
-    val = NULL;
-    snpe = matchp_snp_enum;
-    if (snpe->currp == NULL)
-    {
-        snpe->currp = snpe->startp;
-    } else
-    {
-        val = snpe->m;
-        val->len = 1;
-        val->offset = 1;
-        mp = snpe->currp->match;
-        p = mp ? mp->offset == 0 : -2;
-
-        while ((snpe->currp = snpe->currp->prev) != NULL)
-        {
-            mp = snpe->currp->match;
-            if (mp == NULL || mp->len == 0)
-            {
-                continue;
-            }
-            c = p;
-            p = mp->offset == 0;
-            if (p != c)
-            {
-                break;
-            }
-            val->len += 1;
-        }
-    }
-
-    LOG(LOG_DUMP, ("rle: len = %d\n", val ? val->len : -1));
     return val;
 }

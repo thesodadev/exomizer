@@ -100,20 +100,4 @@ void matchp_snp_get_enum(const_search_nodep snp,        /* IN */
 
 const_matchp matchp_snp_enum_get_next(void *matchp_snp_enum);
 
-
-struct _matchp_snp_rle_enum {
-    const_search_nodep startp;
-    const_search_nodep currp;
-    const_search_nodep lastp;
-    match m;
-};
-
-typedef struct _matchp_snp_rle_enum matchp_snp_rle_enum[1];
-typedef struct _matchp_snp_rle_enum *matchp_snp_rle_enump;
-
-void matchp_snp_rle_get_enum(const_search_nodep snp,    /* IN */
-                             matchp_snp_rle_enum snpe); /* IN/OUT */
-
-const_matchp matchp_snp_rle_enum_get_next(void *matchp_snp_enum);
-
 #endif

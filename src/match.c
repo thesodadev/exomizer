@@ -54,6 +54,12 @@ matchp match_new(match_ctx ctx, /* IN/OUT */
     m->len = len;
     m->offset = offset;
 
+    if(len == 0 && offset == 0)
+    {
+        LOG(LOG_ERROR, ("tried to allocate [0,0] match.\n"));
+        int a = *(int*)0;
+    }
+
     /* insert new node in list */
     m->next = *mpp;
     *mpp = m;
@@ -408,7 +414,7 @@ matchp_cache_peek(struct match_ctx *ctx, int pos,
             LOG(LOG_DEBUG, ("injecting rle val(%d,%d)\n",
                             start->len, start->offset));
         }
-#if 0
+#if 1
         /* possibly improve the literal */
         for(val = start; val != NULL; val = val->next)
         {
