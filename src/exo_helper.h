@@ -4,17 +4,27 @@
 int
 str_to_int(const char *str, int *value);
 
-int crunch_backwards(struct membuf *inbuf,
-                     struct membuf *outbuf,
-                     const char *exported_encoding,
-                     int max_passes,
-                     int max_offset);
+struct crunch_info
+{
+    int literal_sequences_used;
+    int needed_safety_offset;
+};
 
-int crunch(struct membuf *inbuf,
-           struct membuf *outbuf,
-           const char *exported_encoding,
-           int max_passes,
-           int max_offset);
+void crunch_backwards(struct membuf *inbuf,
+                      struct membuf *outbuf,
+                      const char *exported_encoding,
+                      int max_passes,
+                      int max_offset,
+                      int use_literal_sequences,
+                      struct crunch_info *info); /* OUT */
+
+void crunch(struct membuf *inbuf,
+            struct membuf *outbuf,
+            const char *exported_encoding,
+            int max_passes,
+            int max_offset,
+            int use_literal_sequences,
+            struct crunch_info *info); /* OUT */
 
 void decrunch(int level,
               struct membuf *inbuf,

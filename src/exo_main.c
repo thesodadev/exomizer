@@ -150,6 +150,7 @@ static int find_sys(const unsigned char *buf)
     return outstart;
 }
 
+
 static void load_prg(char *filename, char mem[65536],
                      int *startp, int *endp)
 {
@@ -166,6 +167,27 @@ static void load_prg(char *filename, char mem[65536],
 
     if(startp != NULL) *startp = load;
     if(endp != NULL) *endp = load + len;
+}
+
+static
+int
+do_load(char *file_name, struct membuf *mem)
+{
+    int start, end;
+    unsigned char *p;
+
+    membuf_clear(mem);
+    membuf_append(mem, NULL, 65536);
+    p = membuf_get(mem);
+
+    load_prg(file_name, p, &start, &end);
+
+    /* move memory to beginning of buffer */
+    membuf_truncate(mem, end);
+    membuf_flip(mem, start);
+
+    LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ", start, end));
+    return start;
 }
 
 static
@@ -221,7 +243,8 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         exit(-1);
     }
 
-    if(basic_code)
+    /* if we have a basic code loaded and we are doing a proper basic start */
+    if(basic_code && basic_var_startp != NULL)
     {
         int valuepos = basic_txt_start - 1;
         /* the byte immediatley preceeding the basic start must be 0
@@ -378,6 +401,7 @@ main(int argc, char *argv[])
     const char *outfile = "a.prg";
     const char *exported_encoding = NULL;
     int reverse = 0;
+    int use_literal_sequences = 1;
     int outstart = -1;
     int decruncher = 0;
     int decr_target = 0;
@@ -397,6 +421,7 @@ main(int argc, char *argv[])
     struct membuf *in;
     struct membuf *out;
 
+    struct crunch_info info[1];
     const struct target_info *targetp;
     int basic_txt_start = -1;
     int basic_var_start = -1;
@@ -404,13 +429,13 @@ main(int argc, char *argv[])
     int *basic_var_startp;
 
     /* init logging */
-    LOG_INIT_CONSOLE(LOG_DEBUG);
+    LOG_INIT_CONSOLE(LOG_NORMAL);
 
     parse_init();
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
 
-    while ((c = getflag(argc, argv, "m:t:q4D:rnl:s:o:vp:e:")) != -1)
+    while ((c = getflag(argc, argv, "cm:t:q4D:rnl:s:o:vp:e:")) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch (c)
@@ -420,6 +445,9 @@ main(int argc, char *argv[])
             break;
         case 'r':
             reverse = 1;
+            break;
+        case 'c':
+            use_literal_sequences = 0;
             break;
         case 'm':
             if (str_to_int(flagarg, &max_offset) != 0 ||
@@ -644,6 +672,22 @@ main(int argc, char *argv[])
         exit(-1);
     }
 
+    if(reverse)
+    {
+        for(c = 0; c <  infilec; ++c)
+        {
+            int start;
+            do_load(infilev[c], in);
+            start = membuf_memlen(out);
+            crunch_backwards(in, out, exported_encoding,
+                             max_passes, max_offset,
+                             use_literal_sequences, info);
+            p = membuf_get(out);
+            reverse_buffer(p + start, membuf_memlen(out) - start);
+        }
+        goto done;
+    }
+
     targetp = NULL;
     basic_var_startp = NULL;
     if(decruncher)
@@ -706,10 +750,13 @@ main(int argc, char *argv[])
         membuf_append(out, NULL, 2);
     }
 
-    safety = crunch_backwards(in, out, exported_encoding,
-                              max_passes, max_offset);
+    crunch_backwards(in, out, exported_encoding,
+                     max_passes, max_offset, use_literal_sequences, info);
+    safety = info->needed_safety_offset;
 
-    LOG(LOG_NORMAL, ("safety is %d\n", safety));
+    LOG(LOG_NORMAL, (" Literal sequences is %sused and",
+                     info->literal_sequences_used ? "" : "not "));
+    LOG(LOG_NORMAL, (" the safety offset is %d.\n", safety));
 
     p = membuf_get(out);
     if(loadaddr || decruncher)
@@ -726,10 +773,6 @@ main(int argc, char *argv[])
     membuf_append_char(out, start & 255);
     membuf_append_char(out, start >> 8);
 
-    if(reverse)
-    {
-        reverse_buffer(p, membuf_memlen(out));
-    }
     if(decruncher)
     {
         /* add decruncher */
@@ -782,7 +825,7 @@ main(int argc, char *argv[])
 
         membuf_free(source);
     }
-
+ done:
     write_file(outfile, out);
 
     membuf_free(buf1);

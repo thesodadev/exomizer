@@ -252,13 +252,14 @@ main(int argc, char *argv[])
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\" "
                              "backwards.\n", infilev[0], outfile));
             crunch_backwards(inbuf, outbuf, exported_encoding,
-                             max_passes, max_offset);
+                             max_passes, max_offset, 1, NULL);
         }
         else
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
                              infilev[0], outfile));
-            crunch(inbuf, outbuf, exported_encoding, max_passes, max_offset);
+            crunch(inbuf, outbuf, exported_encoding,
+                   max_passes, max_offset, 1, NULL);
         }
     }
 

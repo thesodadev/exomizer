@@ -85,7 +85,8 @@ void search_node_free(search_nodep snp);        /* IN/OUT */
 
 search_nodep search_buffer(match_ctx ctx,       /* IN */
                            encode_match_f * f,  /* IN */
-                           encode_match_data emd);      /* IN */
+                           encode_match_data emd,
+                           int use_literal_sequences);      /* IN */
 
 struct _matchp_snp_enum {
     const_search_nodep startp;

@@ -6,6 +6,7 @@
 #include "search.h"
 #include "optimal.h"
 #include "exodec.h"
+#include "exo_helper.h"
 #include <stdlib.h>
 
 
@@ -58,12 +59,14 @@ int do_output(match_ctx ctx,
               search_nodep snp,
               encode_match_data emd,
               encode_match_f * f,
-              struct membuf *outbuf)
+              struct membuf *outbuf,
+              int *literal_sequences_used)
 {
     int pos;
     int pos_diff;
     int max_diff;
     int diff;
+    int copy_used = 0;
     output_ctxp old;
     output_ctx out;
 
@@ -113,6 +116,7 @@ int do_output(match_ctx ctx,
                     output_bits(out, 16, mp->len);
                     output_gamma_code(out, 16);
                     output_bits(out, 1, 0);
+                    copy_used = 1;
                 }
             } else
             {
@@ -140,13 +144,19 @@ int do_output(match_ctx ctx,
 
     emd->out = old;
 
+    if(literal_sequences_used != NULL)
+    {
+        *literal_sequences_used = copy_used;
+    }
+
     return max_diff;
 }
 
 search_nodep
 do_compress(match_ctx ctx, encode_match_data emd,
             const char *exported_encoding,
-            int max_passes)
+            int max_passes,
+            int use_literal_sequences)
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
@@ -174,7 +184,8 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
     for (;;)
     {
-        snp = search_buffer(ctx, optimal_encode, emd);
+        snp = search_buffer(ctx, optimal_encode, emd,
+                            use_literal_sequences);
         if (snp == NULL)
         {
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
@@ -216,17 +227,20 @@ do_compress(match_ctx ctx, encode_match_data emd,
     return best_snp;
 }
 
-int crunch_backwards(struct membuf *inbuf,
-                     struct membuf *outbuf,
-                     const char *exported_encoding,
-                     int max_passes,
-                     int max_offset)
+void crunch_backwards(struct membuf *inbuf,
+                      struct membuf *outbuf,
+                      const char *exported_encoding,
+                      int max_passes,
+                      int max_offset,
+                      int use_literal_sequences,
+                      struct crunch_info *info)
 {
     static match_ctx ctx;
     encode_match_data emd;
     search_nodep snp;
     int outlen;
     int safety;
+    int copy_used;
 
     outlen = membuf_memlen(outbuf);
     emd->out = NULL;
@@ -247,14 +261,15 @@ int crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snp = do_compress(ctx, emd, exported_encoding, max_passes);
+    snp = do_compress(ctx, emd, exported_encoding,
+                      max_passes, use_literal_sequences);
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
     LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
-    safety = do_output(ctx, snp, emd, optimal_encode, outbuf);
+    safety = do_output(ctx, snp, emd, optimal_encode, outbuf, &copy_used);
     LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n",
                      membuf_memlen(outbuf) - outlen));
 
@@ -262,7 +277,11 @@ int crunch_backwards(struct membuf *inbuf,
     search_node_free(snp);
     match_ctx_free(ctx);
 
-    return safety;
+    if(info != NULL)
+    {
+        info->literal_sequences_used = copy_used;
+        info->needed_safety_offset = safety;
+    }
 }
 
 void reverse_buffer(char *start, int len)
@@ -281,23 +300,24 @@ void reverse_buffer(char *start, int len)
     }
 }
 
-int crunch(struct membuf *inbuf,
-           struct membuf *outbuf,
-           const char *exported_encoding,
-           int max_passes,
-           int max_offset)
+void crunch(struct membuf *inbuf,
+            struct membuf *outbuf,
+            const char *exported_encoding,
+            int max_passes,
+            int max_offset,
+            int use_literal_sequences,
+            struct crunch_info *info)
 {
-    int ret;
     int outpos;
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     outpos = membuf_memlen(outbuf);
 
-    ret = crunch_backwards(inbuf, outbuf, exported_encoding,
-                           max_passes, max_offset);
+    crunch_backwards(inbuf, outbuf, exported_encoding,
+                     max_passes, max_offset,
+                     use_literal_sequences, info);
 
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     reverse_buffer((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
-    return ret;
 }
 
 void decrunch(int level,

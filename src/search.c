@@ -40,7 +40,8 @@ void search_node_free(search_nodep snp) /* IN */
 
 search_nodep search_buffer(match_ctx ctx,       /* IN */
                            encode_match_f * f,  /* IN */
-                           encode_match_data emd)       /* IN */
+                           encode_match_data emd,       /* IN */
+                           int use_literal_sequences)
 {
     struct progress prog[1];
     static struct membuf backing[1] = { STATIC_MEMBUF_INIT };
@@ -82,48 +83,48 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         float prev_score;
         float prev_offset_sum;
 
-#undef COPY
-#ifdef COPY
-        /* check if we can do even better with copy */
-        snp = snp_arr[len];
-        if(best_copy_snp->total_score+best_copy_len * 8.0 -
-           snp->total_score > 0.0 || best_copy_len > 65535)
+        if(use_literal_sequences)
         {
-            /* found a better copy endpoint */
-            LOG(LOG_DEBUG,
-                ("best copy start moved to index %d\n", snp->index));
-            best_copy_snp = snp;
-            best_copy_len = 0.0;
-        } else
-        {
-            float copy_score = best_copy_len * 8.0 + (1.0 + 17.0 + 16.0);
-            float total_copy_score = best_copy_snp->total_score + copy_score;
-
-            LOG(LOG_DEBUG,
-                ("total score %0.1f, copy total score %0.1f\n",
-                 snp->total_score, total_copy_score));
-
-            if(snp->total_score > total_copy_score )
+            /* check if we can do even better with copy */
+            snp = snp_arr[len];
+            if(best_copy_snp->total_score+best_copy_len * 8.0 -
+               snp->total_score > 0.0 || best_copy_len > 65535)
             {
-                match local_mp;
-                /* here it is good to just copy instead of crunch */
+                /* found a better copy endpoint */
+                LOG(LOG_DEBUG,
+                    ("best copy start moved to index %d\n", snp->index));
+                best_copy_snp = snp;
+                best_copy_len = 0.0;
+            } else
+            {
+                float copy_score = best_copy_len * 8.0 + (1.0 + 17.0 + 16.0);
+                float total_copy_score = best_copy_snp->total_score +
+                                         copy_score;
 
                 LOG(LOG_DEBUG,
-                    ("copy index %d, len %d, total %0.1f, copy %0.1f\n",
-                     snp->index, best_copy_len,
+                    ("total score %0.1f, copy total score %0.1f\n",
                      snp->total_score, total_copy_score));
 
+                if(snp->total_score > total_copy_score )
+                {
+                    match local_mp;
+                    /* here it is good to just copy instead of crunch */
 
-                local_mp->len = best_copy_len;
-                local_mp->offset = 0;
-                snp->total_score = total_copy_score;
-                snp->total_offset = best_copy_snp->total_offset;
-                snp->prev = best_copy_snp;
-                *snp->match = *local_mp;
+                    LOG(LOG_DEBUG,
+                        ("copy index %d, len %d, total %0.1f, copy %0.1f\n",
+                         snp->index, best_copy_len,
+                         snp->total_score, total_copy_score));
+
+                    local_mp->len = best_copy_len;
+                    local_mp->offset = 0;
+                    snp->total_score = total_copy_score;
+                    snp->total_offset = best_copy_snp->total_offset;
+                    snp->prev = best_copy_snp;
+                    *snp->match = *local_mp;
+                }
             }
+            /* end of copy optimization */
         }
-        /* end of copy optimization */
-#endif
 
         /* check if we can do rle */
         snp = snp_arr[len];
