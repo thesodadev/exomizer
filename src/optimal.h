@@ -49,7 +49,7 @@ void optimal_fixup(encode_match_data emd,       /* IN/OUT */
 void optimal_encoding_import(encode_match_data emd,     /* IN/OUT */
                              const char *encoding);     /* IN */
 
-void optimal_dump(encode_match_data emp);       /* IN */
+void optimal_dump(int level, encode_match_data emp);       /* IN */
 
 void optimal_out(output_ctx out,        /* IN/OUT */
                  encode_match_data emd);        /* IN */

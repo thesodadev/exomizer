@@ -82,10 +82,10 @@ get_byte(dep_ctxp ctx)
             longjmp(ctx->done, 1);
         }
         --ctx->inpos;
-        if(ctx->outpos <= ctx->inpos)
+        if(ctx->outpos <= ctx->inpos + ctx->inend)
         {
             printf("reading clobbered data at $%04X, "
-                   "outpos at $%04X\n", ctx->inpos, ctx->outpos);
+                   "outpos at $%04X\n", ctx->inpos + ctx->inend, ctx->outpos);
         }
         c = ctx->inbuf[ctx->inpos];
     }
@@ -160,25 +160,35 @@ dep_loop(dep_ctxp ctx)
 
     for(;;)
     {
+        int literal = 0;
         if(get_bits(ctx, 1))
         {
             ++literal_counter;
             /* literal */
             len = 1;
-            val = get_byte(ctx);
 #ifdef STAT2
-            printf("literal\n");
+            printf("[%d] literal\n", ctx->outpos - 1065);
 #endif
+            literal = 1;
             goto literal;
         }
 
         ++sequence_counter;
         /*printf("sekvens1\n");*/
         val = get_gamma_code(ctx);
-        if(val >= 16)
+        if(val >= 17)
         {
             /* done */
             longjmp(ctx->done, 1);
+        }
+        if(val == 16)
+        {
+            len = get_bits(ctx, 16);
+            literal = 1;
+#ifdef STAT2
+            printf("[%d] literal copy len %d\n", ctx->outpos - 1065, len);
+#endif
+            goto literal;
         }
 
         /*printf("sekvens2\n");*/
@@ -203,14 +213,22 @@ dep_loop(dep_ctxp ctx)
         }
 
 #ifdef STAT2
-        printf("sekvens offset = %d, len = %d\n", offset, len);
+        printf("[%d] sekvens offset = %d, len = %d\n",
+               ctx->outpos - 1065, offset, len);
 #endif
 
         src = ctx->outpos + offset;
 
+    literal:
         do {
-            val = ctx->outbuf[--src];
-        literal:
+            if(literal)
+            {
+                val = get_byte(ctx);
+            }
+            else
+            {
+                val = ctx->outbuf[--src];
+            }
             /*printf("val = %d '%c'\n", val, isprint(val)?val:'.');*/
             ctx->outbuf[--(ctx->outpos)] = val;
             ++bytes_written;
@@ -253,9 +271,7 @@ table_init(dep_ctxp ctx, dep_tablep tp) /* IN/OUT */
         tp->table_hi[i] = a >> 8;
 
         b = get_bits(ctx, 4);
-#if 0
-        printf("got bits %d for index %d\n", b, i);
-#endif
+
         tp->table_bi[i] = b;
 
     }
@@ -295,6 +311,25 @@ table_dump(dep_tablep tp)
         }
     }
     printf("\n");
+
+    for(i = 0; i < 16; ++i)
+    {
+        printf("%d", tp->table_bi[i]);
+    }
+    for(j = 0; j < 3; ++j)
+    {
+        int start;
+        int end;
+        printf(",");
+        start = tp->table_off[j];
+        end = start + (1 << tp->table_bit[j]);
+        for(i = start; i < end; ++i)
+        {
+            printf("%d", tp->table_bi[i]);
+        }
+    }
+    printf("\n");
+
 }
 
 void
@@ -308,8 +343,7 @@ dep_ctx_init(dep_ctxp ctx, FILE *in, int reverse)
         start = fgetc(in);
         start |= fgetc(in) << 8;
         ctx->inend = start;
-        ctx->inend += fread(ctx->inbuf + start, 1, sizeof(ctx->inbuf), in);
-        ctx->inpos = ctx->inend;
+        ctx->inpos = fread(ctx->inbuf, 1, sizeof(ctx->inbuf), in);
     }
     else
     {
@@ -372,6 +406,7 @@ main(int argc, char *argv[])
     in = fopen(argv[1], "rb");
     if(in == NULL) {
         printf("%s: cant open \"%s\" for input\n", argv[0], argv[1]);
+        exit(1);
     }
 
     dep_ctx_init(ctx, in, 0);

@@ -50,7 +50,7 @@ void log_formatter_f(FILE * out,        /* IN */
                      const char *context,       /* IN */
                      const char *);     /* IN */
 
-/* 
+/*
  * this log output function adds nothing
  */
 void raw_log_formatter(FILE * out,      /* IN */
@@ -120,9 +120,11 @@ do { \
 
 #define LOG_FREE log_delete(G_log_ctx)
 
+#define IS_LOGGABLE(L) (G_log_level >= (L))
+
 #define LOG(L, M) \
 do { \
-    if(G_log_level >= (L)) { \
+    if(IS_LOGGABLE(L)) { \
         G_log_log_level = (L); \
         log_log_default M; \
     } \

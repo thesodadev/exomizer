@@ -2,11 +2,11 @@
 # Makefile for exomizer
 #
 
-#CFLAGS = -Wall -O3 -ffast-math -mcpu=i686 -fomit-frame-pointer -fgcse -pedantic
-#LDFLAGS = -s
+CFLAGS = -Wall -O3 -ffast-math -mcpu=i686 -fomit-frame-pointer -fgcse -pedantic
+LDFLAGS = -s
 
-CFLAGS = -g
-LDFLAGS = -g
+#CFLAGS = -g
+#LDFLAGS = -g
 
 SHARED_OBJS = getflag.o log.o
 EXO_OBJS = match.o search.o exo_main.o optimal.o output.o sfx264.o sfx64.o \
@@ -29,8 +29,8 @@ exodec: exodec.o
 	$(CC) $(LDFLAGS) -o $@ exodec.o
 
 clean:
-	-$(RM) $(EXO_OBJS) $(BAS_OBJS) $(SHARED_OBJS) \
-	exomizer exobasic exomizer.exe exobasic.exe deps
+	-$(RM) $(EXO_OBJS) $(BAS_OBJS) $(SHARED_OBJS) exodec.o \
+	exomizer exobasic exodec exomizer.exe exobasic.exe exodec.exe deps
 
 -include deps
 

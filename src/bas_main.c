@@ -304,18 +304,7 @@ int main(int argc, char *argv[])
             exit(1);
         }
     }
-#if 0
-    LOG(LOG_DEBUG, ("flagind %d\n", flagind));
-    for (c = 0; c < argc; ++c)
-    {
-        if (c == flagind)
-        {
-            LOG(LOG_DEBUG, ("-----------------------\n"));
-        }
-        LOG(LOG_DEBUG, ("argv[%d] = \"%s\"\n", c, argv[c]));
-    }
-    exit(1);
-#endif
+
     if(renumber && reNumber)
     {
         LOG(LOG_ERROR, ("error: the -N and -n options can't be combined.\n"));

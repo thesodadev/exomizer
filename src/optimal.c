@@ -34,8 +34,6 @@
 #include "chunkpool.h"
 #include "optimal.h"
 
-#define DOUBLE_OFFSET_TABLES
-
 struct _interval_node {
     int start;
     int score;
@@ -97,7 +95,7 @@ void interval_node_delete(interval_nodep inp)
 }
 
 static
-void interval_node_dump(interval_nodep inp)
+void interval_node_dump(int level, interval_nodep inp)
 {
     int end;
 
@@ -105,10 +103,10 @@ void interval_node_dump(interval_nodep inp)
     while (inp != NULL)
     {
         end = inp->start + (1 << inp->bits);
-        LOG(LOG_NORMAL, ("%X", inp->bits));
+        LOG(level, ("%X", inp->bits));
         inp = inp->next;
     }
-    LOG(LOG_NORMAL, ("[eol@%d]\n", end));
+    LOG(level, ("[eol@%d]\n", end));
 }
 
 float optimal_encode_int(int arg, void *priv, output_ctxp out)
@@ -137,17 +135,18 @@ float optimal_encode_int(int arg, void *priv, output_ctxp out)
     {
         val += (float) (arg - end);
     }
-    /*LOG(LOG_DUMP, ("encoding %d to %0.1f bits\n", arg, val)); */
-    if (out)
+    LOG(LOG_DUMP, ("encoding %d to %0.1f bits\n", arg, val));
+
+    if (out != NULL)
     {
         output_bits(out, inp->bits, arg - inp->start);
         if (inp->flags < 0)
         {
-            /*LOG(LOG_DUMP, ("gamma prefix code = %d", inp->depth)); */
+            LOG(LOG_DUMP, ("gamma prefix code = %d", inp->depth));
             output_gamma_code(out, inp->depth);
         } else
         {
-            /*LOG(LOG_DUMP, ("flat prefix %d bits ", inp->depth)); */
+            LOG(LOG_DUMP, ("flat prefix %d bits ", inp->depth));
             output_bits(out, inp->prefix, inp->depth);
         }
     }
@@ -163,7 +162,6 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
 
     data = emd->priv;
     offset = data->offset_f_priv;
-    /*LOG(LOG_DUMP, ("judging offset %d len %d", offset, len)); */
 
     bits = 0.0;
     if (mp->offset == 0)
@@ -181,40 +179,16 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
             exit(1);
             break;
         case 1:
-#if 1
             bits += data->offset_f(mp->offset, offset[0], emd->out);
-#else
-            bits += 4.0;
-            if (mp->offset > (1 << 4))
-            {
-                bits += 1000000.0;
-            }
-            if (emd->out)
-            {
-                output_bits(emd->out, 4, mp->offset - 1);
-            }
-#endif
             break;
-#ifdef DOUBLE_OFFSET_TABLES
         case 2:
             bits += data->offset_f(mp->offset, offset[1], emd->out);
             break;
-#if 0
-        case 3:
-        case 4:
-            bits += data->offset_f(mp->offset, offset[2], emd->out);
-            break;
-#endif
-#endif
         default:
             bits += data->offset_f(mp->offset, offset[7], emd->out);
             break;
         }
         bits += data->len_f(mp->len, data->len_f_priv, emd->out);
-        /*if(mp->len > 256)
-           {
-           bits += 10000000.0;
-           } */
         if (bits > (9.0 * mp->len))
         {
             /* lets make literals out of it */
@@ -259,7 +233,7 @@ optimize1(optimize_arg arg, int start, int depth, int init)
     int end, i;
     int start_count, end_count;
 
-    /*LOG(LOG_DUMP, ("IN start %d, depth %d\n", start, depth)); */
+    LOG(LOG_DUMP, ("IN start %d, depth %d\n", start, depth));
 
     do
     {
@@ -297,8 +271,8 @@ optimize1(optimize_arg arg, int start, int depth, int init)
                 (inp->prefix + inp->bits);
 
             /* one index below */
-            /*LOG(LOG_DUMP, ("interval score: [%d«%d[%d\n",
-               start, i, inp->score)); */
+            LOG(LOG_DUMP, ("interval score: [%d«%d[%d\n",
+                           start, i, inp->score));
             if (end_count > 0)
             {
                 int penalty;
@@ -338,8 +312,12 @@ optimize1(optimize_arg arg, int start, int depth, int init)
         }
     }
     while (0);
-    /*LOG(LOG_DUMP, ("OUT depth %d: ", depth)); */
-    /*interval_node_dump(best_inp); */
+
+    if(IS_LOGGABLE(LOG_DUMP))
+    {
+        LOG(LOG_DUMP, ("OUT depth %d: ", depth));
+        interval_node_dump(LOG_DUMP, best_inp);
+    }
     return best_inp;
 }
 
@@ -372,111 +350,78 @@ optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
     return inp;
 }
 
+static void import_helper(interval_nodep *npp,
+                          const char **encodingp,
+                          int flags)
+{
+    int c;
+    int start = 1;
+    int depth = 0;
+    const char *encoding;
+
+    encoding = *encodingp;
+    while((c = *(encoding++)) != '\0')
+    {
+        char buf[2] = {0, 0};
+        char *dummy;
+        int bits;
+        interval_nodep np;
+
+        if(c == ',')
+        {
+            break;
+        }
+
+        buf[0] = c;
+        bits = strtol(buf, &dummy, 16);
+
+        LOG(LOG_DUMP, ("got bits %d\n", bits));
+
+        np = malloc(sizeof(interval_node));
+        interval_node_init(np, start, depth, flags);
+        np->bits = bits;
+
+        ++depth;
+        start += 1 << bits;
+
+        *npp = np;
+        npp = &(np->next);
+    }
+    *encodingp = encoding;
+}
+
 void optimal_encoding_import(encode_match_data emd,
                              const char *encoding)
 {
     encode_match_privp data;
-    int c;
-    int start = 1;
-    int depth = 0;
-    interval_nodep *npp, len, *offsets;
+    interval_nodep *npp, *offsets;
+
+    LOG(LOG_DEBUG, ("importing encoding: %s\n", encoding));
 
     optimal_free(emd);
     optimal_init(emd);
 
     data = emd->priv;
-    len = (interval_nodep)data->len_f_priv;
     offsets = (interval_nodep*)data->offset_f_priv;
 
     /* lengths */
-    npp = &len;
-    while((c = *(encoding++)) != '\0')
-    {
-        char buf[2] = {0, 0};
-        char *dummy;
-        int bits;
-        interval_nodep np;
+    npp = (interval_nodep*)&data->len_f_priv;
+    import_helper(npp, &encoding, -1);
 
-        if(c == ',')
-        {
-            break;
-        }
-
-        buf[0] = c;
-        bits = strtol(buf, &dummy, 16);
-        np = malloc(sizeof(interval_node));
-        interval_node_init(np, start, depth, -1);
-        *npp = np;
-        npp = &(np->next);
-    }
     /* offsets, len = 1 */
     npp = &offsets[0];
-    while((c = *(encoding++)) != '\0')
-    {
-        char buf[2] = {0, 0};
-        char *dummy;
-        int bits;
-        interval_nodep np;
+    import_helper(npp, &encoding, 2);
 
-        if(c == ',')
-        {
-            break;
-        }
-
-        buf[0] = c;
-        bits = strtol(buf, &dummy, 16);
-        np = malloc(sizeof(interval_node));
-        interval_node_init(np, start, depth, 2);
-        *npp = np;
-        npp = &(np->next);
-    }
     /* offsets, len = 2 */
     npp = &offsets[1];
-    while((c = *(encoding++)) != '\0')
-    {
-        char buf[2] = {0, 0};
-        char *dummy;
-        int bits;
-        interval_nodep np;
+    import_helper(npp, &encoding, 4);
 
-        if(c == ',')
-        {
-            break;
-        }
-
-        buf[0] = c;
-        bits = strtol(buf, &dummy, 16);
-        np = malloc(sizeof(interval_node));
-        interval_node_init(np, start, depth, 4);
-        *npp = np;
-        npp = &(np->next);
-    }
     /* offsets, len >= 3 */
     npp = &offsets[7];
-    while((c = *(encoding++)) != '\0')
-    {
-        char buf[2] = {0, 0};
-        char *dummy;
-        int bits;
-        interval_nodep np;
+    import_helper(npp, &encoding, 4);
 
-        if(c == ',')
-        {
-            break;
-        }
-
-        buf[0] = c;
-        bits = strtol(buf, &dummy, 16);
-        np = malloc(sizeof(interval_node));
-        interval_node_init(np, start, depth, 4);
-        *npp = np;
-        npp = &(np->next);
-    }
-
-#if 1
     LOG(LOG_NORMAL, ("imported encoding: "));
-    optimal_dump(emd);
-#endif
+    optimal_dump(LOG_NORMAL, emd);
 }
 
 void optimal_init(encode_match_data emd)        /* IN/OUT */
@@ -533,24 +478,24 @@ void optimal_free(encode_match_data emd)        /* IN */
     data->len_f_priv = NULL;
 }
 
-void freq_stats_dump(int arr[65536])
+void freq_stats_dump(int level, int arr[65536])
 {
     int i;
     for (i = 0; i < 32; ++i)
     {
-        LOG(LOG_NORMAL, ("%d, ", arr[i] - arr[i + 1]));
+        LOG(level, ("%d, ", arr[i] - arr[i + 1]));
     }
-    LOG(LOG_NORMAL, ("\n"));
+    LOG(level, ("\n"));
 }
 
-void freq_stats_dump_raw(int arr[65536])
+void freq_stats_dump_raw(int level, int arr[65536])
 {
     int i;
     for (i = 0; i < 32; ++i)
     {
-        LOG(LOG_NORMAL, ("%d, ", arr[i]));
+        LOG(level, ("%d, ", arr[i]));
     }
-    LOG(LOG_NORMAL, ("\n"));
+    LOG(level, ("\n"));
 }
 
 void optimal_optimize(encode_match_data emd,    /* IN/OUT */
@@ -610,24 +555,13 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
                 exit(0);
                 break;
             case 1:
-#if 1
                 offset_parr[0][mp->offset] += treshold;
                 offset_arr[0][mp->offset] += 1;
-#endif
                 break;
-#ifdef DOUBLE_OFFSET_TABLES
             case 2:
                 offset_parr[1][mp->offset] += treshold;
                 offset_arr[1][mp->offset] += 1;
                 break;
-#if 0
-            case 3:
-            case 4:
-                offset_parr[2][mp->offset] += treshold;
-                offset_arr[2][mp->offset] += 1;
-                break;
-#endif
-#endif
             default:
                 offset_parr[7][mp->offset] += treshold;
                 offset_arr[7][mp->offset] += 1;
@@ -654,7 +588,10 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     offset[6] = optimize(offset_arr[6], offset_parr[6], 1 << 4, 4);
     offset[7] = optimize(offset_arr[7], offset_parr[7], 1 << 4, 4);
 
-    optimal_dump(emd);
+    if(IS_LOGGABLE(LOG_DEBUG))
+    {
+        optimal_dump(LOG_DEBUG, emd);
+    }
 }
 
 static int optimal_fixup1(interval_nodep *npp,
@@ -721,11 +658,9 @@ void optimal_fixup(encode_match_data emd, int max_len, int max_offset)
     len = data->len_f_priv;
 
     optimal_fixup1(&len, 1, 0, -1, max_len);
-
-    /*optimal_fixup1(&(offset[7]), 1, 0, -4, max_offset);*/
 }
 
-void optimal_dump(encode_match_data emd)
+void optimal_dump(int level, encode_match_data emd)
 {
     encode_match_privp data;
     interval_nodep *offset;
@@ -736,32 +671,17 @@ void optimal_dump(encode_match_data emd)
     offset = data->offset_f_priv;
     len = data->len_f_priv;
 
-    LOG(LOG_NORMAL, ("lens:             "));
-    interval_node_dump(len);
+    LOG(level, ("lens:             "));
+    interval_node_dump(level, len);
 
-    LOG(LOG_NORMAL, ("offsets (len =1): "));
-    interval_node_dump(offset[0]);
+    LOG(level, ("offsets (len =1): "));
+    interval_node_dump(level, offset[0]);
 
-    LOG(LOG_NORMAL, ("offsets (len =2): "));
-    interval_node_dump(offset[1]);
-#if 0
-    LOG(LOG_NORMAL, ("offsets (len =3): "));
-    interval_node_dump(offset[2]);
+    LOG(level, ("offsets (len =2): "));
+    interval_node_dump(level, offset[1]);
 
-    LOG(LOG_NORMAL, ("offsets (len =4): "));
-    interval_node_dump(offset[3]);
-
-    LOG(LOG_NORMAL, ("offsets (len =5): "));
-    interval_node_dump(offset[4]);
-
-    LOG(LOG_NORMAL, ("offsets (len =6): "));
-    interval_node_dump(offset[5]);
-
-    LOG(LOG_NORMAL, ("offsets (len =7): "));
-    interval_node_dump(offset[6]);
-#endif
-    LOG(LOG_NORMAL, ("offsets (len =8): "));
-    interval_node_dump(offset[7]);
+    LOG(level, ("offsets (len =8): "));
+    interval_node_dump(level, offset[7]);
 }
 
 static
@@ -778,8 +698,8 @@ void interval_out(output_ctx out, interval_nodep inp1, int size)
     while (inp != NULL)
     {
         ++count;
-        /*LOG(LOG_DUMP, ("bits %d, lo %d, hi %d\n",
-           inp->bits, inp->start & 0xFF, inp->start >> 8)); */
+        LOG(LOG_DUMP, ("bits %d, lo %d, hi %d\n",
+                       inp->bits, inp->start & 0xFF, inp->start >> 8));
         buffer[sizeof(buffer) - count] = inp->bits;
         inp = inp->next;
     }
@@ -788,7 +708,7 @@ void interval_out(output_ctx out, interval_nodep inp1, int size)
     {
         int b;
         b = buffer[sizeof(buffer) - size];
-        /*LOG(LOG_DUMP, ("outputting nibble %d\n", b)); */
+        LOG(LOG_DUMP, ("outputting nibble %d\n", b));
         output_bits(out, 4, b);
         size--;
     }

@@ -308,6 +308,7 @@ generate_output(match_ctx ctx,
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
     output_gamma_code(out, 17);
+    output_bits(out, 1, 0); /* 1 bit out */
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
     LOG(LOG_DUMP, ("------------\n"));
@@ -318,7 +319,6 @@ generate_output(match_ctx ctx,
         mp = snp->match;
         if (mp != NULL && mp->len > 0)
         {
-            /*printf("index %d, offset %d, len %d\n", snp->index, mp->offset, mp->len); */
             if (mp->offset == 0)
             {
                 if(mp->len == 1)
@@ -333,16 +333,14 @@ generate_output(match_ctx ctx,
                     for(i = 0; i < mp->len; ++i)
                     {
                         /* literal */
-                        output_byte(out, ctx->buf[snp->index]);
+                        output_byte(out, ctx->buf[snp->index + i]);
                     }
-                    output_bits(out, 16, 0xaa55); /* 16 bits out */
+                    output_bits(out, 16, mp->len); /* 16 bits out */
                     output_gamma_code(out, 16); /* 17 bits out */
                     output_bits(out, 1, 0); /* 1 bit out */
 
-#if 1
-                    LOG(LOG_NORMAL, ("copy index %d, len %d\n",
+                    LOG(LOG_DEBUG, ("copy index %d, len %d\n",
                                      snp->index, mp->len));
-#endif
                 }
             } else
             {
@@ -421,9 +419,6 @@ do_compress(match_ctx ctx, encode_match_data emd,
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
             exit(-1);
         }
-#if 0
-        search_node_dump(snp);
-#endif
         size = snp->total_score;
         LOG(LOG_NORMAL, ("  size %0.1f bits ~%d bytes\n",
                          size, (((int) size) + 7) >> 3));
@@ -686,18 +681,6 @@ main(int argc, char *argv[])
             exit(1);
         }
     }
-#if 0
-    LOG(LOG_DEBUG, ("flagind %d\n", flagind));
-    for (c = 0; c < argc; ++c)
-    {
-        if (c == flagind)
-        {
-            LOG(LOG_DEBUG, ("-----------------------\n"));
-        }
-        LOG(LOG_DEBUG, ("argv[%d] = \"%s\"\n", c, argv[c]));
-    }
-    exit(1);
-#endif
 
     infilev = argv + flagind;
     infilec = argc - flagind;
@@ -774,6 +757,7 @@ main(int argc, char *argv[])
 
     LOG(LOG_NORMAL, (" Instrumenting file(s), done.\n"));
 
+    emd->out = NULL;
     optimal_init(emd);
 
     LOG(LOG_NORMAL,
