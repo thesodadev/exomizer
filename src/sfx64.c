@@ -32,7 +32,10 @@
 #include "log.h"
 #include "output.h"
 
-#define DECOMP_SAFETY 48
+#define DECOMP_EFFECT_ADDR 0x07e7
+#define DECOMP_MIN_ADDR 0x0400
+#define DECOMP_SAFETY_SOFT 48
+#define DECOMP_SAFETY_HARD 24
 #define DECOMP_LEN 0xba
 
 static const unsigned char stage1[] = {
@@ -71,19 +74,17 @@ static unsigned char stage2[] = {
     0x18, 0x65, 0xFE, 0x85, 0xAE, 0xA5, 0xFB, 0x79,
     0x9C, 0x03, 0x65, 0xFF, 0x85, 0xAF, 0xA4, 0xA7,
     0x68, 0xAA, 0x90, 0x90, 0x02, 0x04, 0x04, 0x30,
-    0x20, 0x10, 0xE8, 0x98, 0x29, 0x0F, 0xF0, 0x0B,
-    0xA5, 0xFA, 0x79, 0x67, 0x03, 0xAA, 0xA5, 0xFB,
+    0x20, 0x10, 0xE8, 0x98, 0x29, 0x0F, 0xF0, 0x13,
+    0x8A, 0x4A, 0xA6, 0xFC, 0x2A, 0x26, 0xFB, 0xCA,
+    0x10, 0xFA, 0x79, 0x67, 0x03, 0xAA, 0xA5, 0xFB,
     0x79, 0x9B, 0x03, 0x99, 0x9C, 0x03, 0x8A, 0x99,
     0x68, 0x03, 0xA2, 0x04, 0x20, 0x01, 0x01, 0x99,
-    0x34, 0x03, 0x86, 0xFA, 0xAA, 0xE8, 0x38, 0x26,
-    0xFA, 0x26, 0xFB, 0xCA, 0xD0, 0xF9, 0xC8, 0xC0,
-    0x34, 0xD0, 0xCF, 0xA0, 0x00, 0x8C, 0xE7, 0x07,
-    0x4C, 0x4A, 0x01
+    0x34, 0x03, 0xC8, 0xC0, 0x34, 0xD0, 0xD3, 0xA0,
+    0x00, 0x8C, 0xE7, 0x07, 0x4C, 0x4A, 0x01
 };
-#define STAGE2_EFFECT       24
 #define STAGE2_GET_BYTE     35
 #define STAGE2_START        56
-#define STAGE2_COPY_LEN_LO 236
+#define STAGE2_COPY_LEN_LO 232
 
 static unsigned char stage3s[] = {
     0xB9, 0x00, 0x00, 0x99, 0x00, 0x00, 0x88, 0xD0,
@@ -110,9 +111,11 @@ void load(output_ctx out,       /* IN/OUT */
           unsigned short int load)      /* IN */
 {
     unsigned short int new_load;
-    if (load < 0x0400)
+    if (load < DECOMP_MIN_ADDR)
     {
-        LOG(LOG_ERROR, ("error: cant handle load adresses < $0400\n"));
+        LOG(LOG_ERROR,
+	    ("error: cant handle load address < $%04X\n",
+	     DECOMP_MIN_ADDR));
         exit(1);
     }
 
@@ -122,15 +125,19 @@ void load(output_ctx out,       /* IN/OUT */
     new_load = STAGE1_END;
 
     /* do we have enough decompression buffer safety? */
-    if (load - DECOMP_SAFETY < STAGE1_END)
+    if (load - DECOMP_SAFETY_HARD < STAGE1_END)
     {
         /* no, we need to transfer bytes */
-        new_load = load - DECOMP_SAFETY;
-        if (new_load > 0x07e7)
+        new_load = load - DECOMP_SAFETY_SOFT;
+        /* make sure that the depack effect is visible */
+	if(new_load > DECOMP_EFFECT_ADDR)
+	{
+	    new_load = DECOMP_EFFECT_ADDR;
+	}
+        /* use the hard safety if we are lower than the min addr */
+	if(new_load < DECOMP_MIN_ADDR - DECOMP_SAFETY_HARD)
         {
-            /* if we relocate, make sure that we at least relocate
-             * enough to be visible in the last screen position */
-            new_load = 0x07e7;
+	    new_load = DECOMP_MIN_ADDR - DECOMP_SAFETY_HARD;
         }
     }
     output_set_pos(out, new_load);
@@ -202,7 +209,7 @@ void stages(output_ctx out,     /* IN/OUT */
         output_byte(out, stage1[i]);
     }
 
-    /* fixup adresses */
+    /* fixup addresses */
     output_set_pos(out, STAGE1_BEGIN + STAGE1_COPY_SRC);
     output_word(out, (unsigned short int) (stage2_begin - 4));
 

@@ -264,7 +264,7 @@ void print_license()
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v1.1beta1, Copyright (c) 2002 Magnus Lind. (magli143@telia.com)\n"
+         "Exomizer v1.1, Copyright (c) 2002 Magnus Lind. (magli143@telia.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -367,7 +367,7 @@ int main(int argc, char *argv[])
                 outload < 0 || outload >= 65536)
             {
                 LOG(LOG_ERROR,
-                    ("error: invalid adress for -l option, "
+                    ("error: invalid address for -l option, "
                      "must be in the range of [0 - 0xffff]\n"));
                 print_usage(argv[0], LOG_ERROR);
                 exit(1);
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
                 outstart < 0 || outstart >= 65536)
             {
                 LOG(LOG_ERROR,
-                    ("error: invalid adress for -s option, "
+                    ("error: invalid address for -s option, "
                      "must be in the range of [0 - 0xffff]\n"));
                 print_usage(argv[0], LOG_ERROR);
                 exit(1);

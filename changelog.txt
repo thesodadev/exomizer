@@ -1,53 +1,61 @@
+2002-10-06
+----------
+1.1 released win32 and linux, including source code.
++ decruncher 4 bytes shorter, both built-in and sourcecode versions.
++ updated the performance comparison section.
++ fixed even more spelling errors :)
+
 2002-09-26
-1.1beta1 released win32 only, no source. not public.
+----------
+1.1beta1 released win32 only, no source.
 + Can now create self extracting files for the c16/+4 family of computers too.
-+ minor tweaks and some spelling corrected.
++ minor tweaks to textfiles and some spelling corrected.
 - no difference whatsoever in crunching result compared to the 1.0 version
 
 2002-05-01
 ----------
 1.0 released, win32 and linux binaries (compressed with upx) + sourcecode.
-+ Really fixed the bug I said I fixed in the last beta. If the beta3 exomizer
++ Really fixed the bug I said I fixed in the last beta. If the beta3 Exomizer
   was run without any of the -l, -r or -s flags to produce a memory decrunch-
   able file without a start address, the output file was generated as if the -r
   flag was specified. Not anymore.
 + Corrected/adjusted comments in the exodecrunch.s file.
-+ 1 byte shorter decruncher, both builtin and source code version.
++ 1 byte shorter decruncher, both builtin and source code versions.
 + Wrote a special routine to copy crunched data if copy length <= 256. This
-  makes -s the decruncher for files with [$074E <= load adress < $084E] 15
+  makes the -s decruncher for files with [$074E <= load address < $084E] 15
   bytes shorter than in beta3.
-+ Made -s decruncher for files with [$084E <= load adress] 3 bytes longer than
++ Made -s decruncher for files with [$084E <= load address] 3 bytes longer than
   in beta3. This was done in order to make the previously invisible decrunch
   effect visible. Not such a big loss considering that it now is 6 bytes
-  shorter than the decruncher for files with [$074E <= load adress < $084E] and
-  21 bytes shorter than the one for files with [load adress < $074E].
+  shorter than the decruncher for files with [$074E <= load address < $084E]
+  and 21 bytes shorter than the one for files with [load address < $074E].
 + updated exomizer-1.0.txt with info about builtin decruncher sizes.
 
 2002-04-13
 ----------
 beta3 released, win32 (exomizer.exe) and Linux (exomizer.lnx) binaries.
 win32 exe built using visual studio 6.0. The linux binary was built on
-A redhat 7.2 system. It uses no fancy system stuff so it should be runnable
+A redhat 7.3 system. It uses no fancy system stuff so it should be runnable
 on any glibc2 based linux system. However, this has not been tested.
 
 + sourcecode and a Linux Makefile in the exomizer-src-1.0beta3.zip file.
   To build on Linux just type make.
   To build in visual studio, just create a console app project and add
-  all the *.c and *.h files. The exomizer uses a lot of stackspace so
+  all the *.c and *.h files. The Exomizer uses a lot of stackspace so
   in order to run properly on win32 the stack size has to be increased.
   The visual studio linker option /stack:0x800000 sets the stacksize to be
-  the same size that Linux defaults to. 
-+ new feature, a -q option for quiet mode. The exomizer only outputs one line
+  8 Megabyte. (The same size that Linux defaults to)
++ new feature, a -q option for quiet mode. The Exomizer only outputs one line
   on stdout if it is invoked with this flag.
-+ A bug has been fixed, if exomizer was run without any of the -l, -r or -s
++ A bug has been fixed, if Exomizer was run without any of the -l, -r or -s
   flags to produce a memory decrunchable file without a start address, parts of
   the decruncher was added to the output file.
-+ changed the decruncher to use less harmful zeropage adresses.
++ changed the decruncher to use less harmful zeropage addresses.
 + changed the decruncher source: moved the small static tables into the de-
   cruncher and out of the relocatable tables area. This allows the application
   to safely reuse/overwrite that memory area between decrunches.
-+ updated exomizer-1.0.txt with info about adresses clobbered by the decruncher
-  and howto enter hexadecimal option arguments.
++ updated exomizer-1.0.txt with info about addresses clobbered by the
+  decruncher and howto enter hexadecimal option arguments.
 + the license printed by -u has been updated to reflect the same license as
   the source code is released under.
 
@@ -89,7 +97,7 @@ This beta release features an updated exodecrunch.s. This version is tested and
 works.
 
 This release also introduces copyright notices and a usage license,
-updated texts in the binary and an updated exomiser_beta.txt file.
+updated texts in the binary and an updated exomizer_beta.txt file.
 
 
 2002-03-06
@@ -100,8 +108,3 @@ The exodecrunch.s is a asm sourcefile that assembles with the ca65 assembler
 included in the cc65 compiler package. The decruncher sourcefile is based on
 the one used in the sfx-routines but with an easily exchangeable get_byte
 routine. It may contain silly bugs, but they should be easy to spot.
-
-/Regards
-
-Magnus Lind
-magli143@teila.com

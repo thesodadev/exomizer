@@ -6,29 +6,32 @@ Exomizer 1.1
 What is it?
 
   Exomizer is a cross-cruncher that runs on win32 or Linux as a command-line
-  tool, but processes and generates files for the c64 and the c16/+4 computers.
+  tool, but processes and generates files for the c64 and the c16/+4
+  computers.
 
-   1) It is a file-compressor that compresses c64/c16/+4 files.
+   1) It is a cruncher that corunches c64/c16/+4 files.
    2) It can produce stand-alone self-decompressing c64/c16/+4-files.
-   3) It can produce files for both "in memory" or "from disk" decompression.
-   3) It handles rle-sequences well, no packer is necessary.
-   4) It's built-in c64 decompressor handles $0400-$ffff. (c16/+4 $0c00-ffff)
+   3) It can produce files for both "in memory" or "from disk" decrunching.
+   4) It handles RLE-sequences well, no packer is necessary.
+   5) It's stand-alone decompressor can decompress $0400-$ffff (c64) or
+      $0c00-$ffff (c16/+4)
+   6) Its able to crunch more than one infile into the same outfile (link).
 
 
-Why is it called exomizer?
+Why is it called Exomizer?
 
   More than ten years ago, I made some packers for the c64 that were named
-  [groupname]mizer depending on which group I was a member of at the time.
+  [name of group that I was a member of at the time]mizer.
   Since I'm not a member of any group now and it is a cross cruncher I
-  figured 'exo' was the perfect prefix. The 'mizer' suffix I just kept for
+  figured 'Exo' was the perfect prefix. The 'mizer' suffix I just kept for
   nostalgic reasons.
 
 
 What sets this program apart from similar programs like PuCrunch?
 
-  This program has been designed with ONLY the compression rate in mind. No
-  compromises has been made in the effort to achieve the highest compression
-  rates possible. As a result of this Exomizer has some drawbacks:
+  This program has been designed with ONLY the compression rate in mind. Not
+  many compromises has been made in the effort to achieve the highest
+  compression rates possible. As a result of this Exomizer has some drawbacks:
 
    1) it may use up to 50MB of internal memory for worst case files.
    2) it may take several minutes to compress a file on a modern PC.
@@ -68,113 +71,111 @@ How do I invoke the exomizer?
   prompt> _
 
 
-Is it possible to use hexadecimal numbers for load and start adresses?
+Is it possible to use hexadecimal numbers for load and start addresses?
 
   Yes, use a 0x prefix, like 0xc600.
 
 
 How much overhead does the builtin decruncher add to a file?
 
-  These numbers compares resulting file sizes when crunching a file with the -s
-  flag and crunching it with the -l flag. 
+  These numbers compares resulting file sizes when crunching a file with the
+  -s flag and crunching it with the -l flag. These numbers is for the c64
+  decruncher. The c16/+4 decruncher adds another 3 bytes.
 
-  Files with [load adress < $074E] will get 293 bytes larger.
-  Files with [$074E <= load adress < $084E] will get 278 bytes larger.
-  Files with [$084E <= load adress] will get 272 bytes larger.
+  Files with [load address < $0736] will get 289 bytes larger.
+  Files with [$0736 <= load address < $0836] will get 274 bytes larger.
+  Files with [$0836 <= load address] will get 268 bytes larger.
 
 
-What memory adresses does the decruncher clobber?
+What memory addresses does the decruncher clobber?
 
   The following description covers the c64 decruncher. The c16/+4 decruncher
   differs from this description only by having a 3 bytes longer startup code.
   The number of bytes copied to the stack is the same. Another difference is
   that it loads to $1001 instead of $0801.
 
-  Except for the adresses covered by the file itself $0801-$XXXX, the
-  decruncher also clobbers the following adresses:
+  Except for the addresses covered by the file itself $0801-$XXXX, the
+  decruncher also clobbers the following addresses:
 
-  Eight zeropage adresses are used: $a7, $ae-$af, $fb-$ff.
+  Eight zeropage addresses are used: $a7, $ae-$af, $fb-$ff.
   The decruncher copies 186 bytes of itself to the stack at $0100-$01ba.
   The tapebuffer is used for tables, 156 bytes in total at $0334-$03d0.
   
-  If the start adress of the decrunched data is lower than $0817 then the
-  decruncher will clobber the memory from [(the start adress) - $30] to $0801.
-  This space is used as a safety buffer.
+  If the start address of the decrunched data is lower than $0826 then the
+  decruncher will clobber the memory from [(the start address) - $30] to
+  $0801. This space is used as a safety buffer.
 
-  If the start adress of the decrunched data is between $0817 and $084D then
-  the decruncher will clobber the memory from $07E7 to $0801. This space
-  is used as a safety buffer.
+  In all cases the address $07b7 will be overwritten in order to make the
+  decrunch effect visible.
 
-  If the start adress of the decrunched data is $084E or higher then no extra
-  space will be clobbered.
- 
-  The exodecrunch.s decruncher defaults to using the same zeropage adresses
-  as the stand alone decruncher. It also uses a 156 byte tablespace. Both
-  the table area and the zeropage adresses can easily be relocated.
+  The exodecrunch.s decruncher defaults to using the same zeropage addresses
+  as the stand alone decruncher. It also uses a 156 byte table. Both
+  the table area and the zeropage addresses can be easily relocated.
 
 
-How do I use the decruncher in the exodecrunch sourcecode?
+How do I use the decruncher sourcecode?
 
-  You simply call jsr decrunch_file, but first you must have implemented a
+  You simply call jsr decrunch_file. But first you must have implemented a
   suitable get_byte routine for it. The decruncher has only a simple
-  get_byte as an example. If you want to decrunch from file you have to
-  write the file handling routines yourselves. See the exodecrunch.s
+  get_byte provided as an example. If you want to decrunch from file you have
+  to write the file handling routines yourselves. See the exodecrunch.s file
   for more info.
 
 
 Some Performance numbers:
 
-  These tests are made on a AMD duron 700MHz. the byteboiler+rle sizes for
+  These tests are made on a AMD duron 700MHz. the ByteBoiler+RLE sizes for
   the delenn.bin sheridan.bin and ivanova.bin has been taken from the home-
-  page of pucrunch. I could not get them so small myself and I really want
-  to show the best possible figures for any cruncher.
+  page of PuCrunch. I could not get them so small myself and I really want
+  to show the best possible figures for any cruncher. The Exomizer sizes
+  includes the c64 decruncher (-s option).
 
   fist.bin          time           size         extra flags
   --------         ------         ------        -----------
-  exomizer          42.6s          35929
-  byteboiler+rle                   36602
-  pucrunch           0.2s          37230        -fshort
+  Exomizer          42.6s          35924
+  ByteBoiler+RLE                   36602
+  PuCrunch           0.2s          37230        -fshort
 
-  bofh.bin (pucrunch-crunched leveldata)
+  bofh.bin (PuCrunch-crunched internal leveldata)
   --------         ------         ------        -----------
-  exomizer          66.7s          29426
-  byteboiler+rle                   29708
-  pucrunch           0.2s          30111        -fshort
+  Exomizer          66.7s          29406
+  ByteBoiler+RLE                   29708
+  PuCrunch           0.2s          30111        -fshort
 
-  bofh.bin (exomizer-crunched leveldata)
+  bofh.bin (Exomizer-crunched internal leveldata)
   --------         ------         ------        -----------
-  exomizer          85.9s          28881
-  byteboiler+rle                   29235
-  pucrunch           0.2s          29556        -fshort
+  Exomizer          85.9s          28861
+  ByteBoiler+RLE                   29235
+  PuCrunch           0.2s          29556        -fshort
 
 
-And some files known from the pucrunch homepage.
+And some files known from the PuCrunch homepage.
   delenn.bin
   ----------       ------         ------        -----------
-  exomizer          64.3s          18865
-  pucrunch           0.3s          19709        -p2 -fshort
-  byteboiler+rle                   19838
+  Exomizer          64.3s          18845
+  PuCrunch           0.3s          19709        -p2 -fshort
+  ByteBoiler+RLE                   19838
 
   sheridan.bin
   ------------     ------         ------        -----------
-  exomizer          76.7s          12173
-  byteboiler+rle                   12478
-  pucrunch           0.3s          12501        -p2 -fshort
+  Exomizer          76.7s          12153
+  ByteBoiler+RLE                   12478
+  PuCrunch           0.3s          12501        -p2 -fshort
 
   ivanova.bin
   -----------      ------         ------        -----------
-  exomizer          94.0s           9513
-  byteboiler+rle                    9812
-  pucrunch           0.3s           9819        -p2 -fshort
+  Exomizer          94.0s           9493
+  ByteBoiler+RLE                    9812
+  PuCrunch           0.3s           9819        -p2 -fshort
 
 
-who made it?
+Who made it?
 
     My name is Magnus Lind.
     I am reachable by email: magli143@telia.com
 
 
-What else have you made?
+What else c64-related have you made?
 
     I have previously made some native packers for the c64 and an iffl-
     system, but that was at least ten years ago or so.
