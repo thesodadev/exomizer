@@ -72,8 +72,8 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
 {
     match_nodep np;
     match_nodep *npp;
-    struct _match_node *single_map[256];
-    struct _match_node *tuple_map[65536];
+    static struct _match_node *single_map[256];
+    static struct _match_node *tuple_map[65536];
 
     int i;
     int val;

@@ -241,7 +241,7 @@ generate_output(match_ctx ctx,
                 int load, int len, int start, FILE * of)
 {
     int pos;
-    output_ctx out;
+    static output_ctx out;
     output_ctxp old;
 
     output_ctx_init(out);

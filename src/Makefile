@@ -11,13 +11,13 @@ OBJS = match.o search.o main.o optimal.o output.o radix.o sfx264.o sfx64.o getfl
 
 .PHONY: build
 
-build: exomizer.deps exomizer
+build: exomizer.deps exomizer $(MAKEFILE)
 
 exomizer: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^ -lm
 
 clean:
-	$(RM) $(OBJS) exomizer
+	$(RM) $(OBJS) exomizer exomizer.deps
 
 -include exomizer.deps
 
