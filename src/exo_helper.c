@@ -7,8 +7,12 @@
 #include "optimal.h"
 #include "exodec.h"
 #include "exo_helper.h"
+#include "getflag.h"
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
+static struct crunch_options default_options[1] = { CRUNCH_OPTIONS_DEFAULT };
 
 /* returns 0 if ok, 1 otherwise */
 int
@@ -229,11 +233,8 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
 void crunch_backwards(struct membuf *inbuf,
                       struct membuf *outbuf,
-                      const char *exported_encoding,
-                      int max_passes,
-                      int max_offset,
-                      int use_literal_sequences,
-                      struct crunch_info *info)
+                      struct crunch_options *options, /* IN */
+                      struct crunch_info *info) /* OUT */
 {
     static match_ctx ctx;
     encode_match_data emd;
@@ -241,6 +242,11 @@ void crunch_backwards(struct membuf *inbuf,
     int outlen;
     int safety;
     int copy_used;
+
+    if(options == NULL)
+    {
+        options = default_options;
+    }
 
     outlen = membuf_memlen(outbuf);
     emd->out = NULL;
@@ -251,7 +257,7 @@ void crunch_backwards(struct membuf *inbuf,
          "\n-----------------------------\n"));
     LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", membuf_memlen(inbuf)));
 
-    match_ctx_init(ctx, inbuf, max_offset);
+    match_ctx_init(ctx, inbuf, options->max_offset);
 
     LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
 
@@ -261,8 +267,8 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snp = do_compress(ctx, emd, exported_encoding,
-                      max_passes, use_literal_sequences);
+    snp = do_compress(ctx, emd, options->exported_encoding,
+                      options->max_passes, options->use_literal_sequences);
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,
@@ -302,19 +308,14 @@ void reverse_buffer(char *start, int len)
 
 void crunch(struct membuf *inbuf,
             struct membuf *outbuf,
-            const char *exported_encoding,
-            int max_passes,
-            int max_offset,
-            int use_literal_sequences,
-            struct crunch_info *info)
+            struct crunch_options *options, /* IN */
+            struct crunch_info *info) /* OUT */
 {
     int outpos;
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     outpos = membuf_memlen(outbuf);
 
-    crunch_backwards(inbuf, outbuf, exported_encoding,
-                     max_passes, max_offset,
-                     use_literal_sequences, info);
+    crunch_backwards(inbuf, outbuf, options, info);
 
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     reverse_buffer((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
@@ -346,4 +347,136 @@ void decrunch_backwards(int level,
 
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     reverse_buffer((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
+}
+
+const char *fixup_appl(char *appl)
+{
+    char *applp;
+
+    /* strip pathprefix from appl */
+    applp = strrchr(appl, '\\');
+    if (applp != NULL)
+    {
+        appl = applp + 1;
+    }
+    applp = strrchr(appl, '/');
+    if (applp != NULL)
+    {
+        appl = applp + 1;
+    }
+    /* strip possible exe suffix */
+    applp = appl + strlen(appl) - 4;
+    if(strcmp(applp, ".exe") == 0 || strcmp(applp, ".EXE") == 0)
+    {
+        *applp = '\0';
+    }
+    return appl;
+}
+
+static
+void print_license()
+{
+    LOG(LOG_BRIEF,
+        ("----------------------------------------------------------------------------\n"
+         "Exomizer v2.0, Copyright (c) 2002 - 2005 Magnus Lind. (magli143@comhem.se)\n"
+         "----------------------------------------------------------------------------\n"));
+    LOG(LOG_BRIEF,
+        ("This software is provided 'as-is', without any express or implied warranty.\n"
+         "In no event will the authors be held liable for any damages arising from\n"
+         "the use of this software.\n"
+         "Permission is granted to anyone to use this software, alter it and re-\n"
+         "distribute it freely for any non-commercial, non-profit purpose subject to\n"
+         "the following restrictions:\n\n"));
+    LOG(LOG_BRIEF,
+        ("   1.  The origin of this software must not be misrepresented; you must not\n"
+         "   claim that you wrote the original software. If you use this software in a\n"
+         "   product, an acknowledgment in the product documentation would be\n"
+         "   appreciated but is not required.\n"
+         "   2. Altered source versions must be plainly marked as such, and must not\n"
+         "   be misrepresented as being the original software.\n"
+         "   3. This notice may not be removed or altered from any distribution.\n"));
+    LOG(LOG_BRIEF,
+        ("   4. The names of this software and/or it's copyright holders may not be\n"
+         "   used to endorse or promote products derived from this software without\n"
+         "   specific prior written permission.\n"
+         "----------------------------------------------------------------------------\n"
+         "The files processed and/or generated by using this software are not covered\n"
+         "nor affected by this license in any way.\n"));
+}
+
+void print_shared_flags(enum log_level level)
+{
+    LOG(level,
+        ("  -c            compatibility mode, disables the use of literal sequences\n"
+         "  -e <encoding> uses the given encoding for crunching\n"
+         "  -m <offset>   limits the maximum offset size, default is 65535\n"
+         "  -o <outname>  sets the outfile name, default is \"a.prg\"\n"));
+    LOG(level,
+        ("  -p <passes>   limits the number of optimization passes, default is 65535\n"
+         "  -q            quiet mode, disables display output\n"
+         "  -v            displays version and the usage license\n"
+         "  --            treats all following arguments as non-options\n"
+         "  -?            displays this help screen\n"));
+}
+
+void handle_shared_flags(int flag_char, /* IN */
+                         const char *flag_arg, /* IN */
+                         print_usage_f *print_usage, /* IN */
+                         const char *appl, /* IN */
+                         struct common_flags *flags) /* OUT */
+{
+    struct crunch_options *options = flags->options;
+    switch(flag_char)
+    {
+    case 'c':
+        options->use_literal_sequences = 0;
+        break;
+    case 'e':
+        options->exported_encoding = flag_arg;
+        break;
+    case 'm':
+        if (str_to_int(flag_arg, &options->max_offset) != 0 ||
+            options->max_offset < 0 || options->max_offset >= 65536)
+        {
+            LOG(LOG_ERROR,
+                ("Error: invalid offset for -m option, "
+                 "must be in the range of [0 - 65535]\n"));
+            print_usage(appl, LOG_NORMAL);
+            exit(-1);
+        }
+        break;
+    case 'o':
+        flags->outfile = flag_arg;
+        break;
+    case 'p':
+        if (str_to_int(flag_arg, &options->max_passes) != 0 ||
+            options->max_passes < 1 || options->max_passes >= 65536)
+        {
+            LOG(LOG_ERROR,
+                ("Error: invalid value for -p option, "
+                 "must be in the range of [1 - 65535]\n"));
+            print_usage(appl, LOG_NORMAL);
+            exit(-1);
+        }
+        break;
+    case 'q':
+        LOG_SET_LEVEL(LOG_BRIEF);
+        break;
+    case 'v':
+        print_license();
+        exit(0);
+    default:
+        if (flagflag != '?')
+        {
+            LOG(LOG_ERROR,
+                ("error, invalid option \"-%c\"", flagflag));
+            if (flagarg != NULL)
+            {
+                LOG(LOG_ERROR, (" with argument \"%s\"", flagarg));
+            }
+            LOG(LOG_ERROR, ("\n"));
+        }
+        print_usage(appl, LOG_BRIEF);
+        exit(0);
+    }
 }

@@ -2,17 +2,16 @@
 Exomizer 2.0, to do before the release.
 -----------------------------------------------------------------------
 + let the assembler know if block copy was used.
-+ document enable/disable block copy flag (-c).
 + fix -n flag (and docs)
 + fix user notifications of -r appends.
 + start decrunch from other address than basic start without basic line.
 + update decruncher source to block copy.
 + update usage display. (crunch it perhaps?)
 + change basic line number to something more imaginative than the year.
++ split the three main modes of exomizer to different functions
 -----------------------------------------------------------------------
 + vic20 memory hole handling
 -----------------------------------------------------------------------
-+ s/infected/affected/
 + update documentation
 + update performace figures
 + no filenames with more than one period.
