@@ -1,6 +1,7 @@
-2004-09-26
+2004-10-03
 ----------
 1.1.5 released. dos (djgpp), win32 (mingw) and linux (gcc) binaries.
++ rename files to only have one . in their names.
 + new sequence matching algorithm that also handles long rle-sequences
   without slowing down like the old one did.
 + bugfix: use -lauto mechanism for built in decrunchers too in order to handle
@@ -14,8 +15,8 @@
 + improvment: Now the exobasic tool can regenerate the system color table
   in its c16/plus4 trampoline.
 + contrib/exo-4k.asm by Ninja/The Dreams updated to v1.2
-+ updates to the exomizer-1.1.5.txt file.
-+ updates to the exobasic-1.0b2.txt file.
++ updates to the exomizer115.txt file.
++ updates to the exobasic10b2.txt file.
 
 2004-06-02
 ----------
