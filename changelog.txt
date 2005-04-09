@@ -1,0 +1,16 @@
+2005-04-09
+replaced 2.0beta1
++ tuned the cruncher for better compression, should be on pair with 1.1.5 now.
+
+2005-04-06
+replaced 2.0beta1
++ fixed +4 bank optmization in sfx decruncher
++ fixed bug in non-literal-sequence sfx decruncher that caused
+  the decrunched data to be offset in memory.
+
+2005-04-03
+replaced 2.0beta1
++ fixed -Di_config_effect
+
+2005-04-02
+initial release of 2.0beta1 no source.
