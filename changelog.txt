@@ -1,6 +1,9 @@
-2005-04-09
+2005-04-10
 replaced 2.0beta1
 + tuned the cruncher for better compression, should be on pair with 1.1.5 now.
++ modified the usage of the symbol i_ram_on_exit
++ documented symbol i_table_addr
++ added symbol i_irq_on_exit
 
 2005-04-06
 replaced 2.0beta1

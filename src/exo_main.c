@@ -629,7 +629,6 @@ void sfx(const char *appl, int argc, char *argv[])
         }
         else if(strcmp(p, "basic") == 0)
         {
-            basic_var_start = -2;
             /* we should start a basic program. */
             sys_addr = -2;
             p = strtok(NULL, ",");
@@ -727,12 +726,6 @@ void sfx(const char *appl, int argc, char *argv[])
         default:
             handle_shared_flags(c, flagarg, print_sfx_usage, appl, flags);
         }
-    }
-
-    if(find_symref("i_config_effect", NULL) != NULL)
-    {
-        /* if no effect is given, default to effect 0 */
-        new_symbol("i_config_effect", 0);
     }
 
     membuf_init(buf1);

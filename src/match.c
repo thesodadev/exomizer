@@ -104,9 +104,10 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
         if (buf[i] == val)
         {
             int len = ctx->rle[i - 1] + 1;
-#if 1
-            if(len > 65535) len = 0;
-#endif
+            if(len > 65535)
+            {
+                len = 0;
+            }
             ctx->rle[i] = len;
         } else
         {
@@ -114,7 +115,7 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
         }
         val = buf[i];
     }
-#if 1
+
     for (i = buf_len - 2; i >= 0; --i)
     {
         if (ctx->rle[i] < ctx->rle[i + 1])
@@ -125,20 +126,6 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
             ctx->rle_r[i] = 0;
         }
     }
-#else
-    val = buf[buf_len - 1];
-    for (i = buf_len - 2; i >= 0; --i)
-    {
-        if (buf[i] == val )
-        {
-            ctx->rle_r[i] = ctx->rle_r[i + 1] + 1;
-        } else
-        {
-            ctx->rle_r[i] = 0;
-        }
-        val = buf[i];
-    }
-#endif
 
     /* add extra nodes to rle sequences */
     for(c = 0; c < 256; ++c)

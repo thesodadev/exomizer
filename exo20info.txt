@@ -38,7 +38,8 @@ o  Sfx decruncher in exomizer:
 
 o  There is no decruncher 6502 asm source that handles the new literal
    sequences yet. Fortunately, these are almost never used for normal data so
-   using the -c flag to order exomizer not to generate them is not a big loss.
+   The old source from 1.x still works of the -c flag is used to tell
+   exomizer not to generate them at all.
 
 o Update the usage descriptions properly.
 
@@ -52,10 +53,26 @@ exomizer <infile>                       exomizer mem -lnone <infile>
 exomizer -l$1234 <infile>               exomizer mem -l$1234 <infile>
 exomizer -lauto  <infile>               exomizer mem <infile>
 
-The sfx decruncher effect and ram config on exit is selected by defining symbols to the assembler on the command line:
+The sfx decruncher is tweaked by defining symbols to the assembler on the
+command line:
 
 To use ram config on exit add the following flag:
- -Di_ram_on_exit=1
+ -Di_ram_on_exit=n
+
+For the c64 and the c128 target the value n will be stored into $fff0 (c128) or
+$01 (c64) to set the mem config. For the c16/+4 target 0=ROM and 1=RAM.
+default is $37 for the c64, $00 for the c128 and 0 for the c16/+4.
+
+To explicitly (dis)allow irqs on exit add the following flag (0=sei, 1=cli)
+ -Di_irq_on_exit=n
+Default depends on the i_ram_on_exit and i_table_addr symbols.
+
+To locate the decrunch table elsewhere than the default tapebuffer:
+ -Di_table_addr=<address>
+
+Placing the table at certain addresses will crash the irq-handler. So if irqs
+are running while decrunching A workaround is to disable the irqs by using the
+i_irq_on_exit flag.
 
 To select one of the four decruncher effects add this flag (0 <= n <= 3):
  -Di_config_effect=n
