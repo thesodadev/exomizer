@@ -171,14 +171,16 @@ do_compress(match_ctx ctx, encode_match_data emd,
     float old_size;
 
     pass = 1;
-    LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
+    LOG(LOG_NORMAL, (" pass %d: ", pass));
     if(exported_encoding != NULL)
     {
+        LOG(LOG_NORMAL, ("importing %s\n", exported_encoding));
         optimal_encoding_import(emd, exported_encoding);
     }
     else
     {
+        LOG(LOG_NORMAL, ("optimizing ..\n"));
         matchp_cache_get_enum(ctx, mpce);
         optimal_optimize(emd, matchp_cache_enum_get_next, mpce);
     }

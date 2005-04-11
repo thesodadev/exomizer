@@ -176,7 +176,7 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
         {
         case 0:
             LOG(LOG_ERROR, ("bad len\n"));
-            bits = *(float*)0;
+            exit(1);
             break;
         case 1:
             bits += data->offset_f(mp->offset, offset[0], emd->out);
@@ -453,8 +453,8 @@ void optimal_encoding_import(encode_match_data emd,
     npp = &offsets[7];
     import_helper(npp, &encoding, 4);
 
-    LOG(LOG_NORMAL, ("imported encoding: "));
-    optimal_dump(LOG_NORMAL, emd);
+    LOG(LOG_DEBUG, ("imported encoding: "));
+    optimal_dump(LOG_DEBUG, emd);
 }
 
 void optimal_init(encode_match_data emd)        /* IN/OUT */

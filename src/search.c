@@ -254,7 +254,9 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             }
 #endif
             *tmp = *mp;
+#if 1
             tmp->next = NULL;
+#endif
             for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
             {
                 float score;
@@ -280,11 +282,9 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                      total_score < snp->total_score ||
                      (total_score == snp->total_score &&
 #if 1
-                       total_offset <= snp->total_offset)))
-#else
                       (tmp->offset == 0 ||
                        (snp->match->len == tmp->len &&
-                        snp->match->offset > tmp->offset)))))
+                        (total_offset <= snp->total_offset))))))
 #endif
                 {
                     LOG(LOG_DUMP, (", replaced"));
