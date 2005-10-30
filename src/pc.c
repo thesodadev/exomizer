@@ -33,15 +33,6 @@ static struct expr unset_value[1];
 static struct expr *s_pc1;
 static int s_pc2;
 
-static void assert_not_unset()
-{
-    if(s_pc1 == unset_value)
-    {
-        LOG(LOG_ERROR, ("PC must be set by a .org(pc) call.\n"));
-        exit(-1);
-    }
-}
-
 void pc_dump(int level)
 {
 }
@@ -62,6 +53,11 @@ struct expr *pc_get()
 {
     struct expr *old_pc1;
 
+    if(s_pc1 == unset_value)
+    {
+        LOG(LOG_ERROR, ("PC must be set by a .org(pc) call.\n"));
+        exit(-1);
+    }
     if(s_pc1 == NULL || s_pc2 != 0)
     {
         old_pc1 = s_pc1;
@@ -78,20 +74,24 @@ struct expr *pc_get()
 
 void pc_add(int offset)
 {
-    assert_not_unset();
-    s_pc2 += offset;
+    if(s_pc1 != unset_value)
+    {
+        s_pc2 += offset;
+    }
 }
 
 void pc_add_expr(struct expr *pc)
 {
     struct expr *old_pc1;
 
-    assert_not_unset();
-    old_pc1 = s_pc1;
-    s_pc1 = pc;
-    if(old_pc1 != NULL)
+    if(s_pc1 != unset_value)
     {
-        s_pc1 = new_expr_op2(PLUS, s_pc1, old_pc1);
+        old_pc1 = s_pc1;
+        s_pc1 = pc;
+        if(old_pc1 != NULL)
+        {
+            s_pc1 = new_expr_op2(PLUS, s_pc1, old_pc1);
+        }
     }
 }
 

@@ -40,7 +40,7 @@
 #include "parse.h"
 #include "named_buffer.h"
 
-extern struct membuf prgdecr[];
+extern struct membuf sfxdecr[];
 
 #define DEFAULT_OUTFILE "a.prg"
 
@@ -49,34 +49,44 @@ FILE *
 open_file(char *name, int *load_addr)
 {
     FILE * in;
-    int relocated = 0;
-    int reloc;
+    int is_prg = 1;
+    int is_relocated = 0;
     int load;
 
-    do {
+    do
+    {
         char *load_str;
+        char *at_str;
 
         in = fopen(name, "rb");
         if (in != NULL)
         {
-            /* we have succeded in opening the file */
+            /* We have succeded in opening the file.
+             * There's no address suffix. */
             break;
         }
 
         /* hmm, let's see if the user is trying to relocate it */
         load_str = strrchr(name, ',');
+        at_str = strrchr(name, '@');
+        if(at_str != NULL && (load_str == NULL || at_str > load_str))
+        {
+            is_prg = 0;
+            load_str = at_str;
+        }
+
         if (load_str == NULL)
         {
-            /* we fail */
+            /* nope, */
             break;
         }
 
         *load_str = '\0';
         ++load_str;
-        relocated = 1;
+        is_relocated = 1;
 
         /* relocation was requested */
-        if (str_to_int(load_str, &reloc) != 0)
+        if (str_to_int(load_str, &load) != 0)
         {
             /* we fail */
             LOG(LOG_FATAL,
@@ -94,17 +104,21 @@ open_file(char *name, int *load_addr)
         exit(-1);
     }
 
-    /* set the load address */
-    load = fgetc(in);
-    load |= fgetc(in) << 8;
+    if(is_prg)
+    {
+        /* read the prg load address */
+        int prg_load;
+        prg_load = fgetc(in);
+        prg_load |= fgetc(in) << 8;
+        if(!is_relocated)
+        {
+            load = prg_load;
+        }
+    }
 
     if(load_addr != NULL)
     {
         *load_addr = load;
-        if (relocated)
-        {
-            *load_addr = reloc;
-        }
     }
     return in;
 }
@@ -186,7 +200,7 @@ do_load(char *file_name, struct membuf *mem)
 
     /* move memory to beginning of buffer */
     membuf_truncate(mem, end);
-    membuf_flip(mem, start);
+    membuf_trim(mem, start);
 
     LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ", start, end));
     return start;
@@ -276,7 +290,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
 
     /* move memory to beginning of buffer */
     membuf_truncate(mem, max_end);
-    membuf_flip(mem, min_start);
+    membuf_trim(mem, min_start);
 
     LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ", min_start, max_end));
     return min_start;
@@ -338,7 +352,7 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "  basic start for a sys command.\n"
          "  the <jmpaddress> start argument will jmp to the given address.\n", appl));
     LOG(level,
-        ("  -t            the decruncher target, must be 20, 23, 52, 55, 4, 64 or 128.\n"
+        ("  -t            the decruncher target, must be 20, 23, 52, 55, 4, 64, 128 or 168.\n"
          "  -D<symbol>=<value>\n"
          "                predefines symbols for the sfx assembler."));
     print_shared_flags(level, default_outfile);
@@ -548,13 +562,14 @@ get_target_info(int target)
 {
     static const struct target_info targets[] =
         {
-            {20,  0x1001, "vic20"},
-            {23,  0x0401, "vic20+3kB"},
-            {52,  0x1201, "vic20+32kB"},
-            {55,  0x1201, "vic20+3kB+32kB"},
-            {4,   0x1001, "plus4"},
-            {64,  0x0801, "c64"},
-            {128, 0x1c01, "c128"},
+            {20,  0x1001, "Vic20"},
+            {23,  0x0401, "Vic20+3kB"},
+            {52,  0x1201, "Vic20+32kB"},
+            {55,  0x1201, "Vic20+3kB+32kB"},
+            {4,   0x1001, "C16/plus4"},
+            {64,  0x0801, "C64"},
+            {128, 0x1c01, "C128"},
+            {168, 0x2c00, "Atari 400/800 XL/XE"},
             {0, 0, NULL}
         };
     const struct target_info *targetp;
@@ -769,6 +784,63 @@ void sfx(const char *appl, int argc, char *argv[])
                            basic_start, basic_var_startp);
         in_len = membuf_memlen(in);
 
+        if(decr_target == 20 || decr_target == 52)
+        {
+            /* these are vic20 targets with a memory hole from
+             * $0400-$1000. Each page is filled with the value of the
+             * high-byte if its address. */
+            if(in_load >= 0x0400 && in_load + in_len <= 0x1000)
+            {
+                /* all the loaded data is in the memory hole.*/
+                LOG(LOG_ERROR,
+                    ("Error: all data loaded to the memory hole.\n"));
+                exit(-1);
+            }
+            else if(in_load >= 0x0400 && in_load < 0x1000 &&
+                    in_load + in_len > 0x1000)
+            {
+                /* The data starts in the memory hole and ends in
+                 * RAM. We need to adjust the start. */
+                int diff = 0x1000 - in_load;
+                in_load += diff;
+                in_len -= diff;
+                membuf_trim(in, diff);
+                LOG(LOG_WARNING,
+                    ("Warning, trimming address interval to $%04X-$%04X.\n",
+                     in_load, in_load + in_len));
+            }
+            else if(in_load < 0x0400 &&
+                    in_load + in_len >= 0x0400 && in_load + in_len < 0x1000)
+            {
+                /* The data starts in RAM and ends in the memory
+                 * hole. We need to adjust the end. */
+                int diff = in_load + in_len - 0x0400;
+                in_len -= diff;
+                membuf_truncate(in, in_len);
+                LOG(LOG_WARNING,
+                    ("Warning, trimming address interval to $%04X-$%04X.\n",
+                     in_load, in_load + in_len));
+            }
+            else if(in_load < 0x0400 && in_load + in_len > 0x1000)
+            {
+                /* The data starts in RAM covers the memory hole and
+                 * ends in RAM. */
+                int hi, lo;
+                char *p;
+                p = membuf_get(in);
+                for(hi = 0x04; hi < 0x10; hi += 0x01)
+                {
+                    for(lo = 0; lo < 256; ++lo)
+                    {
+                        int addr = (hi << 8) | lo;
+                        p[addr - in_load] = hi;
+                    }
+                }
+                LOG(LOG_NORMAL, ("Memory hole at interval $0400-$1000 "
+                                 "included in crunch..\n"));
+            }
+        }
+
         /* make room for load addr */
         membuf_append(out, NULL, 2);
 
@@ -815,16 +887,16 @@ void sfx(const char *appl, int argc, char *argv[])
         struct membuf source[1];
 
         membuf_init(source);
-        decrunch(LOG_DEBUG, prgdecr, source);
+        decrunch(LOG_DEBUG, sfxdecr, source);
 
         in = out;
         out = buf1;
         membuf_clear(out);
 
-        new_symbol("i_start_addr", sys_addr);
-        /*symbol_dump_resolved(LOG_NORMAL, "i_start_addr");*/
-        new_symbol("i_target", decr_target);
-        /*symbol_dump_resolved(LOG_NORMAL, "i_target");*/
+        new_symbol("r_start_addr", sys_addr);
+        /*symbol_dump_resolved(LOG_NORMAL, "r_start_addr");*/
+        new_symbol("r_target", decr_target);
+        /*symbol_dump_resolved(LOG_NORMAL, "r_target");*/
 
         if(sys_addr == -2)
         {
@@ -853,12 +925,6 @@ void sfx(const char *appl, int argc, char *argv[])
             new_symbol("i_literal_sequences_used", 1);
             symbol_dump_resolved(LOG_DEBUG, "i_literal_sequences_used");
         }
-
-        /* new_symbol("i_ram_on_exit", 1);
-           symbol_dump_resolved(LOG_NORMAL, "i_ram_on_exit"); */
-
-        /* new_symbol("i_config_effect", 1);
-           symbol_dump_resolved(LOG_NORMAL, "i_config_effect"); */
 
         if(assemble(source, out) != 0)
         {

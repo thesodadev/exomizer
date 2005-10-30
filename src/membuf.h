@@ -45,7 +45,7 @@ int membuf_memlen(struct membuf *sb);
 void membuf_truncate(struct membuf *sb, int len);
 
 /* returns the new len or < 0 if failure */
-int membuf_flip(struct membuf *sb, int pos);
+int membuf_trim(struct membuf *sb, int pos);
 
 void *membuf_memcpy(struct membuf *sb, const void *mem, int len);
 void *membuf_append(struct membuf *sb, const void *mem, int len);

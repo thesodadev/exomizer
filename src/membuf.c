@@ -89,7 +89,7 @@ void membuf_truncate(struct membuf *sb, int len)
     sb->len = len;
 }
 
-int membuf_flip(struct membuf *sb, int pos)
+int membuf_trim(struct membuf *sb, int pos)
 {
     if(pos < 0 || pos > sb->len)
     {
