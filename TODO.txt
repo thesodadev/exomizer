@@ -12,3 +12,8 @@ Exomizer 2.0, to do before the release.
 + add license to all files
 + unix-line-ends in all source files
 -----------------------------------------------------------------------
++ swap the code for eod and literal sequence to improve crunch results
+  when using -c flag.
+-----------------------------------------------------------------------
++ add ability to load atari dos xex files
+-----------------------------------------------------------------------
