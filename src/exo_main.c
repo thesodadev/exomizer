@@ -166,23 +166,86 @@ static int find_sys(const unsigned char *buf)
     return outstart;
 }
 
-
-static void load_prg(char *filename, unsigned char mem[65536],
-                     int *startp, int *endp)
+static void load_xex(unsigned char mem[65536], FILE *in,
+                     int *startp, int *endp, int *runp)
 {
+    int run = -1;
+    int jsr = -1;
+    int c, min = 65536, max = 0;
+    while((c = fgetc(in)) != EOF)
+    {
+        int start, end, len;
+        start = c;
+        start |= fgetc(in) << 8;
+        end = fgetc(in);
+        end |= fgetc(in) << 8;
+        ++end;
+        if(end <= start)
+        {
+            LOG(LOG_ERROR, ("Invalid xex-file."));
+            fclose(in);
+            exit(-1);
+        }
+        if(start == 0x2e2 && end == 0x2e4)
+        {
+            /* init vector */
+            jsr = fgetc(in);
+            jsr |= fgetc(in) << 8;
+            continue;
+        }
+        if(start == 0x2e0 && end == 0x2e2)
+        {
+            /* run vector */
+            run = fgetc(in);
+            run |= fgetc(in) << 8;
+            LOG(LOG_ERROR, ("Found xex runad %04X.\n", run));
+            continue;
+        }
+        jsr = -1;
+        if(start < min) min = start;
+        if(end > max) max = end;
+        len = fread(mem + start, 1, end - start, in);
+        if(len != end - start)
+        {
+            LOG(LOG_ERROR, ("Invalid xex-file."));
+            fclose(in);
+            exit(-1);
+        }
+    }
+    if(run == -1 && jsr != -1) run = jsr;
+
+    if(startp != NULL) *startp = min;
+    if(endp != NULL) *endp = max;
+    if(run != -1 && runp != NULL) *runp = run;
+}
+
+static void load_located(char *filename, unsigned char mem[65536],
+                         int *startp, int *endp, int *runp)
+{
+    int sp, ep;
     int load;
-    int len;
     FILE *in;
     in = open_file(filename, &load);
-    len = fread(mem + load, 1, 65536 - load, in);
+    if(load == 0xffff)
+    {
+        /* file is an xex file */
+        load_xex(mem, in, &sp, &ep, runp);
+    }
+    else
+    {
+        int len;
+        len = fread(mem + load, 1, 65536 - load, in);
+        sp = load;
+        ep = load + len;
+    }
     fclose(in);
 
     LOG(LOG_NORMAL,
         (" filename: \"%s\", loading from $%04X to $%04X\n",
-         filename, load, load + len));
+         filename, sp, ep));
 
-    if(startp != NULL) *startp = load;
-    if(endp != NULL) *endp = load + len;
+    if(startp != NULL) *startp = sp;
+    if(endp != NULL) *endp = ep;
 }
 
 static
@@ -196,7 +259,7 @@ do_load(char *file_name, struct membuf *mem)
     membuf_append(mem, NULL, 65536);
     p = membuf_get(mem);
 
-    load_prg(file_name, p, &start, &end);
+    load_located(file_name, p, &start, &end, NULL);
 
     /* move memory to beginning of buffer */
     membuf_truncate(mem, end);
@@ -209,8 +272,9 @@ do_load(char *file_name, struct membuf *mem)
 static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
-         int basic_txt_start, int *basic_var_startp)
+         int basic_txt_start, int *basic_var_startp, int *runp)
 {
+    int run = -1;
     int min_start = 65537;
     int max_end = -1;
     int basic_code = 0;
@@ -225,7 +289,12 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     {
         int start, end;
 
-        load_prg(filev[i], p, &start, &end);
+        load_located(filev[i], p, &start, &end, &run);
+        if(run != -1 && runp != NULL)
+        {
+            LOG(LOG_ERROR, ("Propagating xex runad %04X.\n", run));
+            *runp = run;
+        }
 
         /* if any file loads to the basic start */
         if(basic_txt_start >= 0)
@@ -236,6 +305,15 @@ do_loads(int filec, char *filev[], struct membuf *mem,
                 if(basic_var_startp != NULL)
                 {
                     *basic_var_startp = end;
+                }
+                else if(run == -1)
+                {
+                    /* only if we didn't get run address from load_located */
+                    int sys_addr = find_sys(p + basic_txt_start);
+                    if(runp != NULL)
+                    {
+                        *runp = sys_addr;
+                    }
                 }
             }
         }
@@ -250,7 +328,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         }
     }
 
-    if(basic_txt_start >= 0 && !basic_code)
+    if(basic_txt_start >= 0 && !basic_code && run == -1)
     {
         /* no program loaded to the basic start */
         LOG(LOG_ERROR, ("\nError: nothing loaded at the start of basic "
@@ -502,7 +580,7 @@ void mem(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
 
-        in_load = do_loads(infilec, infilev, in, -1, NULL);
+        in_load = do_loads(infilec, infilev, in, -1, NULL, NULL);
         in_len = membuf_memlen(in);
 
         /* make room for load addr */
@@ -767,8 +845,10 @@ void sfx(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
         int *basic_var_startp;
+        int *sys_addrp;
         int basic_start;
 
+        sys_addrp = NULL;
         basic_var_startp = NULL;
         if(sys_addr == -2 && basic_var_start == -1)
         {
@@ -778,10 +858,14 @@ void sfx(const char *appl, int argc, char *argv[])
         if(sys_addr < 0)
         {
             basic_start = basic_txt_start;
+            if(sys_addr == -1)
+            {
+                sys_addrp = &sys_addr;
+            }
         }
 
         in_load = do_loads(infilec, infilev, in,
-                           basic_start, basic_var_startp);
+                           basic_start, basic_var_startp, sys_addrp);
         in_len = membuf_memlen(in);
 
         if(decr_target == 20 || decr_target == 52)
@@ -863,14 +947,9 @@ void sfx(const char *appl, int argc, char *argv[])
     LOG(LOG_NORMAL, (" Target is self-decrunching %s executable", targetp->model));
     if(sys_addr == -1)
     {
-        sys_addr = find_sys((unsigned char*)membuf_get(in) +
-                            basic_txt_start - in_load);
-        if(sys_addr < 0)
-        {
-            LOG(LOG_ERROR, ("\nError: cant find sys address at basic "
-                            "text start ($%04X).\n", basic_txt_start));
-            exit(-1);
-        }
+        LOG(LOG_ERROR, ("\nError: cant find sys address at basic "
+                        "text start ($%04X).\n", basic_txt_start));
+        exit(-1);
     }
     if(sys_addr != -2)
     {

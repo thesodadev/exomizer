@@ -1,8 +1,10 @@
 #ifndef EXO_HELPER_ALREADY_INCLUDED
 #define EXO_HELPER_ALREADY_INCLUDED
 
-int
-str_to_int(const char *str, int *value);
+#include "log.h"
+#include "membuf.h"
+
+int str_to_int(const char *str, int *value);
 
 #define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 1}
 

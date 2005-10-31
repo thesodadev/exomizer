@@ -15,5 +15,3 @@ Exomizer 2.0, to do before the release.
 + swap the code for eod and literal sequence to improve crunch results
   when using -c flag.
 -----------------------------------------------------------------------
-+ add ability to load atari dos xex files
------------------------------------------------------------------------
