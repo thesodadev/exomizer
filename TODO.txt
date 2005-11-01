@@ -1,7 +1,6 @@
 -----------------------------------------------------------------------
 Exomizer 2.0, to do before the release.
 -----------------------------------------------------------------------
-+ start decrunch from other address than basic start without basic line.
 + update usage display. (crunch it perhaps?)
 + streaming forward decruncher in 6502 assembler?
 -----------------------------------------------------------------------
@@ -9,6 +8,5 @@ Exomizer 2.0, to do before the release.
 -----------------------------------------------------------------------
 + update documentation
 + update performace figures
-+ add license to all files
 -----------------------------------------------------------------------
 
