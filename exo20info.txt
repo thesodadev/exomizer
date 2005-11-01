@@ -25,6 +25,7 @@ o  Totally rewitten handling of the sfx decruncher:
    6) The Atari 400/800 XL/XE family is supported as a sfx target: 168.
       The file written by this targer is of the type xex.
       Example: $ exomizer sfx sys boinxx.obx -o x.xex
+   7) Also handles relocated sfx without basic line.
 
 o   Exomizer now reads xex-files and autodetects the RUNAD vector if the sys
     keyword is given to the sfx command.
@@ -66,6 +67,14 @@ exomizer -lauto  <infile>               exomizer mem <infile>
 
 The sfx decruncher is tweaked by defining optional symbols to the assembler on
 the command line using the -D<symbol>=<value> flag:
+
+The following symbol controls the sfx load address:
+ i_load_addr
+
+If it is unset then the sfx file will load to the default basic start address
+of the target machine (For Atari the default load address is $2c00)
+If it is set then the sfx file will load to the given address and it will not
+have any basic sys line. (The Atari target never has a basic line).
 
 The following symbols control the memory config:
  i_ram_enter      (defaults to standard ROM config)

@@ -36,6 +36,8 @@
 ; -- i_effect, done /* -1=none, 0(default)=lower right, 1-3=border */
 ; -- i_fast_effect, done /* defined if true, otherwise not */
 ; -- i_table_addr, done /* undef=$0334 or if(r_target == 128) $0b00 */
+; -- i_load_addr, done /* optional, if set skips the basic line and loads
+; -- the crunched file to it.
 ; -------------------------------------------------------------------
 ; - if basic start --------------------------------------------------
 ; -- i_basic_txt_start    /* will be set before basic start, if defined */
@@ -49,12 +51,20 @@
   i_effect = 0
 .ENDIF
 
+.IF(.DEFINED(i_irq_enter) && i_irq_enter != 0 && i_irq_enter != 1)
+  .ERROR("Symbol i_irq_enter must be undefined, 0 or 1.")
+.ENDIF
+
+.IF(.DEFINED(i_irq_during) && i_irq_during != 0 && i_irq_during != 1)
+  .ERROR("Symbol i_irq_during must be undefined, 0 or 1.")
+.ENDIF
+
 .IF(.DEFINED(i_irq_exit) && i_irq_exit != 0 && i_irq_exit != 1)
   .ERROR("Symbol i_irq_exit must be undefined, 0 or 1.")
 .ENDIF
 
-.IF(.DEFINED(i_irq_enter) && i_irq_enter != 0 && i_irq_enter != 1)
-  .ERROR("Symbol i_irq_enter must be undefined, 0 or 1.")
+.IF(.DEFINED(i_load_addr) && (i_load_addr < 0 || i_load_addr > 65535))
+  .ERROR("Symbol i_load_addr must be undefined or [0 or 65535].")
 .ENDIF
 
 .IF(r_target == 20)
@@ -189,14 +199,14 @@
   .IF(i_ram_exit > $38 || i_ram_exit < $34)
     .ERROR("Symbol i_ram_exit must be undefined or be within [$34-$38].")
   .ENDIF
-  .IF(i_ram_enter > $38 || i_ram_exit < $34)
+  .IF(i_ram_enter > $38 || i_ram_enter < $34)
     .ERROR("Symbol i_ram_enter must be undefined or be within [$34-$38].")
   .ENDIF
 .ELIF(r_target == 128)
   .IF(i_ram_exit > $3f || i_ram_exit < 0)
     .ERROR("Symbol i_ram_exit must be undefined or be within [0-$3f].")
   .ENDIF
-  .IF(i_ram_enter > $3f || i_ram_exit < 0)
+  .IF(i_ram_enter > $3f || i_ram_enter < 0)
     .ERROR("Symbol i_ram_enter must be undefined or be within [0-$3f].")
   .ENDIF
 .ENDIF
@@ -259,6 +269,20 @@ stage2_exit_hook = 1
     i_irq_during = i_irq_enter
   .ELSE
     i_irq_during = 0
+.ENDIF
+
+.IF(r_target == 4)
+  .IF(i_ram_during != 0 && i_ram_during != 1)
+    .ERROR("Symbol i_ram_during must have a value [0-1].")
+  .ENDIF
+.ELIF(r_target == 64)
+  .IF(i_ram_during > $38 || i_ram_during < $34)
+    .ERROR("Symbol i_ram_during must be undefined or be within [$34-$38].")
+  .ENDIF
+.ELIF(r_target == 128)
+  .IF(i_ram_during > $3f || i_ram_during < 0)
+    .ERROR("Symbol i_ram_during must be undefined or be within [0-$3f].")
+  .ENDIF
 .ENDIF
 
 ; -------------------------------------------------------------------
@@ -567,6 +591,10 @@ zp_lo_len = $a7
 zp_src_addr = $ae
 zp_hi_bits = $9f
 
+  .IF(.DEFINED(i_load_addr))
+	.WORD(i_load_addr)
+	.ORG(i_load_addr)
+  .ELSE
 	.WORD(c_basic_start)
 	.ORG(c_basic_start)
 	.WORD(basic_end, 20)
@@ -574,17 +602,22 @@ zp_hi_bits = $9f
 	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0)
 basic_end:
 ; -------------------------------------------------------------------
-  .IF(r_target == 4 || r_target == 128)
+    .IF(r_target == 4 || r_target == 128)
 	  .BYTE(0, 0)
-  .ENDIF
+    .ENDIF
 decr_start:
+  .ENDIF
 .ELIF(r_target == $a8)
 zp_lo_len = $f7
 zp_src_addr = $f9
 zp_hi_bits = $f8
 
 	.WORD($FFFF, a8start, a8end - 1)
+  .IF(!.DEFINED(i_load_addr))
 	.ORG($2c00)
+  .ELSE
+	.ORG(i_load_addr)
+  .ENDIF
 a8start:
 .ELSE
   .ERROR("Unhandled target for file header stuff")

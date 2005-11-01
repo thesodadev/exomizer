@@ -37,7 +37,7 @@ clean:
 	-$(RM) $(EXO_OBJS) $(RAW_OBJS) $(BAS_OBJS) $(SHARED_OBJS) \
 	b2membuf.o b2membuf b2membuf.exe \
 	exomizer exoraw exobasic exomizer.exe exoraw.exe exobasic.exe deps \
-	sfxdecr sfxdecr.c asm.tab.h asm.tab.c lex.yy.c
+	sfxdecr sfxdecr.c
 
 asm.tab.h asm.tab.c: asm.y
 	bison -t -d asm.y
