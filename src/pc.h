@@ -1,5 +1,5 @@
-#ifndef ALREADY_INCLUDED_PC_H
-#define ALREADY_INCLUDED_PC_H
+#ifndef ALREADY_INCLUDED_PC
+#define ALREADY_INCLUDED_PC
 
 /*
  * Copyright (c) 2004 Magnus Lind.

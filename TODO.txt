@@ -3,15 +3,12 @@ Exomizer 2.0, to do before the release.
 -----------------------------------------------------------------------
 + start decrunch from other address than basic start without basic line.
 + update usage display. (crunch it perhaps?)
++ streaming forward decruncher in 6502 assembler?
 -----------------------------------------------------------------------
 + vic20 memory hole handling
 -----------------------------------------------------------------------
 + update documentation
 + update performace figures
-+ no filenames with more than one period.
 + add license to all files
-+ unix-line-ends in all source files
 -----------------------------------------------------------------------
-+ swap the code for eod and literal sequence to improve crunch results
-  when using -c flag.
------------------------------------------------------------------------
+

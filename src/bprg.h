@@ -1,5 +1,5 @@
-#ifndef ALREADY_INCLUDED_BPRG_H
-#define ALREADY_INCLUDED_BPRG_H
+#ifndef ALREADY_INCLUDED_BPRG
+#define ALREADY_INCLUDED_BPRG
 
 /*
  * Copyright (c) 2003 Magnus Lind.

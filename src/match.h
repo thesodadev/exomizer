@@ -1,7 +1,7 @@
-#ifndef ALREADY_INCLUDED_MATCH_H
-#define ALREADY_INCLUDED_MATCH_H
+#ifndef ALREADY_INCLUDED_MATCH
+#define ALREADY_INCLUDED_MATCH
 /*
- * Copyright (c) 2002 - 2004 Magnus Lind.
+ * Copyright (c) 2002 - 2005 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from

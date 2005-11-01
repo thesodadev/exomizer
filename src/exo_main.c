@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2003 Magnus Lind.
+ * Copyright (c) 2002 - 2005 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -113,6 +113,13 @@ open_file(char *name, int *load_addr)
         if(!is_relocated)
         {
             load = prg_load;
+            /* unrelocated prg loading to $ffff is xex */
+            if(prg_load == 0xffff)
+            {
+                /* differentiate this from relocated $ffff files so it is
+                 * possible to override the xex auto-detection. */
+                load = -1;
+            }
         }
     }
 
@@ -166,52 +173,78 @@ static int find_sys(const unsigned char *buf)
     return outstart;
 }
 
+static int get_word(FILE *in)
+{
+    int word = fgetc(in);
+    word |= fgetc(in) << 8;
+    if(word < 0)
+    {
+        LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
+        fclose(in);
+        exit(-1);
+    }
+    return word;
+}
+
 static void load_xex(unsigned char mem[65536], FILE *in,
                      int *startp, int *endp, int *runp)
 {
     int run = -1;
     int jsr = -1;
-    int c, min = 65536, max = 0;
-    while((c = fgetc(in)) != EOF)
+    int min = 65536, max = 0;
+
+    goto initial_state;
+    for(;;)
     {
         int start, end, len;
-        start = c;
-        start |= fgetc(in) << 8;
-        end = fgetc(in);
-        end |= fgetc(in) << 8;
-        ++end;
-        if(end <= start)
+
+        start = fgetc(in);
+        if(start == EOF) break;
+        ungetc(start, in);
+
+        start = get_word(in);
+        if(start == 0xffff)
         {
-            LOG(LOG_ERROR, ("Invalid xex-file."));
+            /* allowed optional header */
+        initial_state:
+            start = get_word(in);
+        }
+        end = get_word(in);
+        if(start > 0xffff || end > 0xffff || end < start)
+        {
+            LOG(LOG_ERROR, ("Error: corrupt data in xex-file."));
             fclose(in);
             exit(-1);
         }
-        if(start == 0x2e2 && end == 0x2e4)
+        if(start == 0x2e2 && end == 0x2e3)
         {
             /* init vector */
-            jsr = fgetc(in);
-            jsr |= fgetc(in) << 8;
+            jsr = get_word(in);
             continue;
         }
-        if(start == 0x2e0 && end == 0x2e2)
+        if(start == 0x2e0 && end == 0x2e1)
         {
             /* run vector */
-            run = fgetc(in);
-            run |= fgetc(in) << 8;
-            LOG(LOG_ERROR, ("Found xex runad %04X.\n", run));
+            run = get_word(in);
+            LOG(LOG_DEBUG, ("Found xex runad %04X.\n", run));
             continue;
         }
+        ++end;
         jsr = -1;
         if(start < min) min = start;
         if(end > max) max = end;
+
         len = fread(mem + start, 1, end - start, in);
         if(len != end - start)
         {
-            LOG(LOG_ERROR, ("Invalid xex-file."));
+            LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
             fclose(in);
             exit(-1);
         }
+        LOG(LOG_VERBOSE, (" xex chunk loading from $%04X to $%04X\n",
+                          start, end));
     }
+
     if(run == -1 && jsr != -1) run = jsr;
 
     if(startp != NULL) *startp = min;
@@ -225,8 +258,9 @@ static void load_located(char *filename, unsigned char mem[65536],
     int sp, ep;
     int load;
     FILE *in;
+
     in = open_file(filename, &load);
-    if(load == 0xffff)
+    if(load == -1)
     {
         /* file is an xex file */
         load_xex(mem, in, &sp, &ep, runp);
@@ -234,6 +268,7 @@ static void load_located(char *filename, unsigned char mem[65536],
     else
     {
         int len;
+        load &= 0xffff;
         len = fread(mem + load, 1, 65536 - load, in);
         sp = load;
         ep = load + len;

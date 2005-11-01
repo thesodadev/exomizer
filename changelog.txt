@@ -1,3 +1,11 @@
++ renamed symbols i_(ram|irq)_on_(entering|exit) to i_(ram|irq)_(enter|exit)
++ renamed symboli_config_effect to i_effect
++ added symbols i_(ram|irq)_during.
++ added new sfx target -t 168 ($a8), The Atari 400/800 XL/XE computer family.
+  The sfx file is written as a xex-file.
++ added ability to autodetect and read Atari Xex-files.
++ cmpression results should be exact as 1.1.5 now (if the -c flag is used).
+
 2005-04-10
 replaced 2.0beta1
 + tuned the cruncher for better compression, should be on pair with 1.1.5 now.

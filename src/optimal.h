@@ -1,8 +1,8 @@
-#ifndef ALREADY_INCLUDED_OPTIMAL_H
-#define ALREADY_INCLUDED_OPTIMAL_H
+#ifndef ALREADY_INCLUDED_OPTIMAL
+#define ALREADY_INCLUDED_OPTIMAL
 
 /*
- * Copyright (c) 2002, 2003 Magnus Lind.
+ * Copyright (c) 2002 - 2005 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 - 2004 Magnus Lind.
+ * Copyright (c) 2002 - 2005 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -97,7 +97,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                 best_copy_len = 0.0;
             } else
             {
-                float copy_score = best_copy_len * 8.0 + (1.0 + 17.0 + 16.0);
+                float copy_score = best_copy_len * 8.0 + (1.0 + 17.0 + 17.0);
                 float total_copy_score = best_copy_snp->total_score +
                                          copy_score;
 

@@ -1,5 +1,4 @@
-
-Exomizer 2.0 beta1 released (no source code and no docs yet).
+Exomizer 2.0 beta2 released (no source code and no docs yet).
 
 NEW FEATURES:
 
@@ -13,9 +12,9 @@ o  New target independant binary, exoraw, that features:
       pull decruncher and one low-level backward push decruncher perfect to
       base an assembler port on.
 
-o  Totally rewitten handling of the sfx decruncher in exomizer:
-   1) Several different decrunch effects to chose from.
-   2) Configurable for ram-only exit.
+o  Totally rewitten handling of the sfx decruncher:
+   1) Several different decrunch effects.
+   2) Complete user control over memory and irq config.
    3) Can start basic programs properly with built in trampoline by using the
       command 'sfx basic'
    3) The decruncher code is assembled on the fly for maximum flexibility by an
@@ -23,23 +22,35 @@ o  Totally rewitten handling of the sfx decruncher in exomizer:
    4) Will adapt the decruncher to include only features used by the compressed
       stream to keep the size down.
    5) Now also supports the c128 and the vic20 (in several configurations).
+   6) The Atari 400/800 XL/XE family is supported as a sfx target: 168.
+      The file written by this targer is of the type xex.
+      Example: $ exomizer sfx sys boinxx.obx -o x.xex
+
+o   Exomizer now reads xex-files and autodetects the RUNAD vector if the sys
+    keyword is given to the sfx command.
+
+o  Exomizer now can load plain files using the <filename>@<addr> syntax.
 
 o  The cruncher now has an escape mechanism that detects and handles sequences
-   of uncrunchable data, literal sequences, much better than before.
+   of uncrunchable data, literal sequences, properly.
 
 o  The level mode of exomizer now crunches each infile separately and appends
    them to the outfile instead of merging them together like the -r mode did
-   before. The new behaviour is much more useful for level usage.
+   before. The new behaviour is more useful for level usage.
 
 FEATURES STILL TO DO BEFORE PROPER RELEASE:
 
 o  Sfx decruncher in exomizer:
    1) Handle the vic20 target better with regards to memory holes.
 
-o  There is no decruncher 6502 asm source that handles the new literal
-   sequences yet. Fortunately, these are almost never used for normal data so
-   The old source from 1.x still works of the -c flag is used to tell
-   exomizer not to generate them at all.
+o  There is no 6502 assembler decruncher for streaming data crunched forward or
+   crunched using literal sequences.
+   However the streaming (backwards) decrunchers will work if the -b and -c
+   flags are used when crunching (with exoraw). Please see the examples.
+   Please note that unlike 1.x, only exoraw can crunch data intended to be used
+   by the streaming decrunchers.
+
+o  The sfx command sometimes crunch better with the -c flag.
 
 o Update the usage descriptions properly.
 

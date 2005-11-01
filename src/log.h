@@ -1,5 +1,5 @@
-#ifndef ALREADY_INCLUDED_LOG_H
-#define ALREADY_INCLUDED_LOG_H
+#ifndef ALREADY_INCLUDED_LOG
+#define ALREADY_INCLUDED_LOG
 /*
  * Copyright (c) 2002, 2003 Magnus Lind.
  *

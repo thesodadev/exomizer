@@ -1,5 +1,5 @@
-#ifndef ALREADY_INCLUDED_RADIX_H
-#define ALREADY_INCLUDED_RADIX_H
+#ifndef ALREADY_INCLUDED_RADIX
+#define ALREADY_INCLUDED_RADIX
 /*
  * Copyright (c) 2002, 2003 Magnus Lind.
  *

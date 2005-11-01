@@ -1,8 +1,8 @@
-#ifndef ALREADY_INCLUDED_EXPR_H
-#define ALREADY_INCLUDED_EXPR_H
+#ifndef ALREADY_INCLUDED_EXPR
+#define ALREADY_INCLUDED_EXPR
 
 /*
- * Copyright (c) 2004 Magnus Lind.
+ * Copyright (c) 2005 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from

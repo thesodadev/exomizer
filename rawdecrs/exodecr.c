@@ -1,27 +1,44 @@
+/*
+ * Copyright (c) 2005 Magnus Lind.
+ *
+ * This software is provided 'as-is', without any express or implied warranty.
+ * In no event will the authors be held liable for any damages arising from
+ * the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ *
+ *   1. The origin of this software must not be misrepresented * you must not
+ *   claim that you wrote the original software. If you use this software in a
+ *   product, an acknowledgment in the product documentation would be
+ *   appreciated but is not required.
+ *
+ *   2. Altered source versions must be plainly marked as such, and must not
+ *   be misrepresented as being the original software.
+ *
+ *   3. This notice may not be removed or altered from any distribution.
+ *
+ *   4. The names of this software and/or it's copyright holders may not be
+ *   used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ */
 
 #include "exodecr.h"
 
 static unsigned short int base[52];
 static char bits[52];
 static unsigned short int bit_buffer;
-static const char *inp;
-
-
-static unsigned char
-read_byte()
-{
-    return (unsigned char)(*--inp);
-}
 
 static unsigned short int
-read_bits(int bit_count)
+read_bits(const char **inp, int bit_count)
 {
     unsigned short int bits = 0;
     while(bit_count-- > 0)
     {
         if(bit_buffer == 1)
         {
-            bit_buffer = 0x100 | read_byte();
+            bit_buffer = 0x100 | (*--(*inp) & 0xff);
         }
         bits <<= 1;
         bits |= bit_buffer & 0x1;
@@ -31,7 +48,7 @@ read_bits(int bit_count)
 }
 
 static void
-init_table()
+init_table(const char **inp)
 {
     int i;
     unsigned short int b2;
@@ -45,7 +62,7 @@ init_table()
         }
         base[i] = b2;
 
-        b1 = read_bits(4);
+        b1 = read_bits(inp, 4);
         bits[i] = b1;
 
         b2 += 1 << b1;
@@ -61,14 +78,12 @@ exo_decrunch(const char *in, char *out)
     char c;
     char literal;
 
-    inp = in;
+    bit_buffer = *--in;
 
-    bit_buffer = read_byte();
-
-    init_table();
+    init_table(&in);
     for(;;)
     {
-        literal = read_bits(1);
+        literal = read_bits(&in, 1);
         if(literal == 1)
         {
             /* literal byte */
@@ -76,41 +91,41 @@ exo_decrunch(const char *in, char *out)
             goto copy;
         }
         index = 0;
-        while(read_bits(1) == 0)
+        while(read_bits(&in, 1) == 0)
         {
             ++index;
         }
         if(index == 16)
         {
-            literal = 1;
-            length = read_bits(16);
-            goto copy;
+            break;
         }
         if(index == 17)
         {
-            break;
+            literal = 1;
+            length = read_bits(&in, 16);
+            goto copy;
         }
-        length = base[index] + read_bits(bits[index]);
+        length = base[index] + read_bits(&in, bits[index]);
         switch(length)
         {
         case 1:
-            index = 48 + read_bits(2);
+            index = 48 + read_bits(&in, 2);
             break;
         case 2:
-            index = 32 + read_bits(4);
+            index = 32 + read_bits(&in, 4);
             break;
         default:
-            index = 16 + read_bits(4);
+            index = 16 + read_bits(&in, 4);
             break;
         }
-        offset = base[index] + read_bits(bits[index]);
+        offset = base[index] + read_bits(&in, bits[index]);
     copy:
         do
         {
             --out;
             if(literal)
             {
-                c = read_byte();
+                c = *--in;
             }
             else
             {

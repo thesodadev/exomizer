@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002, 2003 Magnus Lind.
+; Copyright (c) 2002 - 2005 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -41,7 +41,7 @@
 ; -------------------------------------------------------------------
 ; if literal sequences is not used (the data was crunched with the -c
 ; flag) then the following line can be uncommented for shorter code.
-; LITERAL_SEQUENCES_NOT_USED=1
+LITERAL_SEQUENCES_NOT_USED=1
 ; -------------------------------------------------------------------
 ; zero page addresses used
 ; -------------------------------------------------------------------
@@ -201,7 +201,7 @@ begin2:
 	cpy #$11
 .IFNDEF LITERAL_SEQUENCES_NOT_USED
 	bcc sequence_start
-	bne bits_done
+	beq bits_done
 ; -------------------------------------------------------------------
 ; literal sequence handling (13(2) bytes)
 ;

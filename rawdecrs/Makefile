@@ -40,7 +40,8 @@ main2: deps $(TEST2_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(TEST2_OBJS)
 
 clean:
-	-$(RM) $(TEST_OBJS) $(TEST2_OBJS) main main.exe deps *.exo *.oxe *.dec
+	-$(RM) $(TEST_OBJS) $(TEST2_OBJS) main main.exe main2 main2.exe \
+	deps *.exo *.oxe *.dec
 
 -include deps
 
@@ -48,7 +49,7 @@ deps: $(wildcard *.h)
 	$(CC) -MM $(wildcard *.c) >$@
 
 %.exo: %.bin
-	../exoraw $< -o $@
+	../src/exoraw $< -o $@
 
 %.oxe: %.bin
-	../exoraw -b $< -o $@
+	../src/exoraw -b $< -o $@

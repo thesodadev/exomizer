@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 Magnus Lind.
+ * Copyright (c) 2002 - 2005 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -117,12 +117,12 @@ dec_loop(struct dec_ctx *ctx)
         }
 
         val = get_gamma_code(ctx);
-        if(val >= 17)
+        if(val == 16)
         {
             /* done */
             longjmp(ctx->done, 1);
         }
-        if(val == 16)
+        if(val == 17)
         {
             len = get_bits(ctx, 16);
             literal = 1;

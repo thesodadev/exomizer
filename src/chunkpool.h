@@ -1,8 +1,8 @@
-#ifndef ALREADY_INCLUDED_CHUNKPOOL_H
-#define ALREADY_INCLUDED_CHUNKPOOL_H
+#ifndef ALREADY_INCLUDED_CHUNKPOOL
+#define ALREADY_INCLUDED_CHUNKPOOL
 
 /*
- * Copyright (c) 2003 Magnus Lind.
+ * Copyright (c) 2003 -2005 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
