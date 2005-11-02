@@ -1,3 +1,4 @@
++ changed the exoraw binary into a sub command of exomizer.
 + renamed symbols i_(ram|irq)_on_(entering|exit) to i_(ram|irq)_(enter|exit)
 + renamed symboli_config_effect to i_effect
 + added symbols i_(ram|irq)_during.

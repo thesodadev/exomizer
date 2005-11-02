@@ -31,4 +31,4 @@ data.exo: data.bin
 	../src/exomizer mem -m 1024 data.bin,0x3000 -o data.exo
 
 streamdata.exo: data.bin
-	../src/exoraw -b -c -m 1024 data.bin -o streamdata.exo
+	../src/exomizer raw -b -c -m 1024 data.bin -o streamdata.exo

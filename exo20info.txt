@@ -2,16 +2,6 @@ Exomizer 2.0 beta2 released (no source code and no docs yet).
 
 NEW FEATURES:
 
-o  New target independant binary, exoraw, that features:
-   1) Crunches plain files instead of .prg files.
-   2) Crunches forward or backwards instead of just backwards.
-   3) Also decrunches.
-   4) Handles files larget than 64k. Sizes below 1MB is now possible to crunch.
-      It handles the complete canterbury and calgary corpora just fine.
-   5) Comes with two different C-source decrunchers, one thread safe forward
-      pull decruncher and one low-level backward push decruncher perfect to
-      base an assembler port on.
-
 o  Totally rewitten handling of the sfx decruncher:
    1) Several different decrunch effects.
    2) Complete user control over memory and irq config.
@@ -24,7 +14,6 @@ o  Totally rewitten handling of the sfx decruncher:
    5) Now also supports the c128 and the vic20 (in several configurations).
    6) The Atari 400/800 XL/XE family is supported as a sfx target: 168.
       The file written by this targer is of the type xex.
-      Example: $ exomizer sfx sys boinxx.obx -o x.xex
    7) Also handles relocated sfx without basic line.
 
 o   Exomizer now reads xex-files and autodetects the RUNAD vector if the sys
@@ -39,6 +28,16 @@ o  The level mode of exomizer now crunches each infile separately and appends
    them to the outfile instead of merging them together like the -r mode did
    before. The new behaviour is more useful for level usage.
 
+o  New sub command, raw, that features:
+   1) Crunches plain files instead of .prg files.
+   2) Crunches forward or backwards instead of just backwards.
+   3) Also decrunches.
+   4) Handles files larget than 64k. Sizes below 1MB is now possible to crunch.
+      It handles the complete canterbury and calgary corpora just fine.
+   5) Comes with two different C-source decrunchers, one thread safe forward
+      pull decruncher and one low-level backward push decruncher perfect to
+      base an assembler port on.
+
 FEATURES STILL TO DO BEFORE PROPER RELEASE:
 
 o  Sfx decruncher in exomizer:
@@ -47,15 +46,17 @@ o  Sfx decruncher in exomizer:
 o  There is no 6502 assembler decruncher for streaming data crunched forward or
    crunched using literal sequences.
    However the streaming (backwards) decrunchers will work if the -b and -c
-   flags are used when crunching (with exoraw). Please see the examples.
-   Please note that unlike 1.x, only exoraw can crunch data intended to be used
-   by the streaming decrunchers.
+   flags are used when crunching (with exomizer raw). Please see the examples.
+   Please note that unlike 1.x, only exomizer raw can crunch data intended to
+   be used by the streaming decrunchers.
 
 o  The sfx command sometimes crunch better with the -c flag.
 
 o Update the usage descriptions properly.
 
-The exomizer binary now uses a slightly different command syntax:
+-------------------------------------------------------------------------------
+The exomizer v2 uses a different command syntax from v1.x. Here's a quick
+translation list:
 old:                                    new:
 ------------------                      -----------------------------
 exomizer -ssys <infile>                 exomizer sfx sys <infile>
@@ -64,7 +65,81 @@ exomizer -r <infile>                    exomizer level <infile>
 exomizer <infile>                       exomizer mem -lnone <infile>
 exomizer -l$1234 <infile>               exomizer mem -l$1234 <infile>
 exomizer -lauto  <infile>               exomizer mem <infile>
+-------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+-- Some generic documentation -------------------------------------------------
+-------------------------------------------------------------------------------
+A note about addresses:
+An address in this context is a positive 16-bit value [0 - 65536]. It can be
+given in decimal, hexadecimal (prefixed with $ or 0x) or octal (prefixed with
+0) notation. Examples: 3, 54, $3456, 0x1111, 06543.
+
+Exomizer has four sub commands: mem, level, sfx and raw. They all compress
+data.
+
+ All commands except raw:
+The mem, level and sfx command all crunches files backwards. The files have to
+belocated in a 16-bit address space and are also limited in size to that 16bit
+address space. The file format of the input files are prg files, xex files or
+located plain files (plain files that are given an address to load to.)
+
+The syntax for loading a prg or xex file is simply the filename:
+$ exomizer mem <prg file> <xex file> -o <output prg file name>
+
+If you want to load a prg file to a different address than it contains you can
+simply append a comma and the new load address:
+$ exomizer mem <prg file>,<new address> -o <output prg file name>
+
+Relocation does not work for xex files. An relocated xex file will simply be
+treated as if it was a relocated prg file.
+
+Plain located files are given using a similar syntax:
+$ exomizer mem <plain file>@<address> -o <output prg file name>
+
+ When given multiple input files The sfx and mem commands load all files and
+then crunch the resulting memory area. The level command loads each input file
+separately and crunches it and then append the crunched data to the output
+file.
+
+ The mem command writes its output in prg format.
+
+ The level command writes the files in its own format that is easy to read back
+and decrunch on the fly.
+
+ The output of the sfx command is a runnable program file that decrunches
+ itself, in memory, when run. The output file format depends on the target
+ used. The possible target are: 20, 23, 52, 55, 4, 64, 128 or 168.
+
+ 20: Commodore Vic20, unexpanded memory.
+ 23: Commodore Vic20, 3kB memory expansion.
+ 52: Commodore Vic20, 32kB memory expasion.
+ 55: Commodore Vic20  32+3kB memory expansion.
+  4: Commodore c16/plus4.
+ 64: Commodore c64.
+128: Commodore c128.
+168: Atari 400/800 XL/XE. (168 == $a8)
+
+The sfx command needs a run address. It may be given as an address or
+the string sys or basic. If the run address is an address then it is used.
+If it is the string sys then the run address will be autodetected.
+If it is the string basic then the computer will run a basic program after
+decrunch. (Not supported yet for the Atari target).
+
+For all Commodore machines the output is a runnable prg-file that starts with a
+basic line., for the Atari target its a auto running xex-file.
+
+The atari target doesn't support decrunching into extended memory.
+
+ The raw command on the other can both crunch and decrunch both forward and
+backward. It also handles generic files without any of the above mentioned
+restrictions. There's no hardcoded limit in file size but it gets increasingly
+slow with larger files so there's a practical limit of about one MB. This
+command also outputs a generic file.
+
+-------------------------------------------------------------------------------
+-- Reference for the sfx decruncher symbols -----------------------------------
+-------------------------------------------------------------------------------
 The sfx decruncher is tweaked by defining optional symbols to the assembler on
 the command line using the -D<symbol>=<value> flag:
 

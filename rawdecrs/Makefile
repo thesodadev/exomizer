@@ -49,7 +49,7 @@ deps: $(wildcard *.h)
 	$(CC) -MM $(wildcard *.c) >$@
 
 %.exo: %.bin
-	../src/exoraw $< -o $@
+	../src/exomizer raw $< -o $@
 
 %.oxe: %.bin
-	../src/exoraw -b $< -o $@
+	../src/exomizer raw -b $< -o $@
