@@ -1,4 +1,5 @@
 2005-11-02
+Release of 2.0beta2 win32 and dos binaries.
 + added results for canterbury and calgary corpae.
 + beginning a documentation section in exo20info.txt
 + changed the exoraw binary into a sub command of exomizer.

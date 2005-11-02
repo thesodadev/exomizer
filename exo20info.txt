@@ -1,4 +1,4 @@
-Exomizer 2.0 beta2 released (no source code and no docs yet).
+Exomizer 2.0 beta2 released
 
 NEW FEATURES:
 
