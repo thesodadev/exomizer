@@ -417,7 +417,7 @@ exit_hook = 1
 	lda <$fd,x
 	sta c_border_color
       .ELSE
-	stx c_boder_color
+	stx c_border_color
       .ENDIF
     .ELIF(i_effect == 3)
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)

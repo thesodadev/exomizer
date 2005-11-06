@@ -477,9 +477,10 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "  basic start for a sys command.\n"
          "  the <jmpaddress> start argument will jmp to the given address.\n", appl));
     LOG(level,
-        ("  -t            the decruncher target, must be 20, 23, 52, 55, 4, 64, 128 or 168.\n"
+        ("  -t            sets the decruncher target, must be one of 4, 20, 23, 52, 55,\n"
+         "                64, 128 or 168, default is 64.\n"
          "  -D<symbol>=<value>\n"
-         "                predefines symbols for the sfx assembler."));
+         "                predefines symbols for the sfx assembler.\n"));
     print_shared_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
