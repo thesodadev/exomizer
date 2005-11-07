@@ -97,45 +97,56 @@ treated as if it was a relocated prg file.
 Plain located files are given using a similar syntax:
 $ exomizer mem <plain file>@<address> -o <output prg file name>
 
- When given multiple input files The sfx and mem commands load all files and
-then crunch the resulting memory area. The level command loads each input file
-separately and crunches it and then append the crunched data to the output
+ When given multiple input files The sfx and mem commands loads all files to
+where they are located and then crunch the covered memory area. Any unused
+space between files will be zero-filled. The level command loads each input
+file separately, crunches it and then appends the crunched data to the output
 file.
 
- The mem command writes its output in prg format.
+ The mem command writes its output in prg format. Unless the -l flag is given
+to the mem command, the address of the prg file will be the address that gives
+the crunched data as much overlap with the decrunched data as possible but
+still allow for in-place decrunching. However, the file doesn't need to be
+decrunched from that address. Any address that doesn't cause data being
+decrunched to overwrite data yet to be decrunched will do nicely. The mem
+command has a flag -l that enables the user to set a load address to be used.
+It also allows the string none, in which case a plain file will be written.
 
  The level command writes the files in its own format that is easy to read back
 and decrunch on the fly.
 
  The output of the sfx command is a runnable program file that decrunches
- itself, in memory, when run. The output file format depends on the target
- used. The possible target are: 20, 23, 52, 55, 4, 64, 128 or 168.
+ itself in memory when run. The output file format depends on the target
+ used. The possible target are: 4, 20, 23, 52, 55, 64, 128 and 168.
 
+  4: Commodore c16/plus4.
  20: Commodore Vic20, unexpanded memory.
  23: Commodore Vic20, 3kB memory expansion.
  52: Commodore Vic20, 32kB memory expasion.
  55: Commodore Vic20  32+3kB memory expansion.
-  4: Commodore c16/plus4.
  64: Commodore c64.
 128: Commodore c128.
-168: Atari 400/800 XL/XE. (168 == $a8)
+168: Atari 400/800 XL/XE.
 
 The sfx command needs a run address. It may be given as an address or
-the string sys or basic. If the run address is an address then it is used.
-If it is the string sys then the run address will be autodetected.
-If it is the string basic then the computer will run a basic program after
-decrunch. (Not supported yet for the Atari target).
+the string sys or basic. If the run address is an address then it will be used
+as the target address of a jmp instruction executed after the decrunching.
+If it is the string sys then the run address will be autodetected. Either from
+the runad vector for the Atari target or by scanning the area of the basic
+start for a sys basic command. If it is the string basic then the computer will
+run a basic program after decrunch. (Not supported yet for the Atari target).
 
 For all Commodore machines the output is a runnable prg-file that starts with a
-basic line., for the Atari target its a auto running xex-file.
+basic line. For the Atari the target is a auto running xex-file.
 
 The atari target doesn't support decrunching into extended memory.
 
- The raw command on the other can both crunch and decrunch both forward and
-backward. It also handles generic files without any of the above mentioned
-restrictions. There's no hardcoded limit in file size but it gets increasingly
-slow with larger files so there's a practical limit of about one MB. This
-command also outputs a generic file.
+Now let's go back to the command that handles plain files, raw.
+The raw command can both crunch and decrunch both forward and backward. It also
+handles generic files without any of the above mentioned restrictions. There's
+no hardcoded limit in file size but it gets increasingly slow with larger files
+so there's a practical limit of about one MB. The output file format of this
+command is a generic file.
 
 -------------------------------------------------------------------------------
 -- Reference for the sfx decruncher symbols -----------------------------------
@@ -149,16 +160,18 @@ The following symbol controls the sfx load address:
 If it is unset then the sfx file will load to the default basic start address
 of the target machine (For Atari the default load address is $2c00)
 If it is set then the sfx file will load to the given address and it will not
-have any basic sys line. (The Atari target never has a basic line).
+have any basic line. (The Atari target never has a basic line).
 
 The following symbols control the memory config:
  i_ram_enter      (defaults to standard ROM config)
  i_ram_during
  i_ram_exit       (defaults to standard ROM config)
 
-For the c64 and the c128 target the value n will be stored into $fff0 (c128) or
-$01 (c64) to set the mem config. For the c16/+4 target 0=ROM and 1=RAM.
-default is $37 for the c64, $00 for the c128 and 0 for the c16/+4.
+For the c64 and the c128 target the value of the above symbols will be stored
+into $fff0 (c128) or $01 (c64) to set the mem config. For the c16/+4 target
+0=ROM and 1=RAM. For the Atari the value will be stored in $d301.
+Default is $37 for the c64, $00 for the c128, 0 for the c16/+4 and $fd for the
+Atari.
 
 The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_enter      (defaults to 1)
@@ -170,9 +183,6 @@ To locate the decrunch table elsewhere than the default tape buffer:
 
 To select one of the four decruncher effects add this flag (0 <= n <= 3):
  -Di_effect=n
-
-To have the effect updated faster add this flag:
- -Di_fast_effect=1
 
 The possible effects to chose from are:
 -1: no effect at all.

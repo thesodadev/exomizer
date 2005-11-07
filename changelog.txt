@@ -1,3 +1,11 @@
++ removed the i_fast_effect symbol. Now border effects are fast and blinking
+  char is slow.
++ Added flag -x to the sfx command. Enables the user to to write an assembler
+  fragment for the effect. Obs. It must not modify the carry-flag, the X and
+  the Y register. Multiple mnemonics may be separated by spaces.
+  Example: -x "txa and #$37 ora #$c8 sta $d418"
++ Improved docs about the mem command and assembler symbols.
+
 2005-11-02
 Release of 2.0beta2 win32 and dos binaries.
 + added results for canterbury and calgary corpae.

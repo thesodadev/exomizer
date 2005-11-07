@@ -44,6 +44,62 @@ extern struct membuf sfxdecr[];
 
 #define DEFAULT_OUTFILE "a.out"
 
+static int find_sys(const unsigned char *buf)
+{
+    int outstart = -1;
+    int state = 1;
+    int i = 0;
+    /* skip línk and line number */
+    buf += 4;
+    /* exit loop at line end */
+    while(i < 1000 && buf[i] != '\0')
+    {
+        unsigned char *sys_end;
+        int c = buf[i];
+
+        switch(state)
+        {
+            /* look for and consume sys token */
+        case 1:
+            if(c == 0x9e) state = 2;
+            break;
+            /* skip spaces and left parenthesis, if any */
+        case 2:
+            if(strchr(" (", c) != NULL) break;
+            state = 3;
+            /* convert string number to int */
+        case 3:
+            outstart = strtol((char*)(buf + i), (void*)&sys_end, 10);
+            if((buf + i) == sys_end)
+            {
+                /* we got nothing */
+                outstart = -1;
+            }
+            state = 4;
+            break;
+        case 4:
+            break;
+        }
+        ++i;
+    }
+
+    LOG(LOG_DEBUG, ("state when leaving: %d.\n", state));
+    return outstart;
+}
+
+static int get_word(FILE *in)
+{
+    int word = fgetc(in);
+    word |= fgetc(in) << 8;
+    if(word < 0)
+    {
+        LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
+        fclose(in);
+        exit(-1);
+    }
+    return word;
+}
+
 static
 FILE *
 open_file(char *name, int *load_addr)
@@ -107,9 +163,7 @@ open_file(char *name, int *load_addr)
     if(is_prg)
     {
         /* read the prg load address */
-        int prg_load;
-        prg_load = fgetc(in);
-        prg_load |= fgetc(in) << 8;
+        int prg_load = get_word(in);
         if(!is_relocated)
         {
             load = prg_load;
@@ -128,62 +182,6 @@ open_file(char *name, int *load_addr)
         *load_addr = load;
     }
     return in;
-}
-
-static int find_sys(const unsigned char *buf)
-{
-    int outstart = -1;
-    int state = 1;
-    int i = 0;
-    /* skip línk and line number */
-    buf += 4;
-    /* exit loop at line end */
-    while(i < 1000 && buf[i] != '\0')
-    {
-        unsigned char *sys_end;
-        int c = buf[i];
-
-        switch(state)
-        {
-            /* look for and consume sys token */
-        case 1:
-            if(c == 0x9e) state = 2;
-            break;
-            /* skip spaces and left parenthesis, if any */
-        case 2:
-            if(strchr(" (", c) != NULL) break;
-            state = 3;
-            /* convert string number to int */
-        case 3:
-            outstart = strtol((char*)(buf + i), (void*)&sys_end, 10);
-            if((buf + i) == sys_end)
-            {
-                /* we got nothing */
-                outstart = -1;
-            }
-            state = 4;
-            break;
-        case 4:
-            break;
-        }
-        ++i;
-    }
-
-    LOG(LOG_DEBUG, ("state when leaving: %d.\n", state));
-    return outstart;
-}
-
-static int get_word(FILE *in)
-{
-    int word = fgetc(in);
-    word |= fgetc(in) << 8;
-    if(word < 0)
-    {
-        LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
-        fclose(in);
-        exit(-1);
-    }
-    return word;
 }
 
 static void load_xex(unsigned char mem[65536], FILE *in,
@@ -327,7 +325,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         load_located(filev[i], p, &start, &end, &run);
         if(run != -1 && runp != NULL)
         {
-            LOG(LOG_ERROR, ("Propagating xex runad %04X.\n", run));
+            LOG(LOG_DEBUG, ("Propagating xex runad %04X.\n", run));
             *runp = run;
         }
 
@@ -479,6 +477,8 @@ void print_sfx_usage(const char *appl, enum log_level level,
     LOG(level,
         ("  -t            sets the decruncher target, must be one of 4, 20, 23, 52, 55,\n"
          "                64, 128 or 168, default is 64.\n"
+         "  -x<assembler fragment>\n"
+         "                User specified effect. Must not modify X reg, Y reg and carry\n"
          "  -D<symbol>=<value>\n"
          "                predefines symbols for the sfx assembler.\n"));
     print_shared_flags(level, default_outfile);
@@ -736,6 +736,7 @@ void sfx(const char *appl, int argc, char *argv[])
 
     struct membuf *in;
     struct membuf *out;
+    struct membuf *fx = NULL;
 
     flags->options = options;
 
@@ -820,7 +821,7 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "D:t:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "D:t:x:%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
@@ -833,11 +834,15 @@ void sfx(const char *appl, int argc, char *argv[])
             {
                 LOG(LOG_ERROR,
                     ("error: invalid value, %d, for -t option, "
-                     "must be one of 20, 23, 52, 55, 4, 64 or 128.",
+                     "must be one of 4, 20, 23, 52, 55, 64, 128 or 168.",
                      decr_target));
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(-1);
             }
+            break;
+        case 'x':
+            fx = new_named_buffer("user_effect");
+            membuf_append(fx, flagarg, strlen(flagarg));
             break;
         case 'D':
             p = strrchr(flagarg, '=');
@@ -920,7 +925,7 @@ void sfx(const char *appl, int argc, char *argv[])
         {
             /* these are vic20 targets with a memory hole from
              * $0400-$1000. Each page is filled with the value of the
-             * high-byte if its address. */
+             * high-byte of its address. */
             if(in_load >= 0x0400 && in_load + in_len <= 0x1000)
             {
                 /* all the loaded data is in the memory hole.*/
@@ -1045,6 +1050,12 @@ void sfx(const char *appl, int argc, char *argv[])
                 new_symbol("i_basic_highest_addr", basic_highest_addr);
                 symbol_dump_resolved(LOG_DEBUG, "i_basic_highest_addr");
             }
+        }
+
+        if(fx != NULL)
+        {
+            new_symbol("i_user_effect", 1);
+            symbol_dump_resolved(LOG_DEBUG, "i_user_effect");
         }
 
         if(info->literal_sequences_used)
