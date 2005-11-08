@@ -1,9 +1,9 @@
++ Effect shorthands -x0 for no effect, -x1 for Accumulator based border flash,
+  -x2 for X-register based border flash and -x3 for Y-register based border
+  flash.
 + removed the i_fast_effect symbol. Now border effects are fast and blinking
   char is slow.
-+ Added flag -x to the sfx command. Enables the user to to write an assembler
-  fragment for the effect. Obs. It must not modify the carry-flag, the X and
-  the Y register. Multiple mnemonics may be separated by spaces.
-  Example: -x "txa and #$37 ora #$c8 sta $d418"
++ Added flag -x<effect assembler fragment> to the sfx command.
 + Improved docs about the mem command and assembler symbols.
 
 2005-11-02

@@ -178,18 +178,22 @@ The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_during
  i_irq_exit
 
-To locate the decrunch table elsewhere than the default tape buffer:
+To locate the decrunch table elsewhere than the default tape buffer or $0600 for The Atari target:
  -Di_table_addr=<address>
 
-To select one of the four decruncher effects add this flag (0 <= n <= 3):
- -Di_effect=n
+The symbols that were used to control decrunch effect now has a Effects are now chosen by the -x flag.
+-x0	no effect.
+-x1	Accumulator based fast border flash
+-x2     X-register based fast border flash
+-x3	Y-register based fast border flash
 
-The possible effects to chose from are:
--1: no effect at all.
-0: traditional lower right screen corner flashing (default).
-1: border flash based on the value of the accumulator (needs fast effects).
-2: border flash based on the value of the x-register.
-3: border flash based on the value of the y-register.
+-x<custom effect assembler fragment>
+The assember fragment must not modify the carry flag, the X-register and the
+Y-register. Multiple assembler instructions are separated by space.
+Obs. including spaces in the fragment requires quoting to work.
+Example: -x "and #07 ora #$c8 sta $d016"
+
+Default effect is the slow character flash.
 
 -------------------------------------------------------------------------------
 -- Results for the Canterbury and Calgary corpae for exomizer raw -------------

@@ -384,16 +384,19 @@ exit_hook = 1
 ; -------------------------------------------------------------------
 ; -- The decrunch effect macro definition ---------------------------
 ; -------------------------------------------------------------------
+.IF(i_effect == 0)
+  slow_effect_hook = 1
+.ELSE
+  fast_effect_hook = 1
+.ENDIF
 .MACRO("effect_hook")
   .IF(.DEFINED(i_user_effect))
-    fast_effect_hook = 1
     .INCLUDE("d2io")
     .INCLUDE("user_effect")
     .INCLUDE("io2d")
   .ELIF(i_effect != -1)
     .INCLUDE("d2io")
     .IF(i_effect == 0)
-      slow_effect_hook = 1
       .IF(r_target == 4)
 	lda <$fd,x
 	sta c_effect_color
@@ -401,7 +404,6 @@ exit_hook = 1
 	stx c_effect_color
       .ENDIF
     .ELIF(i_effect == 1)
-      fast_effect_hook = 1
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	and #$07
 	ora #$18
@@ -410,7 +412,6 @@ exit_hook = 1
       .ENDIF
 	sta c_border_color
     .ELIF(i_effect == 2)
-      fast_effect_hook = 1
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	txa
 	and #$07
@@ -423,7 +424,6 @@ exit_hook = 1
 	stx c_border_color
       .ENDIF
     .ELIF(i_effect == 3)
-      fast_effect_hook = 1
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	tya
 	and #$07

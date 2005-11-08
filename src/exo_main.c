@@ -841,8 +841,15 @@ void sfx(const char *appl, int argc, char *argv[])
             }
             break;
         case 'x':
-            fx = new_named_buffer("user_effect");
-            membuf_append(fx, flagarg, strlen(flagarg));
+            if(strcmp("0", flagarg) == 0) new_symbol("i_effect", -1);
+            else if(strcmp("1", flagarg) == 0) new_symbol("i_effect", 1);
+            else if(strcmp("2", flagarg) == 0) new_symbol("i_effect", 2);
+            else if(strcmp("3", flagarg) == 0) new_symbol("i_effect", 3);
+            else
+            {
+                fx = new_named_buffer("user_effect");
+                membuf_append(fx, flagarg, strlen(flagarg));
+            }
             break;
         case 'D':
             p = strrchr(flagarg, '=');
