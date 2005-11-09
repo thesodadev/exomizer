@@ -473,12 +473,15 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "  The basic start argument will start a basic program.\n"
          "  The sys start argument will auto detect the start address by searching the\n"
          "  basic start for a sys command.\n"
-         "  the <jmpaddress> start argument will jmp to the given address.\n", appl));
+         "  the <jmpaddress> start argument will jmp to the given address.\n"
+         "  -t<target>    sets the decruncher target, must be one of 4, 20, 23, 52, 55,\n", appl));
     LOG(level,
-        ("  -t            sets the decruncher target, must be one of 4, 20, 23, 52, 55,\n"
-         "                64, 128 or 168, default is 64.\n"
-         "  -x<assembler fragment>\n"
-         "                User specified effect. Must not modify X reg, Y reg and carry\n"
+        ("                64, 128 or 168, default is 64.\n"
+         "  -X<custom slow effect assembler fragment>\n"
+         "  -x[1-3]|<custom fast effect assembler fragment>\n"
+         "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
+         "                or carry) or 1 - 3 for different fast border flash effects\n"
+         "  -n            no effect, can't be combined with -X or -x\n"
          "  -D<symbol>=<value>\n"
          "                predefines symbols for the sfx assembler.\n"));
     print_shared_flags(level, default_outfile);
@@ -713,6 +716,70 @@ get_target_info(int target)
     return targetp;
 }
 
+static void do_effect(const char *appl, int no_effect, char *fast, char *slow)
+{
+    struct membuf *fx = NULL;
+
+    if(no_effect + (fast != NULL) + (slow != NULL) > 1)
+    {
+        LOG(LOG_ERROR,
+            ("Error: can't combine any of the -n, -x or -X flags.\n"));
+        print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(-1);
+    }
+    if(no_effect)
+    {
+        new_symbol("i_effect", -1);
+    }
+    else if(fast != NULL)
+    {
+        int value;
+        if(str_to_int(fast, &value) == 0)
+        {
+            if(value == 1) new_symbol("i_effect", 1);
+            else if(value == 2) new_symbol("i_effect", 2);
+            else if(value == 3) new_symbol("i_effect", 3);
+            else
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid range for effect shorthand, "
+                     "must be in the range of [1 - 3]\n"));
+                print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+                exit(-1);
+            }
+        }
+        else
+        {
+            new_symbol("i_effect_custom", 1);
+            fx = new_named_buffer("effect_custom");
+            membuf_append(fx, fast, strlen(fast));
+        }
+        new_symbol("i_effect_speed", 1);
+    }
+    else if(slow != NULL)
+    {
+        int value;
+        if(str_to_int(slow, &value) == 0)
+        {
+            LOG(LOG_ERROR, ("Error: Can't use shorthand for -X flag.\n"));
+            print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(-1);
+        }
+        else
+        {
+            new_symbol("i_effect_custom", 1);
+            fx = new_named_buffer("effect_custom");
+            membuf_append(fx, slow, strlen(slow));
+            new_symbol("i_effect_speed", 0);
+        }
+    }
+    else
+    {
+        new_symbol("i_effect", 0);
+        new_symbol("i_effect_speed", 0);
+    }
+}
+
 void sfx(const char *appl, int argc, char *argv[])
 {
     int in_load;
@@ -721,6 +788,9 @@ void sfx(const char *appl, int argc, char *argv[])
     int basic_highest_addr = -1;
     int decr_target = 64;
     int sys_addr = -1;
+    int no_effect = 0;
+    char *fast = NULL;
+    char *slow = NULL;
     char flags_arr[32];
     int c;
     int infilec;
@@ -736,7 +806,6 @@ void sfx(const char *appl, int argc, char *argv[])
 
     struct membuf *in;
     struct membuf *out;
-    struct membuf *fx = NULL;
 
     flags->options = options;
 
@@ -821,7 +890,7 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "D:t:x:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "nD:t:x:X:%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
@@ -840,16 +909,14 @@ void sfx(const char *appl, int argc, char *argv[])
                 exit(-1);
             }
             break;
+        case 'n':
+            no_effect = 1;
+            break;
         case 'x':
-            if(strcmp("0", flagarg) == 0) new_symbol("i_effect", -1);
-            else if(strcmp("1", flagarg) == 0) new_symbol("i_effect", 1);
-            else if(strcmp("2", flagarg) == 0) new_symbol("i_effect", 2);
-            else if(strcmp("3", flagarg) == 0) new_symbol("i_effect", 3);
-            else
-            {
-                fx = new_named_buffer("user_effect");
-                membuf_append(fx, flagarg, strlen(flagarg));
-            }
+            fast = strdup(flagarg);
+            break;
+        case 'X':
+            slow = strdup(flagarg);
             break;
         case 'D':
             p = strrchr(flagarg, '=');
@@ -880,6 +947,8 @@ void sfx(const char *appl, int argc, char *argv[])
             handle_shared_flags(c, flagarg, print_sfx_usage, appl, flags);
         }
     }
+
+    do_effect(appl, no_effect, fast, slow);
 
     membuf_init(buf1);
     in = buf1;
@@ -1057,12 +1126,6 @@ void sfx(const char *appl, int argc, char *argv[])
                 new_symbol("i_basic_highest_addr", basic_highest_addr);
                 symbol_dump_resolved(LOG_DEBUG, "i_basic_highest_addr");
             }
-        }
-
-        if(fx != NULL)
-        {
-            new_symbol("i_user_effect", 1);
-            symbol_dump_resolved(LOG_DEBUG, "i_user_effect");
         }
 
         if(info->literal_sequences_used)

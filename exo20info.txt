@@ -181,17 +181,19 @@ The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
 To locate the decrunch table elsewhere than the default tape buffer or $0600 for The Atari target:
  -Di_table_addr=<address>
 
-The symbols that were used to control decrunch effect now has a Effects are now chosen by the -x flag.
--x0	no effect.
+The symbols that were used to control decrunch effect now has a Effects are now chosen by the -x flag and deactivated by -n.
+-n	no effect.
 -x1	Accumulator based fast border flash
 -x2     X-register based fast border flash
 -x3	Y-register based fast border flash
 
--x<custom effect assembler fragment>
+-x<custom fast effect assembler fragment>
+-X<custom slow effect assembler fragment>
 The assember fragment must not modify the carry flag, the X-register and the
 Y-register. Multiple assembler instructions are separated by space.
 Obs. including spaces in the fragment requires quoting to work.
-Example: -x "and #07 ora #$c8 sta $d016"
+Example: -X "txa and #07 ora #$c8 sta $d016"
+For a slow C64 side scroll-register effect
 
 Default effect is the slow character flash.
 

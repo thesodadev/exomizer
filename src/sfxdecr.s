@@ -384,15 +384,15 @@ exit_hook = 1
 ; -------------------------------------------------------------------
 ; -- The decrunch effect macro definition ---------------------------
 ; -------------------------------------------------------------------
-.IF(i_effect == 0)
+.IF(!.DEFINED(i_effect_speed) || i_effect_speed == 0)
   slow_effect_hook = 1
 .ELSE
   fast_effect_hook = 1
 .ENDIF
 .MACRO("effect_hook")
-  .IF(.DEFINED(i_user_effect))
+  .IF(.DEFINED(i_effect_custom))
     .INCLUDE("d2io")
-    .INCLUDE("user_effect")
+    .INCLUDE("effect_custom")
     .INCLUDE("io2d")
   .ELIF(i_effect != -1)
     .INCLUDE("d2io")

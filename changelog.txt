@@ -1,6 +1,6 @@
-+ Effect shorthands -x0 for no effect, -x1 for Accumulator based border flash,
++ Effect shorthands -n for no effect, -x1 for Accumulator based border flash,
   -x2 for X-register based border flash and -x3 for Y-register based border
-  flash.
+  flash. -x<fast effect assembler fragment> -X<slow effect assembler fragment>
 + removed the i_fast_effect symbol. Now border effects are fast and blinking
   char is slow.
 + Added flag -x<effect assembler fragment> to the sfx command.
