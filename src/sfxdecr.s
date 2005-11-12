@@ -488,7 +488,7 @@ exit_hook = 1
     .ELIF(i_ram_exit == i_ram_during - 1)
 	dec <$01
     .ELSE
-	lda i_ram_exit
+	lda #i_ram_exit
 	sta <$01
     .ENDIF
   .ENDMACRO

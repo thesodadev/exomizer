@@ -1,3 +1,4 @@
++ i_ram_exit bug for the C64 target found by iAN CooG/HokutoForce fixed.
 + Effect shorthands -n for no effect, -x1 for Accumulator based border flash,
   -x2 for X-register based border flash and -x3 for Y-register based border
   flash. -x<fast effect assembler fragment> -X<slow effect assembler fragment>
@@ -5,6 +6,7 @@
   char is slow.
 + Added flag -x<effect assembler fragment> to the sfx command.
 + Improved docs about the mem command and assembler symbols.
++ fixed spelling bug in i_effect=2 mode. Bug found by iAN CooG/HokutoForce.
 
 2005-11-02
 Release of 2.0beta2 win32 and dos binaries.
