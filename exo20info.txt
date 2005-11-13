@@ -1,6 +1,6 @@
 Exomizer 2.0 beta2 released
 
-NEW FEATURES:
+NEW FEATURES SINCE V1.X:
 
 o  Totally rewitten handling of the sfx decruncher:
    1) Several different decrunch effects.
@@ -12,9 +12,8 @@ o  Totally rewitten handling of the sfx decruncher:
    4) Will adapt the decruncher to include only features used by the compressed
       stream to keep the size down.
    5) Now also supports the c128 and the vic20 (in several configurations).
-   6) The Atari 400/800 XL/XE family is supported as a sfx target: 168.
-      The file written by this targer is of the type xex.
-   7) Also handles relocated sfx without basic line.
+   6) The Atari 400/800 XL/XE family is also supported as sfx target 168.
+   7) Also handles relocated sfx targets without basic line.
 
 o   Exomizer now reads xex-files and autodetects the RUNAD vector if the sys
     keyword is given to the sfx command.
@@ -28,36 +27,38 @@ o  The level mode of exomizer now crunches each infile separately and appends
    them to the outfile instead of merging them together like the -r mode did
    before. The new behaviour is more useful for level usage.
 
-o  New sub command, raw, that features:
+o  New raw mode that features:
    1) Crunches plain files instead of .prg files.
    2) Crunches forward or backwards instead of just backwards.
    3) Also decrunches.
    4) Handles files larget than 64k. Sizes below 1MB is now possible to crunch.
       It handles the complete canterbury and calgary corpora just fine.
    5) Comes with two different C-source decrunchers, one thread safe forward
-      pull decruncher and one low-level backward push decruncher perfect to
+      pull decruncher and one low-level backwards push decruncher perfect to
       base an assembler port on.
 
 FEATURES STILL TO DO BEFORE PROPER RELEASE:
 
 o  Sfx decruncher in exomizer:
    1) Handle the vic20 target better with regards to memory holes.
+   2) Handle Atari target better with regards to RAM under OS-ROM.
 
-o  There is no 6502 assembler decruncher for streaming data crunched forward or
+o  There is no 6502 assembler decruncher for streaming data crunched forward
    crunched using literal sequences.
    However the streaming (backwards) decrunchers will work if the -b and -c
    flags are used when crunching (with exomizer raw). Please see the examples.
    Please note that unlike 1.x, only exomizer raw can crunch data intended to
    be used by the streaming decrunchers.
 
-o  The sfx command sometimes crunch better with the -c flag.
+o  The sfx command sometimes crunch better with the -c flag. The cruncher
+   doesn't take the sfx decuncher size increase due to enabling the literal
+   sequence escape mechanism.
 
 o Update the usage descriptions properly.
 
 -------------------------------------------------------------------------------
-The exomizer v2 uses a different command syntax from v1.x. Here's a quick
-translation list:
-old:                                    new:
+The command line syntax differs from v1.x. Here's a quick translation guide:
+old                                     new
 ------------------                      -----------------------------
 exomizer -ssys <infile>                 exomizer sfx sys <infile>
 exomizer -s$1234 <infile>               exomizer sfx $1234 <infile>
@@ -78,44 +79,44 @@ given in decimal, hexadecimal (prefixed with $ or 0x) or octal (prefixed with
 Exomizer has four sub commands: mem, level, sfx and raw. They all compress
 data. They share the following option flags:
 ----------------
--c	This flag enables 1.x compatibility mode. It disables the use of the
-	literal sequence escape mechanism. It will make the output files
-	compatible with Exomizer v1.x.
+-c      This flag enables 1.x compatibility mode. It disables the use of the
+        literal sequence escape mechanism. It will make the output files
+        compatible with Exomizer v1.x.
 
 -e <encoding parameters>
-	Uses the given encoding parameters for crunching instead of trying to
-	calculate an optimal set. The encoding must be in the following format:
-	xxxxxxxxxxxxxxxx,xxxx,xxxxxxxxxxxxxxxx,xxxxxxxxxxxxxxxx
-	where each x must be a hexadecimal character, 0-9 or A-F.
-	The Exomizer prints the encoding parameters used when writing the
-	output file in this format in order to allow for easy cut and paste.
+        Uses the given encoding parameters for crunching instead of trying to
+        calculate an optimal set. The encoding must be in the following format:
+        xxxxxxxxxxxxxxxx,xxxx,xxxxxxxxxxxxxxxx,xxxxxxxxxxxxxxxx
+        where each x must be a hexadecimal character, 0-9 or A-F.
+        The Exomizer prints the encoding parameters used when writing the
+        output file in this format in order to allow for easy cut and paste.
 
 -m <offset>
-	Limits the maximum offset ued cu the cruncher to <offset>. The default
-	is an offseet of 65535 bytes. A smaller offsets increases the crunching
-	speed and reduces the crunch result. If a circular buffer decruncher is
-	used it is important that the maximum offset doesn't exceed the buffer
-	size.
+        Limits the maximum offset ued cu the cruncher to <offset>. The default
+        is an offseet of 65535 bytes. A smaller offsets increases the crunching
+        speed and reduces the crunch result. If a circular buffer decruncher is
+        used it is important that the maximum offset doesn't exceed the buffer
+        size.
 
 -o <outfile>
-	Sets outfile name.
+        Sets outfile name.
 
 -p <passes>
-	Limits the maximum number of optimization passes the cruncher uses when
-	calculating the encoding parameters. default is 65535. However the
-	cruncher will always stop when no further improvment to the crunch
-	result is made.
+        Limits the maximum number of optimization passes the cruncher uses when
+        calculating the encoding parameters. default is 65535. However the
+        cruncher will always stop when no further improvment to the crunch
+        result is made.
 
--q	Enables quiet mode which will disable display output.
+-q      Enables quiet mode which will disable display output.
 
--v	Displays Exomizer version, email address for support and the usage
-	license.
+-v      Displays Exomizer version, email address for support and the usage
+        license.
 
 --      Will make all arguments that follow be treated as non-options, even if
-	they begins with a - character.
+        they begins with a - character.
 
--?	Displays a help screen that briefly decribes the command line syntax
-	and the valid options. Also for the sub command if one is given.
+-?      Displays a help screen that briefly decribes the command line syntax
+        and the valid options. Also for the sub command if one is given.
 
 -------------------------------------------------------------------------------
 -- Information relevant for the mem, sfx and level sub commands ---------------
@@ -155,13 +156,13 @@ monitors or by assembler directives like incbin.
  The mem command writes its output in prg format. It has the following option:
 
 -l <address>|none
-	Sets the load address of the output prg file to <address> or if the
-	string none is given make the output be a plain file. Defaults to
-	the address that gives the crunched data as much overlap with the
-	decrunched data as possible but still allow for in-place decrunching.
-	However, the file doesn't need to be decrunched from that address. Any
+        Sets the load address of the output prg file to <address> or if the
+        string none is given make the output be a plain file. Defaults to
+        the address that gives the crunched data as much overlap with the
+        decrunched data as possible but still allow for in-place decrunching.
+        However, the file doesn't need to be decrunched from that address. Any
         address that doesn't cause data being decrunched to overwrite data yet
-	to be decrunched will work.
+        to be decrunched will work.
 
 -------------------------------------------------------------------------------
 -- The level sub command ------------------------------------------------------
@@ -169,7 +170,6 @@ monitors or by assembler directives like incbin.
 
  The level command writes the files in its own format that is easy to read back
 and decrunch on the fly. It has no options of its own.
-
 
 -------------------------------------------------------------------------------
 -- The sfx sub command --------------------------------------------------------
@@ -198,28 +198,35 @@ atari target doesn't support decrunching into extended memory.
  The sfx command has the following options:
 
 -t<target>
-	Sets the decruncher target. The possible target are:
-	  4: Commodore c16/plus4.
-	 20: Commodore Vic20, unexpanded memory.
-	 23: Commodore Vic20, 3kB memory expansion.
-	 52: Commodore Vic20, 32kB memory expasion.
-	 55: Commodore Vic20  32+3kB memory expansion.
-	 64: Commodore c64. (The default target)
-	128: Commodore c128.
-	168: Atari 400/800 XL/XE.
+        Sets the decruncher target. The possible target are:
+          4: Commodore c16/plus4.
+         20: Commodore Vic20, unexpanded memory.
+         23: Commodore Vic20, 3kB memory expansion.
+         52: Commodore Vic20, 32kB memory expasion.
+         55: Commodore Vic20  32+3kB memory expansion.
+         64: Commodore c64. (The default target)
+        128: Commodore c128.
+        168: Atari 400/800 XL/XE.
 
  -X<custom slow effect assembler fragment>
  -x[1-3]|<custom fast effect assembler fragment>
-	Sets the decrunch effect. If an assembler fragment is given, it must
-	not change the X-register, Y-register or modify the carry flag. A value
-	of 1 - 3 will set the effect to different fast border flash effects.
+        Sets the decrunch effect. If an assembler fragment is given, it must
+        not change the X-register, Y-register or modify the carry flag.
+        Separate instructions with a space. Please note that including spaces
+        in the fragment requires quoting to work. An example of a slow C64
+        x-scroll-register effect: -X "txa and #07 ora #$c8 sta $d016"
+         Use a value of 1 - 3 to pick a preset effect:
+        1:      Accumulator based fast border flash
+        2:      X-register based fast border flash
+        3:      Y-register based fast border flash
+        Default effect is a slow character flash.
 
--n	No decrunch effect. This option can't be combined with -X or -x
+-n      No decrunch effect. This option can't be combined with -X or -x
 
 -D<symbol>=<value>
-	Defines symbols for the sfx assembler. More advanced features of the
-	decruncher is ontrolled by defining symbole. More on this in the
-	decruncher symbol reference section below.
+        Defines symbols for the sfx assembler. More advanced features of the
+        decruncher is ontrolled by defining symbole. More on this in the
+        decruncher symbol reference section below.
 
 -------------------------------------------------------------------------------
 -- The raw sub command --------------------------------------------------------
@@ -233,8 +240,70 @@ so there's a practical limit of about one MB. The output file format of this
 command is a generic file.
 
 -------------------------------------------------------------------------------
+-- The included decruncher source code with examples --------------------------
+-------------------------------------------------------------------------------
+
+There are two directories with source code in the distribution:
+
+exodecrs/
+         This contains the source code of three 6502 assembler decrunchers. One
+        backward deruncher that decrunches data crunched by the mem sub
+        command. call this decruncher once to decrunch the data to its targeted
+        location.
+         Also contained in this directory are two streaming forward decrunchers
+        for data crunched with the raw sub command. Both use a circular buffer
+        and has a get_byte like interface that are called repeatedly to get one
+        byte or a block of decrunched data until the end of data is signalled
+        by the call returning with the carry flag set. However they are not
+        capable of handling the literal sequence escape mechanism so data must
+        be cruncher with the -c flag.
+         Also included are a Makefile and some example code and data that use
+        the three decrunchers. The assembler syntax is ca65, the assembler of
+        the cc65 tool chain. This tool chain is needed to build the examples.
+
+rawdecrs/
+         This directory contains two decrunches written in C. One backwards
+         decruncher with a call once and all data are decrunched interface.
+         And one forward streaming decruncher with a get_decrunched_byte
+         interface. Also incuded are example code using the decrunchers and
+         a Makefile that can be used for building them. An ANSI-C compiler are
+         necessary for this.
+
+All of the included makefiles have only been tested with Gnu make.
+
+-------------------------------------------------------------------------------
+-- Credits for Exomizer 2.x ---------------------------------------------------
+-------------------------------------------------------------------------------
+
+Feature suggestions
+-------------------
+Csabo / LOD
+Ninja / The Dreams
+Richard / TND
+Jack Alien / Remember
+
+Bug reports
+-----------
+iAN CooG / HokutoForce
+
+Regression testing
+------------------
+Ninja / The Dreams
+Csabo / LOD
+iAN CooG / HokutoForce
+Lasse Öörni
+
+Inspiration
+-----------
+PuCrunch
+The Oneway crunchers, packers and linkers, Byte Boiler, AB, cruel etc.
+The Final Super-Compressor by Meidinger & Borris
+Timecruncher 3.1 by Matcham of Network
+
+-------------------------------------------------------------------------------
 -- Reference for the sfx decruncher symbols -----------------------------------
 -------------------------------------------------------------------------------
+
 The sfx decruncher is tweaked by defining optional symbols to the assembler on
 the command line using the -D<symbol>=<value> flag:
 
@@ -262,24 +331,12 @@ The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_during
  i_irq_exit
 
-To locate the decrunch table elsewhere than the default tape buffer or $0600 for The Atari target:
+ To locate the decrunch table elsewhere than the default tape buffer or $0600
+for The Atari target, use the symbol i_table_addr:
  -Di_table_addr=<address>
 
-The symbols that were used to control decrunch effect now has a Effects are now chosen by the -x flag and deactivated by -n.
--n	no effect.
--x1	Accumulator based fast border flash
--x2     X-register based fast border flash
--x3	Y-register based fast border flash
-
--x<custom fast effect assembler fragment>
--X<custom slow effect assembler fragment>
-The assember fragment must not modify the carry flag, the X-register and the
-Y-register. Multiple assembler instructions are separated by space.
-Obs. including spaces in the fragment requires quoting to work.
-Example: -X "txa and #07 ora #$c8 sta $d016"
-For a slow C64 side scroll-register effect
-
-Default effect is the slow character flash.
+Effects are no longer selected by the use of symbols. They are now chosen by
+the -x or -X flags or deactivated by -n.
 
 -------------------------------------------------------------------------------
 -- Results for the Canterbury and Calgary corpae for exomizer raw -------------
