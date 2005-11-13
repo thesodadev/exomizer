@@ -80,8 +80,8 @@ extern int push_state_macro;
 extern int push_state_init;
 extern int num_lines;
 
-void parse_init();
-void parse_free();
+void parse_init(void);
+void parse_free(void);
 
 struct atom *new_op(u8 op_code, u8 op_size, struct expr *arg);
 struct atom *new_op0(u8 op_code);

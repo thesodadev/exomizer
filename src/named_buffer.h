@@ -30,8 +30,8 @@
 
 #include "membuf.h"
 
-void named_buffer_init();
-void named_buffer_free();
+void named_buffer_init(void);
+void named_buffer_free(void);
 
 struct membuf *new_named_buffer(const char *name);
 struct membuf *get_named_buffer(const char *name);

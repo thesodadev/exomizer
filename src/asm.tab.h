@@ -211,7 +211,7 @@
 
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 110 "asm.y"
+#line 137 "asm.y"
 typedef union YYSTYPE {
     i32 num;
     char *str;

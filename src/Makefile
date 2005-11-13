@@ -1,11 +1,11 @@
 #
 # Makefile for exomizer
 #
-
-CFLAGS = -Wall -O3 -ffast-math -mcpu=i686 -fomit-frame-pointer -fgcse -pedantic
+WFLAGS = -Wall -Wstrict-prototypes
+CFLAGS = $(WFLAGS) -O3 -ffast-math -mtune=i686 -fomit-frame-pointer -fgcse -pedantic
 LDFLAGS = -s
 
-#CFLAGS = -g -pg -mtune=i686 -Wall
+#CFLAGS = -g -pg -mtune=i686 $(WFLAGS)
 #LDFLAGS = -g -pg -mtune=i686
 
 SHARED_OBJS = getflag.o log.o membuf.o
@@ -25,19 +25,23 @@ ALL_OBJS = $(EXO_OBJS) $(RAW_OBJS) $(BAS_OBJS) $(SHARED_OBJS)
 build: $(MAKEFILE) exomizer exoraw exobasic
 
 exomizer: deps $(EXO_OBJS) $(SHARED_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $(EXO_OBJS) $(SHARED_OBJS)
+	@echo "Linking $@"
+	@$(CC) $(LDFLAGS) -o $@ $(EXO_OBJS) $(SHARED_OBJS)
 
 exoraw: deps $(RAW_OBJS) $(SHARED_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $(RAW_OBJS) $(SHARED_OBJS)
+	@echo "Linking $@"
+	@$(CC) $(LDFLAGS) -o $@ $(RAW_OBJS) $(SHARED_OBJS)
 
 exobasic: deps $(BAS_OBJS) $(SHARED_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $(BAS_OBJS) $(SHARED_OBJS)
+	@echo "Linking $@"
+	@$(CC) $(LDFLAGS) -o $@ $(BAS_OBJS) $(SHARED_OBJS)
 
 clean:
-	-$(RM) $(EXO_OBJS) $(RAW_OBJS) $(BAS_OBJS) $(SHARED_OBJS) \
-	b2membuf.o b2membuf b2membuf.exe \
-	exomizer exoraw exobasic exomizer.exe exoraw.exe exobasic.exe deps \
-	sfxdecr sfxdecr.c
+	@echo "Cleaning project"
+	-@$(RM) $(EXO_OBJS) $(RAW_OBJS) $(BAS_OBJS) $(SHARED_OBJS)
+	-@$(RM) b2membuf.o b2membuf b2membuf.exe sfxdecr sfxdecr.c deps
+	-@$(RM) exomizer exoraw exobasic exomizer.exe exoraw.exe exobasic.exe
+
 
 asm.tab.h asm.tab.c: asm.y
 	bison -t -d asm.y
@@ -46,14 +50,21 @@ lex.yy.c: asm.yy
 	flex -B asm.yy
 
 sfxdecr.c: sfxdecr b2membuf
-	./b2membuf sfxdecr >sfxdecr.c
+	@./b2membuf sfxdecr >sfxdecr.c
 
 sfxdecr: sfxdecr.s exoraw
-	./exoraw -q sfxdecr.s -o sfxdecr
-
-b2membuf: b2membuf.o
+	@echo "Compressing $<"
+	@./exoraw -q sfxdecr.s -o sfxdecr
 
 -include deps
 
 deps: $(wildcard *.h) asm.tab.h
-	$(CC) -MM $(wildcard *.c) >$@
+	@echo "Generating dependencies"
+	@$(CC) -MM $(wildcard *.c) >$@
+
+%.o:	%.c
+	@echo "Compiling $<"
+	@$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
+%:	%.o
+	@$(CC) $(LDFLAGS) $< -o $@

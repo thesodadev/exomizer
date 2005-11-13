@@ -76,25 +76,67 @@ given in decimal, hexadecimal (prefixed with $ or 0x) or octal (prefixed with
 0) notation. Examples: 3, 54, $3456, 0x1111, 06543.
 
 Exomizer has four sub commands: mem, level, sfx and raw. They all compress
-data.
+data. They share the following option flags:
+----------------
+-c	This flag enables 1.x compatibility mode. It disables the use of the
+	literal sequence escape mechanism. It will make the output files
+	compatible with Exomizer v1.x.
 
- All commands except raw:
+-e <encoding parameters>
+	Uses the given encoding parameters for crunching instead of trying to
+	calculate an optimal set. The encoding must be in the following format:
+	xxxxxxxxxxxxxxxx,xxxx,xxxxxxxxxxxxxxxx,xxxxxxxxxxxxxxxx
+	where each x must be a hexadecimal character, 0-9 or A-F.
+	The Exomizer prints the encoding parameters used when writing the
+	output file in this format in order to allow for easy cut and paste.
+
+-m <offset>
+	Limits the maximum offset ued cu the cruncher to <offset>. The default
+	is an offseet of 65535 bytes. A smaller offsets increases the crunching
+	speed and reduces the crunch result. If a circular buffer decruncher is
+	used it is important that the maximum offset doesn't exceed the buffer
+	size.
+
+-o <outfile>
+	Sets outfile name.
+
+-p <passes>
+	Limits the maximum number of optimization passes the cruncher uses when
+	calculating the encoding parameters. default is 65535. However the
+	cruncher will always stop when no further improvment to the crunch
+	result is made.
+
+-q	Enables quiet mode which will disable display output.
+
+-v	Displays Exomizer version, email address for support and the usage
+	license.
+
+--      Will make all arguments that follow be treated as non-options, even if
+	they begins with a - character.
+
+-?	Displays a help screen that briefly decribes the command line syntax
+	and the valid options. Also for the sub command if one is given.
+
+-------------------------------------------------------------------------------
+-- Information relevant for the mem, sfx and level sub commands ---------------
+-------------------------------------------------------------------------------
+
 The mem, level and sfx command all crunches files backwards. The files have to
 belocated in a 16-bit address space and are also limited in size to that 16bit
 address space. The file format of the input files are prg files, xex files or
 located plain files (plain files that are given an address to load to.)
 
-The syntax for loading a prg or xex file is simply the filename:
+ The syntax for loading a prg or xex file is simply the filename:
 $ exomizer mem <prg file> <xex file> -o <output prg file name>
 
-If you want to load a prg file to a different address than it contains you can
+ If you want to load a prg file to a different address than it contains you can
 simply append a comma and the new load address:
 $ exomizer mem <prg file>,<new address> -o <output prg file name>
 
-Relocation does not work for xex files. An relocated xex file will simply be
+ Relocation does not work for xex files. An relocated xex file will simply be
 treated as if it was a relocated prg file.
 
-Plain located files are given using a similar syntax:
+ Plain located files are given using a similar syntax:
 $ exomizer mem <plain file>@<address> -o <output prg file name>
 
  When given multiple input files The sfx and mem commands loads all files to
@@ -103,45 +145,87 @@ space between files will be zero-filled. The level command loads each input
 file separately, crunches it and then appends the crunched data to the output
 file.
 
- The mem command writes its output in prg format. Unless the -l flag is given
-to the mem command, the address of the prg file will be the address that gives
-the crunched data as much overlap with the decrunched data as possible but
-still allow for in-place decrunching. However, the file doesn't need to be
-decrunched from that address. Any address that doesn't cause data being
-decrunched to overwrite data yet to be decrunched will do nicely. The mem
-command has a flag -l that enables the user to set a load address to be used.
-It also allows the string none, in which case a plain file will be written.
+-------------------------------------------------------------------------------
+-- The mem sub command --------------------------------------------------------
+-------------------------------------------------------------------------------
+ The mem command generated files that are used for decrunching from memory.
+Normally these files are linked into the progam images either by machine code
+monitors or by assembler directives like incbin.
+
+ The mem command writes its output in prg format. It has the following option:
+
+-l <address>|none
+	Sets the load address of the output prg file to <address> or if the
+	string none is given make the output be a plain file. Defaults to
+	the address that gives the crunched data as much overlap with the
+	decrunched data as possible but still allow for in-place decrunching.
+	However, the file doesn't need to be decrunched from that address. Any
+        address that doesn't cause data being decrunched to overwrite data yet
+	to be decrunched will work.
+
+-------------------------------------------------------------------------------
+-- The level sub command ------------------------------------------------------
+-------------------------------------------------------------------------------
 
  The level command writes the files in its own format that is easy to read back
-and decrunch on the fly.
+and decrunch on the fly. It has no options of its own.
+
+
+-------------------------------------------------------------------------------
+-- The sfx sub command --------------------------------------------------------
+-------------------------------------------------------------------------------
+
+ The sfx command generates a runnable stand alone, in memory decrunching file.
+Its first argument must always be the run address. It may be given as an
+address or the string sys or the string basic.
+
+ If the run address is an actual address then it will be used as the target
+address of a jmp instruction executed after the decrunching.
+
+ If the run address is the string sys then the run address will be
+autodetected. Either from the runad vector for the Atari target or by scanning
+the area of the basic start for a sys basic command.
+
+ If the run address is the string basic then the computer will run a basic
+program after decrunch. (Not supported yet for the Atari target).
 
  The output of the sfx command is a runnable program file that decrunches
- itself in memory when run. The output file format depends on the target
- used. The possible target are: 4, 20, 23, 52, 55, 64, 128 and 168.
+itself in memory when run. The output file format depends on the target
+used. For all Commodore machines the output is a runnable prg-file that starts
+with a basic line. For the Atari the target is a auto running xex-file. The
+atari target doesn't support decrunching into extended memory.
 
-  4: Commodore c16/plus4.
- 20: Commodore Vic20, unexpanded memory.
- 23: Commodore Vic20, 3kB memory expansion.
- 52: Commodore Vic20, 32kB memory expasion.
- 55: Commodore Vic20  32+3kB memory expansion.
- 64: Commodore c64.
-128: Commodore c128.
-168: Atari 400/800 XL/XE.
+ The sfx command has the following options:
 
-The sfx command needs a run address. It may be given as an address or
-the string sys or basic. If the run address is an address then it will be used
-as the target address of a jmp instruction executed after the decrunching.
-If it is the string sys then the run address will be autodetected. Either from
-the runad vector for the Atari target or by scanning the area of the basic
-start for a sys basic command. If it is the string basic then the computer will
-run a basic program after decrunch. (Not supported yet for the Atari target).
+-t<target>
+	Sets the decruncher target. The possible target are:
+	  4: Commodore c16/plus4.
+	 20: Commodore Vic20, unexpanded memory.
+	 23: Commodore Vic20, 3kB memory expansion.
+	 52: Commodore Vic20, 32kB memory expasion.
+	 55: Commodore Vic20  32+3kB memory expansion.
+	 64: Commodore c64. (The default target)
+	128: Commodore c128.
+	168: Atari 400/800 XL/XE.
 
-For all Commodore machines the output is a runnable prg-file that starts with a
-basic line. For the Atari the target is a auto running xex-file.
+ -X<custom slow effect assembler fragment>
+ -x[1-3]|<custom fast effect assembler fragment>
+	Sets the decrunch effect. If an assembler fragment is given, it must
+	not change the X-register, Y-register or modify the carry flag. A value
+	of 1 - 3 will set the effect to different fast border flash effects.
 
-The atari target doesn't support decrunching into extended memory.
+-n	No decrunch effect. This option can't be combined with -X or -x
 
-Now let's go back to the command that handles plain files, raw.
+-D<symbol>=<value>
+	Defines symbols for the sfx assembler. More advanced features of the
+	decruncher is ontrolled by defining symbole. More on this in the
+	decruncher symbol reference section below.
+
+-------------------------------------------------------------------------------
+-- The raw sub command --------------------------------------------------------
+-------------------------------------------------------------------------------
+
+ Now let's go back to the command that handles plain files, raw.
 The raw command can both crunch and decrunch both forward and backward. It also
 handles generic files without any of the above mentioned restrictions. There's
 no hardcoded limit in file size but it gets increasingly slow with larger files

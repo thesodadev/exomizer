@@ -149,7 +149,7 @@ open_file(const char *name, int *load_addr)
     return in;
 }
 
-void print_license()
+void print_license(void)
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"

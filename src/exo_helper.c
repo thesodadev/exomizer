@@ -402,7 +402,7 @@ const char *fixup_appl(char *appl)
 }
 
 static
-void print_license()
+void print_license(void)
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
