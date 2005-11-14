@@ -1,3 +1,5 @@
+2005-11-14
+Release of 2.0beta3 source code, win32 and dos binaries.
 + i_ram_exit bug for the C64 target found by iAN CooG/HokutoForce fixed.
 + Effect shorthands -n for no effect, -x1 for Accumulator based border flash,
   -x2 for X-register based border flash and -x3 for Y-register based border

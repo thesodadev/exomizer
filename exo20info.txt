@@ -11,31 +11,31 @@ o  Totally rewitten handling of the sfx decruncher:
       embedded assembler.
    4) Will adapt the decruncher to include only features used by the compressed
       stream to keep the size down.
-   5) Now also supports the c128 and the vic20 (in several configurations).
-   6) The Atari 400/800 XL/XE family is also supported as sfx target 168.
-   7) Also handles relocated sfx targets without basic line.
+   5) Supports the c128 and the vic20 (in several configurations).
+   6) The Atari 400/800 XL/XE family is supported as sfx target 168.
+   7) Can generate relocated sfx targets without basic line.
 
-o   Exomizer now reads xex-files and autodetects the RUNAD vector if the sys
-    keyword is given to the sfx command.
+o  Reads Atari xex-files and autodetects the RUNAD vector if the sys keyword is
+   given to the sfx command.
 
-o  Exomizer now can load plain files using the <filename>@<addr> syntax.
+o  Can load plain files using the <filename>@<addr> syntax.
 
-o  The cruncher now has an escape mechanism that detects and handles sequences
-   of uncrunchable data, literal sequences, properly.
+o  Has a literal sequence escape mechanism that detects and handles sequences
+   of uncrunchable data properly.
 
 o  The level mode of exomizer now crunches each infile separately and appends
    them to the outfile instead of merging them together like the -r mode did
-   before. The new behaviour is more useful for level usage.
+   before.
 
 o  New raw mode that features:
    1) Crunches plain files instead of .prg files.
    2) Crunches forward or backwards instead of just backwards.
    3) Also decrunches.
-   4) Handles files larget than 64k. Sizes below 1MB is now possible to crunch.
-      It handles the complete canterbury and calgary corpora just fine.
+   4) Handles files larget than 64k. The Canterbury and Calgary corpora
+      is now possible to crunch.
    5) Comes with two different C-source decrunchers, one thread safe forward
-      pull decruncher and one low-level backwards push decruncher perfect to
-      base an assembler port on.
+      pull decruncher and one low-level backwards push decruncher, perfect to
+      base an assembler port on. (Any z80 programmers out there?)
 
 FEATURES STILL TO DO BEFORE PROPER RELEASE:
 
@@ -299,6 +299,47 @@ PuCrunch
 The Oneway crunchers, packers and linkers, Byte Boiler, AB, cruel etc.
 The Final Super-Compressor by Meidinger & Borris
 Timecruncher 3.1 by Matcham of Network
+
+-------------------------------------------------------------------------------
+-- Credits for Exomizer 1.x ---------------------------------------------------
+-------------------------------------------------------------------------------
+Inspiration
+-----------
+ The Oneway crunchers: Byteboiler, The Cruncher AB and CruelCrunch.
+ Pasi Ojala's PuCrunch
+
+Beta testing
+------------
+ Lasse Öörni
+ Csabo / LOD
+ Overkiller / Hokuto Force / PoL
+ iAN CooG / Hokuto Force
+ Rafal Szyja
+ bubis / Resource
+ Ninja / The Dreams
+
+Bug Reporting
+-------------
+ Csabo / LOD
+ Soci / Singular
+ 6R6 / Nostalgia
+ Ninja / The Dreams
+
+Feedback/Suggestions
+--------------------
+ Count Zer0
+ bubis / Resource
+ Ninja / The Dreams
+
+-------------------------------------------------------------------------------
+-- Contact information --------------------------------------------------------
+-------------------------------------------------------------------------------
+
+Please don't hesitate to contact me if you have any feature/improvement
+suggestions, bugs to report or perhaps just have something to say about the
+exomizer program.
+
+My name is Magnus Lind and my email address is magli143@comhem.se
 
 -------------------------------------------------------------------------------
 -- Reference for the sfx decruncher symbols -----------------------------------
