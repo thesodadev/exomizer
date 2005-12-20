@@ -386,6 +386,19 @@ static i32 resolve_expr(struct expr *e)
     return val;
 }
 
+struct expr *new_expr_inclen(const char *name)
+{
+    long length;
+    struct membuf *in;
+    struct expr *expr;
+
+    in = get_named_buffer(name);
+    length = membuf_memlen(in);
+
+    expr = new_expr_number((i32)length);
+    return expr;
+}
+
 struct expr *new_expr_incword(const char *name, struct expr *skip)
 {
     i32 word;

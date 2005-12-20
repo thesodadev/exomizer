@@ -117,6 +117,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
                     local_mp->len = best_copy_len;
                     local_mp->offset = 0;
+                    local_mp->next = NULL;
                     snp->total_score = total_copy_score;
                     snp->total_offset = best_copy_snp->total_offset;
                     snp->prev = best_copy_snp;

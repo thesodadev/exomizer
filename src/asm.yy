@@ -78,6 +78,7 @@ struct vec strdupped[1];
 \.error		return ERROR;
 \.echo		return ECHO;
 \.incbin	return INCBIN;
+\.inclen	return INCLEN;
 \.incword	return INCWORD;
 \.res		return RES;
 \.word		return WORD;

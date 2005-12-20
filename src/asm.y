@@ -48,6 +48,7 @@ static struct vec asm_atoms[1];
 %token ERROR
 %token ECHO
 %token INCBIN
+%token INCLEN
 %token INCWORD
 %token RES
 %token WORD
@@ -376,6 +377,7 @@ expr:	expr PLUS expr        { $$ = new_expr_op2(PLUS, $1, $3); } |
 	expr MOD expr         { $$ = new_expr_op2(MOD, $1, $3); } |
 	MINUS expr %prec vNEG { $$ = new_expr_op1(vNEG, $2); } |
 	LPAREN expr RPAREN { $$ = $2; } |
+        INCLEN LPAREN STRING RPAREN { $$ = new_expr_inclen($3); } |
         INCWORD LPAREN STRING COMMA expr RPAREN {
             $$ = new_expr_incword($3, $5); } |
 	NUMBER { $$ = new_expr_number($1); } |

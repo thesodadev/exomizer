@@ -38,84 +38,85 @@
      ERROR = 264,
      ECHO = 265,
      INCBIN = 266,
-     INCWORD = 267,
-     RES = 268,
-     WORD = 269,
-     BYTE = 270,
-     LDA = 271,
-     LDX = 272,
-     LDY = 273,
-     STA = 274,
-     STX = 275,
-     STY = 276,
-     AND = 277,
-     ORA = 278,
-     EOR = 279,
-     ADC = 280,
-     SBC = 281,
-     CMP = 282,
-     CPX = 283,
-     CPY = 284,
-     TSX = 285,
-     TXS = 286,
-     PHA = 287,
-     PLA = 288,
-     PHP = 289,
-     PLP = 290,
-     SEI = 291,
-     CLI = 292,
-     NOP = 293,
-     TYA = 294,
-     TAY = 295,
-     TXA = 296,
-     TAX = 297,
-     CLC = 298,
-     SEC = 299,
-     RTS = 300,
-     JSR = 301,
-     JMP = 302,
-     BEQ = 303,
-     BNE = 304,
-     BCC = 305,
-     BCS = 306,
-     BPL = 307,
-     BMI = 308,
-     BVC = 309,
-     BVS = 310,
-     INX = 311,
-     DEX = 312,
-     INY = 313,
-     DEY = 314,
-     INC = 315,
-     DEC = 316,
-     LSR = 317,
-     ASL = 318,
-     ROR = 319,
-     ROL = 320,
-     SYMBOL = 321,
-     STRING = 322,
-     LAND = 323,
-     LOR = 324,
-     LNOT = 325,
-     LPAREN = 326,
-     RPAREN = 327,
-     COMMA = 328,
-     COLON = 329,
-     X = 330,
-     Y = 331,
-     HASH = 332,
-     PLUS = 333,
-     MINUS = 334,
-     MULT = 335,
-     DIV = 336,
-     MOD = 337,
-     LT = 338,
-     GT = 339,
-     EQ = 340,
-     NEQ = 341,
-     ASSIGN = 342,
-     NUMBER = 343,
-     vNEG = 344
+     INCLEN = 267,
+     INCWORD = 268,
+     RES = 269,
+     WORD = 270,
+     BYTE = 271,
+     LDA = 272,
+     LDX = 273,
+     LDY = 274,
+     STA = 275,
+     STX = 276,
+     STY = 277,
+     AND = 278,
+     ORA = 279,
+     EOR = 280,
+     ADC = 281,
+     SBC = 282,
+     CMP = 283,
+     CPX = 284,
+     CPY = 285,
+     TSX = 286,
+     TXS = 287,
+     PHA = 288,
+     PLA = 289,
+     PHP = 290,
+     PLP = 291,
+     SEI = 292,
+     CLI = 293,
+     NOP = 294,
+     TYA = 295,
+     TAY = 296,
+     TXA = 297,
+     TAX = 298,
+     CLC = 299,
+     SEC = 300,
+     RTS = 301,
+     JSR = 302,
+     JMP = 303,
+     BEQ = 304,
+     BNE = 305,
+     BCC = 306,
+     BCS = 307,
+     BPL = 308,
+     BMI = 309,
+     BVC = 310,
+     BVS = 311,
+     INX = 312,
+     DEX = 313,
+     INY = 314,
+     DEY = 315,
+     INC = 316,
+     DEC = 317,
+     LSR = 318,
+     ASL = 319,
+     ROR = 320,
+     ROL = 321,
+     SYMBOL = 322,
+     STRING = 323,
+     LAND = 324,
+     LOR = 325,
+     LNOT = 326,
+     LPAREN = 327,
+     RPAREN = 328,
+     COMMA = 329,
+     COLON = 330,
+     X = 331,
+     Y = 332,
+     HASH = 333,
+     PLUS = 334,
+     MINUS = 335,
+     MULT = 336,
+     DIV = 337,
+     MOD = 338,
+     LT = 339,
+     GT = 340,
+     EQ = 341,
+     NEQ = 342,
+     ASSIGN = 343,
+     NUMBER = 344,
+     vNEG = 345
    };
 #endif
 /* Tokens.  */
@@ -128,90 +129,91 @@
 #define ERROR 264
 #define ECHO 265
 #define INCBIN 266
-#define INCWORD 267
-#define RES 268
-#define WORD 269
-#define BYTE 270
-#define LDA 271
-#define LDX 272
-#define LDY 273
-#define STA 274
-#define STX 275
-#define STY 276
-#define AND 277
-#define ORA 278
-#define EOR 279
-#define ADC 280
-#define SBC 281
-#define CMP 282
-#define CPX 283
-#define CPY 284
-#define TSX 285
-#define TXS 286
-#define PHA 287
-#define PLA 288
-#define PHP 289
-#define PLP 290
-#define SEI 291
-#define CLI 292
-#define NOP 293
-#define TYA 294
-#define TAY 295
-#define TXA 296
-#define TAX 297
-#define CLC 298
-#define SEC 299
-#define RTS 300
-#define JSR 301
-#define JMP 302
-#define BEQ 303
-#define BNE 304
-#define BCC 305
-#define BCS 306
-#define BPL 307
-#define BMI 308
-#define BVC 309
-#define BVS 310
-#define INX 311
-#define DEX 312
-#define INY 313
-#define DEY 314
-#define INC 315
-#define DEC 316
-#define LSR 317
-#define ASL 318
-#define ROR 319
-#define ROL 320
-#define SYMBOL 321
-#define STRING 322
-#define LAND 323
-#define LOR 324
-#define LNOT 325
-#define LPAREN 326
-#define RPAREN 327
-#define COMMA 328
-#define COLON 329
-#define X 330
-#define Y 331
-#define HASH 332
-#define PLUS 333
-#define MINUS 334
-#define MULT 335
-#define DIV 336
-#define MOD 337
-#define LT 338
-#define GT 339
-#define EQ 340
-#define NEQ 341
-#define ASSIGN 342
-#define NUMBER 343
-#define vNEG 344
+#define INCLEN 267
+#define INCWORD 268
+#define RES 269
+#define WORD 270
+#define BYTE 271
+#define LDA 272
+#define LDX 273
+#define LDY 274
+#define STA 275
+#define STX 276
+#define STY 277
+#define AND 278
+#define ORA 279
+#define EOR 280
+#define ADC 281
+#define SBC 282
+#define CMP 283
+#define CPX 284
+#define CPY 285
+#define TSX 286
+#define TXS 287
+#define PHA 288
+#define PLA 289
+#define PHP 290
+#define PLP 291
+#define SEI 292
+#define CLI 293
+#define NOP 294
+#define TYA 295
+#define TAY 296
+#define TXA 297
+#define TAX 298
+#define CLC 299
+#define SEC 300
+#define RTS 301
+#define JSR 302
+#define JMP 303
+#define BEQ 304
+#define BNE 305
+#define BCC 306
+#define BCS 307
+#define BPL 308
+#define BMI 309
+#define BVC 310
+#define BVS 311
+#define INX 312
+#define DEX 313
+#define INY 314
+#define DEY 315
+#define INC 316
+#define DEC 317
+#define LSR 318
+#define ASL 319
+#define ROR 320
+#define ROL 321
+#define SYMBOL 322
+#define STRING 323
+#define LAND 324
+#define LOR 325
+#define LNOT 326
+#define LPAREN 327
+#define RPAREN 328
+#define COMMA 329
+#define COLON 330
+#define X 331
+#define Y 332
+#define HASH 333
+#define PLUS 334
+#define MINUS 335
+#define MULT 336
+#define DIV 337
+#define MOD 338
+#define LT 339
+#define GT 340
+#define EQ 341
+#define NEQ 342
+#define ASSIGN 343
+#define NUMBER 344
+#define vNEG 345
 
 
 
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 137 "asm.y"
+#line 138 "asm.y"
 typedef union YYSTYPE {
     i32 num;
     char *str;
@@ -219,7 +221,7 @@ typedef union YYSTYPE {
     struct expr *expr;
 } YYSTYPE;
 /* Line 1447 of yacc.c.  */
-#line 223 "asm.tab.h"
+#line 225 "asm.tab.h"
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1

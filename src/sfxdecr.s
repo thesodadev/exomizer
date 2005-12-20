@@ -241,7 +241,7 @@ file2_start_hook = 1
 	c_effect_char < v_safety_addr &&
         (file2start - c_effect_char < 257 ||
          file2start - v_safety_addr > 256))
-transfer_len = file2start - c_effect_char
+raw_transfer_len = file2start - c_effect_char
 lowest_addr = c_effect_char
     .ENDIF
   .ENDMACRO
@@ -691,16 +691,23 @@ file2start:
 .IF(.DEFINED(file2_start_hook))
   .INCLUDE("file2_start_hook")
 .ENDIF
-.IF(!.DEFINED(transfer_len))
-	.IF(v_safety_addr > file2start)
-transfer_len = 0
+.IF(!.DEFINED(raw_transfer_len))
+  .IF(v_safety_addr > file2start)
+raw_transfer_len = 0
 lowest_addr = file2start
-	.ELSE
-transfer_len = file2start - v_safety_addr
+  .ELSE
+raw_transfer_len = file2start - v_safety_addr
 lowest_addr = v_safety_addr
-	.ENDIF
+  .ENDIF
 .ENDIF
-	.INCBIN("crunched_data", transfer_len + 2, -2)
+
+max_transfer_len = .INCLEN("crunched_data") - 2
+.IF(raw_transfer_len > max_transfer_len)
+transfer_len = max_transfer_len
+.ELSE
+transfer_len = raw_transfer_len
+.ENDIF
+	.INCBIN("crunched_data", transfer_len + 2)
 	.WORD(v_highest_addr % 65536)
 file2end:
 ; -------------------------------------------------------------------

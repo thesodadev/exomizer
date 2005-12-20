@@ -95,6 +95,7 @@ struct atom *new_res(struct expr *len, struct expr *value);
 struct atom *new_incbin(const char *name, struct expr *skip, struct expr *len);
 
 struct expr *new_is_defined(const char *symbol);
+struct expr *new_expr_inclen(const char *name);
 struct expr *new_expr_incword(const char *name, struct expr *skip);
 
 void new_symbol(const char *symbol, i32 value);
