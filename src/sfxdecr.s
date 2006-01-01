@@ -607,12 +607,9 @@ zp_hi_bits = $9f
 	.ORG(c_basic_start)
 	.WORD(basic_end, 20)
 	.BYTE($9e, decr_start / 1000 % 10 + 48, decr_start / 100 % 10 + 48)
-	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0)
+	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0, 0, 0)
 basic_end:
 ; -------------------------------------------------------------------
-    .IF(r_target == 4 || r_target == 128)
-	  .BYTE(0, 0)
-    .ENDIF
 decr_start:
   .ENDIF
 .ELIF(r_target == $a8)
@@ -669,13 +666,12 @@ zp_dest_hi = zp_bitbuf + 2	; dest addr hi
 ; -------------------------------------------------------------------
 ; -- start of stage 1 -----------------------------------------------
 ; -------------------------------------------------------------------
-	ldy #$00
 	.IF(.DEFINED(enter_hook))
 	  .INCLUDE("enter_hook")
 	.ENDIF
 	tsx
 cploop:
-	lda file2end - 4,x
+	lda stage2end - 4,x
 	sta $0100 - 4,x
 	dex
 	bne cploop
@@ -701,18 +697,98 @@ lowest_addr = v_safety_addr
   .ENDIF
 .ENDIF
 
-max_transfer_len = .INCLEN("crunched_data") - 2
+max_transfer_len = .INCLEN("crunched_data") - 5
 .IF(raw_transfer_len > max_transfer_len)
 transfer_len = max_transfer_len
 .ELSE
 transfer_len = raw_transfer_len
 .ENDIF
-	.INCBIN("crunched_data", transfer_len + 2)
-	.WORD(v_highest_addr % 65536)
+	.INCBIN("crunched_data", transfer_len + 2, max_transfer_len - transfer_len)
 file2end:
 ; -------------------------------------------------------------------
 ; -- end of file part 2 ---------------------------------------------
 ; -------------------------------------------------------------------
+; -------------------------------------------------------------------
+; -- start of stage 2 -----------------------------------------------
+; -------------------------------------------------------------------
+stage2start:
+.IF(transfer_len < 257)
+	ldy #transfer_len % 256
+copy1_loop:
+  .IF(transfer_len == 256)
+	lda file1start,y
+	sta lowest_addr,y
+  .ELSE
+	lda file1start - 1,y
+	sta lowest_addr - 1,y
+  .ENDIF
+	dey
+	bne copy1_loop
+.ELSE
+	ldx #transfer_len / 256
+	ldy #transfer_len % 256
+	bne copy2_loop1
+copy2_loop2:
+	dex
+	dec lda_fixup + 2
+	dec sta_fixup + 2
+copy2_loop1:
+	dey
+lda_fixup:
+	lda file1start + transfer_len / 256 * 256,y
+sta_fixup:
+	sta v_safety_addr + transfer_len / 256 * 256,y
+	tya
+	bne copy2_loop1
+	txa
+	bne copy2_loop2
+.ENDIF
+; -------------------------------------------------------------------
+table_gen:
+tabl_bi = i_table_addr
+tabl_lo = i_table_addr + 52
+tabl_hi = i_table_addr + 104
+	inx
+	tya
+	and #$0f
+	beq shortcut		; starta på ny sekvens
+
+	txa			; this clears reg a
+	lsr			; and sets the carry flag
+	ldx tabl_bi-1,y
+rolle:
+	rol
+	rol <zp_hi_bits
+	dex
+	bpl rolle		; c = 0 after this (rol zp_hi_bits)
+
+	adc tabl_lo-1,y
+	tax
+
+	lda <zp_hi_bits
+	adc tabl_hi-1,y
+shortcut:
+	sta tabl_hi,y
+	txa
+	sta tabl_lo,y
+
+	ldx #4
+	jsr get_bits		; clears x-reg.
+	sta tabl_bi,y
+	iny
+	cpy #52
+	bne table_gen
+	ldy #0
+	.IF(.DEFINED(stage2_exit_hook))
+	  .INCLUDE("stage2_exit_hook")
+	.ENDIF
+	jmp begin
+; -------------------------------------------------------------------
+; -- end of stage 2 -------------------------------------------------
+; -------------------------------------------------------------------
+	.INCBIN("crunched_data", max_transfer_len + 2, 1)
+	.WORD(v_highest_addr % 65536)
+stage2end:
 	.ORG($0100)
 ; -------------------------------------------------------------------
 ; -- start of stage 3 -----------------------------------------------
@@ -754,7 +830,7 @@ literal_get_byte:
 get_byte_skip_hi:
 	dec get_byte_fixup + 1
 get_byte_fixup:
-	lda file2end - 3
+	lda lowest_addr + max_transfer_len
 	bcc literal_byte_gotten
 	ror
 	sta <zp_bitbuf
@@ -919,7 +995,7 @@ stage3end:
 ; -------------------------------------------------------------------
 ; -- end of stage 3 -------------------------------------------------
 ; -------------------------------------------------------------------
-	.ORG(file2end + stage3end - stage3start)
+        .ORG(stage2end + stage3end - stage3start)
 ; -------------------------------------------------------------------
 ; -- start of file part 1 -------------------------------------------
 ; -------------------------------------------------------------------
@@ -928,86 +1004,6 @@ file1start:
 file1end:
 ; -------------------------------------------------------------------
 ; -- end of file part 1 ---------------------------------------------
-; -------------------------------------------------------------------
-; -------------------------------------------------------------------
-; -- start of stage 2 -----------------------------------------------
-; -------------------------------------------------------------------
-tabl_bi = i_table_addr
-tabl_lo = i_table_addr + 52
-tabl_hi = i_table_addr + 104
-stage2start:
-	inx
-	tya
-	and #$0f
-	beq shortcut		; starta på ny sekvens
-
-	txa			; this clears reg a
-	lsr			; and sets the carry flag
-	ldx tabl_bi-1,y
-rolle:
-	rol
-	rol <zp_hi_bits
-	dex
-	bpl rolle		; c = 0 after this (rol zp_hi_bits)
-
-	adc tabl_lo-1,y
-	tax
-
-	lda <zp_hi_bits
-	adc tabl_hi-1,y
-shortcut:
-	sta tabl_hi,y
-	txa
-	sta tabl_lo,y
-
-	ldx #4
-	jsr get_bits		; clears x-reg.
-	sta tabl_bi,y
-	iny
-	cpy #52
-	bne stage2start
-	.IF(transfer_len == 0)
-	ldy #0
-	.ELSE
-	  .IF(transfer_len < 257)
-	ldy #transfer_len % 256
-copy1_loop:
-	    .IF(transfer_len == 256)
-	lda file1start,y
-	sta lowest_addr,y
-	    .ELSE
-	lda file1start - 1,y
-	sta lowest_addr - 1,y
-	    .ENDIF
-	dey
-	bne copy1_loop
-	  .ELSE
-	ldx #transfer_len / 256
-	ldy #transfer_len % 256
-	bcs copy2_start
-copy2_loop2:
-	dex
-	dec lda_fixup + 2
-	dec sta_fixup + 2
-copy2_loop1:
-	dey
-lda_fixup:
-	lda file1start + transfer_len / 256 * 256,y
-sta_fixup:
-	sta v_safety_addr + transfer_len / 256 * 256,y
-copy2_start:
-	tya
-	bne copy2_loop1
-	txa
-	bne copy2_loop2
-	  .ENDIF
-	.ENDIF
-	.IF(.DEFINED(stage2_exit_hook))
-	  .INCLUDE("stage2_exit_hook")
-	.ENDIF
-	jmp begin
-; -------------------------------------------------------------------
-; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
 
 ; -------------------------------------------------------------------
