@@ -236,8 +236,18 @@ atari target doesn't support decrunching into extended memory.
 The raw command can both crunch and decrunch both forward and backward. It also
 handles generic files without any of the above mentioned restrictions. There's
 no hardcoded limit in file size but it gets increasingly slow with larger files
-so there's a practical limit of about one MB. The output file format of this
+so there's a practical limit of about 1MB. The output file format of this
 command is a generic file.
+
+It is possible to give an optional offset and length for the infile like this:
+<infile>[,offset[,length]]. Negative offsets are allowed but will be calculated
+from the end of the file.
+
+To skip the first two bytes but read all the rest of a file do like this:
+$ exomizer raw <infile>,2 -o <outfile>
+
+To read 10 bytes at offset 13 from the end of the file do like this:
+$ exomizer raw <infile>,-13,10 -o <outfile>
 
 -------------------------------------------------------------------------------
 -- The included decruncher source code with examples --------------------------

@@ -184,6 +184,100 @@ open_file(char *name, int *load_addr)
     return in;
 }
 
+static void load_plain_file(const char *name, struct membuf *mb)
+{
+    int file_len;
+    int read_len;
+    int offset = 0;
+    int len = -1;
+    FILE *in;
+
+    in = fopen(name, "rb");
+    if(in == NULL)
+    {
+        char *p = strrchr(name, ',');
+        *p = '\0';
+        if(str_to_int(p + 1, &offset))
+        {
+            LOG(LOG_ERROR, ("Error: invalid value for plain file offset.\n"));
+            exit(-1);
+        }
+        in = fopen(name, "rb");
+        if(in == NULL)
+        {
+            p = strrchr(name, ',');
+            len = offset;
+            if(len < 0)
+            {
+                LOG(LOG_ERROR, ("Error, value for plain file "
+                                "len must not be negative.\n"));
+                exit(-1);
+            }
+            *p = '\0';
+            if(str_to_int(p + 1, &offset))
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid value for plain file offset.\n"));
+                exit(-1);
+            }
+            in = fopen(name, "rb");
+            if(in == NULL)
+            {
+                /* really not found */
+                LOG(LOG_ERROR, ("Error: file not found.\n"));
+                exit(-1);
+            }
+        }
+    }
+    /* get the real length of the file and validate the offset*/
+    if(fseek(in, 0, SEEK_END))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to EOF.\n"));
+        fclose(in);
+        exit(-1);
+    }
+    file_len = ftell(in);
+    if(offset < 0)
+    {
+        offset += file_len;
+    }
+    if(len < 0)
+    {
+        len = file_len - offset;
+    }
+    if(fseek(in, offset, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
+        fclose(in);
+        exit(-1);
+    }
+    if(offset + len > file_len)
+    {
+        LOG(LOG_ERROR, ("Error: can't read %d bytes from offset %d.\n",
+                        len, offset));
+        fclose(in);
+        exit(-1);
+    }
+    LOG(LOG_VERBOSE, ("Reading %d bytes from offset %d.\n", len, offset));
+    do
+    {
+        char buf[1024];
+        int r = 1024 < len? 1024: len;
+        read_len = fread(buf, 1, r, in);
+        if(read_len < r)
+        {
+            LOG(LOG_ERROR, ("Error: tried to read %d bytes but got %d.\n",
+                            r, read_len));
+            fclose(in);
+            exit(-1);
+        }
+        membuf_append(mb, buf, r);
+        len -= r;
+    }
+    while(len > 0);
+    fclose(in);
+}
+
 static void load_xex(unsigned char mem[65536], FILE *in,
                      int *startp, int *endp, int *runp)
 {
@@ -218,13 +312,14 @@ static void load_xex(unsigned char mem[65536], FILE *in,
         {
             /* init vector */
             jsr = get_word(in);
+            LOG(LOG_VERBOSE, ("Found xex initad $%04X.\n", jsr));
             continue;
         }
         if(start == 0x2e0 && end == 0x2e1)
         {
             /* run vector */
             run = get_word(in);
-            LOG(LOG_DEBUG, ("Found xex runad %04X.\n", run));
+            LOG(LOG_VERBOSE, ("Found xex runad $%04X.\n", run));
             continue;
         }
         ++end;
@@ -1198,7 +1293,7 @@ void raw(const char *appl, int argc, char *argv[])
     membuf_init(inbuf);
     membuf_init(outbuf);
 
-    read_file(infilev[0], inbuf);
+    load_plain_file(infilev[0], inbuf);
 
     if(decrunch_mode)
     {
