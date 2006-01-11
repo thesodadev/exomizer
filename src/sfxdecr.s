@@ -607,8 +607,9 @@ zp_hi_bits = $9f
 	.ORG(c_basic_start)
 	.WORD(basic_end, 20)
 	.BYTE($9e, decr_start / 1000 % 10 + 48, decr_start / 100 % 10 + 48)
-	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0, 0, 0)
+	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0)
 basic_end:
+	.BYTE(0,0)
 ; -------------------------------------------------------------------
 decr_start:
   .ENDIF
@@ -737,7 +738,7 @@ copy2_loop1:
 lda_fixup:
 	lda file1start + transfer_len / 256 * 256,y
 sta_fixup:
-	sta v_safety_addr + transfer_len / 256 * 256,y
+	sta lowest_addr + transfer_len / 256 * 256,y
 	tya
 	bne copy2_loop1
 	txa
