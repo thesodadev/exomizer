@@ -713,7 +713,9 @@ file2end:
 ; -- start of stage 2 -----------------------------------------------
 ; -------------------------------------------------------------------
 stage2start:
-.IF(transfer_len < 257)
+.IF(transfer_len == 0)
+	ldy #0
+.ELIF(transfer_len < 257)
 	ldy #transfer_len % 256
 copy1_loop:
   .IF(transfer_len == 256)
