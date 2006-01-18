@@ -70,12 +70,27 @@ int vec_count(struct vec *p)
 
 void *vec_get(struct vec *p, int index)
 {
-    char *buf;
+    char *buf = NULL;
 
-    buf = (char *) membuf_get(&p->buf);
-    buf += index * p->elsize;
+    if(index < vec_count(p))
+    {
+        buf = (char *) membuf_get(&p->buf);
+        buf += index * p->elsize;
+    }
 
     return (void *)buf;
+}
+
+void *vec_set(struct vec *p, int index, const void *in)
+{
+    void *buf = NULL;
+
+    if(index < vec_count(p))
+    {
+        buf = membuf_memcpy(&p->buf, index * p->elsize, in, p->elsize);
+    }
+
+    return buf;
 }
 
 void *vec_insert(struct vec *p, int index, const void *in)

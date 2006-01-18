@@ -107,12 +107,15 @@ int membuf_trim(struct membuf *sb, int pos)
     return sb->len;
 }
 
-void *membuf_memcpy(struct membuf *sb, const void *mem, int len)
+void *membuf_memcpy(struct membuf *sb, int offset, const void *mem, int len)
 {
-    membuf_atleast(sb, len);
-    memcpy(sb->buf, mem, len);
-    return sb->buf;
+    char *buf;
+    membuf_atleast(sb, offset + len);
+    buf = (char*)sb->buf + offset;
+    memcpy(buf, mem, len);
+    return buf;
 }
+
 void *membuf_append(struct membuf *sb, const void *mem, int len)
 {
     int newlen;

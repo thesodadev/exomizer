@@ -1,8 +1,8 @@
-#ifndef ALREADY_INCLUDED_MEMBUF
-#define ALREADY_INCLUDED_MEMBUF
+#ifndef ALREADY_INCLUDED_MAP
+#define ALREADY_INCLUDED_MAP
 
 /*
- * Copyright (c) 2002 - 2005 Magnus Lind.
+ * Copyright (c) 2006 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -28,32 +28,32 @@
  *
  */
 
-#define STATIC_MEMBUF_INIT {0, 0, 0}
+#include "vec.h"
 
-struct membuf {
-    void *buf;
-    int len;
-    int size;
+struct map_entry {
+    const char *key;
+    void *value;
 };
 
-void membuf_init(struct membuf *sb);
-void membuf_clear(struct membuf *sb);
-void membuf_free(struct membuf *sb);
-void membuf_new(struct membuf **sbp);
-void membuf_delete(struct membuf **sbp);
-int membuf_memlen(struct membuf *sb);
-void membuf_truncate(struct membuf *sb, int len);
+#define STATIC_MAP_INIT {STATIC_VEC_INIT(sizeof(struct map_entry))}
 
-/* returns the new len or < 0 if failure */
-int membuf_trim(struct membuf *sb, int pos);
+struct map {
+    struct vec vec;
+};
 
-void *membuf_memcpy(struct membuf *sb, int offset, const void *mem, int len);
-void *membuf_append(struct membuf *sb, const void *mem, int len);
-void *membuf_append_char(struct membuf *sb, char c);
-void *membuf_insert(struct membuf *sb, int offset, const void *mem, int len);
-void membuf_atleast(struct membuf *sb, int size);
-void membuf_atmost(struct membuf *sb, int size);
-int membuf_get_size(struct membuf *sb);
-void *membuf_get(struct membuf *sb);
+struct map_iterator {
+    struct vec_iterator vec;
+};
+
+void map_init(struct map *m);
+void map_clear(struct map *m);
+void map_free(struct map *m);
+
+void *map_put(struct map *m, const char *key, void *value);
+void *map_get(struct map *m, const char *key);
+void *map_remove(struct map *m, const char *key);
+
+void map_get_iterator(struct map *p, struct map_iterator *i);
+const struct map_entry *map_iterator_next(struct map_iterator *i);
 
 #endif
