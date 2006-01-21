@@ -121,6 +121,46 @@ void map_put_all(struct map *m, struct map *source)
     }
 }
 
+int map_contains(struct map *m1, struct map *m2, cb_cmp *f)
+{
+    struct map_iterator i[1];
+    const struct map_entry *e;
+
+    for(map_get_iterator(m2, i); (e = map_iterator_next(i)) != NULL;)
+    {
+        int pos;
+        pos = vec_find(&m1->vec, map_entry_cmp, e);
+        if(pos == -1)
+        {
+            /* error, find failed */
+            LOG(LOG_ERROR, ("map_put: vec_find() internal error\n"));
+            exit(1);
+        }
+        if(pos < 0)
+        {
+            /* not found, break */
+            break;
+        }
+        else if(f != NULL)
+        {
+            struct map_entry *e2;
+            /* compare the values too */
+            e2 = vec_get(&m1->vec, pos);
+            if(f(e2->value, e->value))
+            {
+                /* values not equal, break */
+                break;
+            }
+        }
+    }
+    return e == NULL;
+}
+
+int map_equals(struct map *m1, struct map *m2, cb_cmp *f)
+{
+    return map_contains(m1, m2, f) && map_contains(m2, m1, f);
+}
+
 void map_get_iterator(struct map *m, struct map_iterator *i)
 {
     vec_get_iterator(&m->vec, &i->vec);

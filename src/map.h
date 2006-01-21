@@ -29,6 +29,7 @@
  */
 
 #include "vec.h"
+#include "callback.h"
 
 struct map_entry {
     const char *key;
@@ -51,7 +52,15 @@ void map_free(struct map *m);
 
 void *map_put(struct map *m, const char *key, void *value);
 void *map_get(struct map *m, const char *key);
-void *map_remove(struct map *m, const char *key);
+void map_put_all(struct map *m, struct map *source);
+
+int map_contains(struct map *m1, struct map *m2, cb_cmp *f);
+
+/**
+ * If f is NULL, only the keys will be compared.
+ * returns -1 on error, 1 on equality and 0 otherwise,
+ **/
+int map_equals(struct map *m1, struct map *m2, cb_cmp *f);
 
 void map_get_iterator(struct map *p, struct map_iterator *i);
 const struct map_entry *map_iterator_next(struct map_iterator *i);

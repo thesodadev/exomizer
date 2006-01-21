@@ -31,33 +31,14 @@
 #include "chunkpool.h"
 #include "named_buffer.h"
 #include "pc.h"
+#include "map.h"
 
 #include <stdlib.h>
 
 static struct chunkpool s_atom_pool[1];
 static struct chunkpool s_vec_pool[1];
-static struct vec s_sym_table[1];
+static struct map s_sym_table[1];
 static const char *s_macro_name;
-
-struct sym_entry
-{
-    const char *symbol;
-    struct expr *expr;
-};
-
-static int sym_entry_cmp(const void *a, const void *b)
-{
-    struct sym_entry *sym_a;
-    struct sym_entry *sym_b;
-    int val;
-
-    sym_a = (struct sym_entry*)a;
-    sym_b = (struct sym_entry*)b;
-
-    val = strcmp(sym_a->symbol, sym_b->symbol);
-
-    return val;
-}
 
 void scanner_init(void);
 void scanner_free(void);
@@ -68,7 +49,7 @@ void parse_init()
     chunkpool_init(s_atom_pool, sizeof(struct atom));
     chunkpool_init(s_vec_pool, sizeof(struct vec));
     expr_init();
-    vec_init(s_sym_table, sizeof(struct sym_entry));
+    map_init(s_sym_table);
     pc_unset();
     named_buffer_init();
 }
@@ -84,7 +65,7 @@ void parse_free()
     chunkpool_free(s_atom_pool);
     chunkpool_free2(s_vec_pool, (cb_free*)free_vec_pool);
     expr_free();
-    vec_free(s_sym_table, NULL);
+    map_free(s_sym_table);
     scanner_free();
 }
 
@@ -113,77 +94,36 @@ int is_valid_ui16(i32 value)
     return (value >= -32768 && value <= 65535);
 }
 
-void dump_sym_entry(int level, struct sym_entry *se)
-{
-    LOG(level, ("sym_entry 0x%08X symbol %s, expr 0x%08X\n",
-                (u32)se, se->symbol, (u32)se->expr));
-}
-
 struct expr *new_is_defined(const char *symbol)
 {
-    struct expr *val;
-    struct sym_entry e[1];
-    int pos;
-    int expr_val = 0;
-
-    e->symbol = symbol;
-    pos = vec_find(s_sym_table, sym_entry_cmp, e);
-    if(pos >= 0)
-    {
-        /* found */
-        expr_val = 1;
-    }
-    val = new_expr_number(expr_val);
-    return val;
+    int expr_val = (map_get(s_sym_table, symbol) != NULL);
+    return new_expr_number(expr_val);
 }
 
 void new_symbol_expr(const char *symbol, struct expr *arg)
 {
-    struct sym_entry e[1];
-    struct sym_entry *se;
-    int pos;
-
-    e->symbol = symbol;
-    pos = vec_find(s_sym_table, sym_entry_cmp, e);
-    if(pos > -1)
+    if(map_put(s_sym_table, symbol, arg) != NULL)
     {
         /* error, symbol redefinition not allowed */
         LOG(LOG_ERROR, ("not allowed to redefine symbol %s\n", symbol));
         exit(1);
     }
-    if(pos == -1)
-    {
-        /* error, find failed */
-        LOG(LOG_ERROR, ("new_symbol_expr: vec_find() internal error\n"));
-        exit(1);
-    }
-    e->expr = arg;
-
-    se = vec_insert(s_sym_table, -(pos + 2), e);
-    LOG(LOG_DEBUG, ("creating symdef: "));
-    dump_sym_entry(LOG_DEBUG, se);
 }
 
 void new_symbol(const char *symbol, i32 value)
 {
-    struct expr *e;
-
-    e = new_expr_number(value);
+    struct expr *e = new_expr_number(value);
     new_symbol_expr(symbol, e);
 }
 
 const char *find_symref(const char *symbol, struct expr **expp)
 {
-    struct sym_entry e[1];
-    struct sym_entry *ep;
     struct expr *exp;
-    int pos;
     const char *p;
 
     p = NULL;
-    e->symbol = symbol;
-    pos = vec_find(s_sym_table, sym_entry_cmp, e);
-    if(pos < -1)
+    exp = map_get(s_sym_table, symbol);
+    if(exp == NULL)
     {
         static char buf[1024];
         /* error, symbol not found */
@@ -192,17 +132,6 @@ const char *find_symref(const char *symbol, struct expr **expp)
         LOG(LOG_DEBUG, ("%s\n", p));
         return p;
     }
-    if(pos == -1)
-    {
-        /* error, find failed */
-        LOG(LOG_ERROR, ("find_symref: vec_find() internal error\n"));
-        exit(-1);
-    }
-    ep = vec_get(s_sym_table, pos);
-    exp = ep->expr;
-
-    LOG(LOG_DEBUG, ("found: "));
-    dump_sym_entry(LOG_DEBUG, ep);
 
     if(expp != NULL)
     {
@@ -214,41 +143,18 @@ const char *find_symref(const char *symbol, struct expr **expp)
 
 void new_label(const char *label)
 {
-    struct sym_entry e[1];
-    struct sym_entry *se;
-    int pos;
-
-    e->symbol = label;
-    pos = vec_find(s_sym_table, sym_entry_cmp, e);
-    if(pos > -1)
-    {
-        /* error, symbol redefinition not allowed */
-        LOG(LOG_ERROR, ("not allowed to redefine label %s\n", label));
-        exit(1);
-    }
-    if(pos == -1)
-    {
-        /* error, find failed */
-        LOG(LOG_ERROR, ("new_label: vec_find() internal error\n"));
-        exit(1);
-    }
-
-    e->expr = pc_get();
-
-    se = vec_insert(s_sym_table, -(pos + 2), e);
-    LOG(LOG_DEBUG, ("creating label: "));
-    dump_sym_entry(LOG_DEBUG, se);
+    struct expr *e = pc_get();
+    new_symbol_expr(label, e);
 }
 
-static void dump_sym_table(int level, struct vec *v)
+static void dump_sym_table(int level, struct map *m)
 {
-    struct vec_iterator i[1];
-    struct sym_entry *se;
+    struct map_iterator i[1];
+    const struct map_entry *e;
 
-    vec_get_iterator(v, i);
-    while((se = vec_iterator_next(i)) != NULL)
+    for(map_get_iterator(m, i); (e = map_iterator_next(i)) != NULL;)
     {
-        LOG(level, ("sym_table: %s\n", se->symbol));
+        LOG(level, ("sym_table: %s\n", e->key));
     }
 }
 
