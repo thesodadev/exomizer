@@ -2883,7 +2883,7 @@ yyerror (char *s)
 
 void asm_set_source(struct membuf *buffer);
 
-int assemble(struct membuf *source, struct membuf *dest)
+int assembleSinglePass(struct membuf *source, struct membuf *dest)
 {
     int val;
 
@@ -2895,7 +2895,6 @@ int assemble(struct membuf *source, struct membuf *dest)
     {
         output_atoms(dest, asm_atoms);
     }
-    parse_free();
     vec_free(asm_atoms, NULL);
     return val;
 }

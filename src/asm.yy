@@ -192,11 +192,16 @@ y		return Y;
 <SKIP_ALL>\r\n|\n	++num_lines;
 <SKIP_ALL>.
 
+<QUOTED_STRING>\r\n|\n	{
+    ++num_lines;
+    yylval.str = strdupped_get(yytext);
+    return STRING;
+}
+
 <QUOTED_STRING>[^\"]*	{
     yylval.str = strdupped_get(yytext);
     return STRING;
 }
-<QUOTED_STRING>\r\n|\n	++num_lines;
 <QUOTED_STRING>\"	BEGIN(INITIAL);
 
 <SKIP_LINE>\r\n|\n	{ ++num_lines; BEGIN(INITIAL); }
@@ -215,7 +220,7 @@ y		return Y;
 
 %%
 
-void scanner_init()
+void scanner_init(void)
 {
     vec_init(strdupped, sizeof(char*));
 }
@@ -259,7 +264,7 @@ static int strdupped_cmp(const void *a, const void *b)
     return strcmp(c, d);
 }
 
-void scanner_free()
+void scanner_free(void)
 {
     vec_free(strdupped, strdupped_free);
 }

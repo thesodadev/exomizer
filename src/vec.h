@@ -42,7 +42,7 @@ struct vec {
 };
 
 struct vec_iterator {
-    struct vec *vec;
+    const struct vec *vec;
     int pos;
 };
 
@@ -50,8 +50,8 @@ void vec_init(struct vec *p, size_t elsize);
 void vec_clear(struct vec *p, cb_free * f);
 void vec_free(struct vec *p, cb_free * f);
 
-int vec_count(struct vec *p);
-void *vec_get(struct vec *p, int index);
+int vec_count(const struct vec *p);
+void *vec_get(const struct vec *p, int index);
 
 /**
  * Returns a pointer to the set area or null if the index is out of
@@ -68,13 +68,13 @@ void *vec_push(struct vec *p, const void *in);
  * -1 on error or a negative number that can be converted to where
  * it should have been if it had been inserted. insert_pos = -(val + 2)
  **/
-int vec_find(struct vec *p, cb_cmp * f, const void *key);
+int vec_find(const struct vec *p, cb_cmp * f, const void *key);
 
 /**
  * Gets a pointer to the element that the key points to.
  * Returns a pointer that may be null if not found.
  **/
-void *vec_find2(struct vec *p, cb_cmp * f, const void *key);
+void *vec_find2(const struct vec *p, cb_cmp * f, const void *key);
 
 /**
  * Inserts the in element in its correct position in a sorted vector.
@@ -85,7 +85,7 @@ void *vec_find2(struct vec *p, cb_cmp * f, const void *key);
 int vec_insert_uniq(struct vec *p, cb_cmp * f, const void *in, void **out);
 void vec_sort(struct vec *p, cb_cmp * f);
 
-void vec_get_iterator(struct vec *p, struct vec_iterator *i);
+void vec_get_iterator(const struct vec *p, struct vec_iterator *i);
 void *vec_iterator_next(struct vec_iterator *i);
 
 

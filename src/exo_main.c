@@ -824,16 +824,16 @@ static void do_effect(const char *appl, int no_effect, char *fast, char *slow)
     }
     if(no_effect)
     {
-        new_symbol("i_effect", -1);
+        set_initial_symbol("i_effect", -1);
     }
     else if(fast != NULL)
     {
         int value;
         if(str_to_int(fast, &value) == 0)
         {
-            if(value == 1) new_symbol("i_effect", 1);
-            else if(value == 2) new_symbol("i_effect", 2);
-            else if(value == 3) new_symbol("i_effect", 3);
+            if(value == 1) set_initial_symbol("i_effect", 1);
+            else if(value == 2) set_initial_symbol("i_effect", 2);
+            else if(value == 3) set_initial_symbol("i_effect", 3);
             else
             {
                 LOG(LOG_ERROR,
@@ -845,11 +845,11 @@ static void do_effect(const char *appl, int no_effect, char *fast, char *slow)
         }
         else
         {
-            new_symbol("i_effect_custom", 1);
-            fx = new_named_buffer("effect_custom");
+            set_initial_symbol("i_effect_custom", 1);
+            fx = new_initial_named_buffer("effect_custom");
             membuf_append(fx, fast, strlen(fast));
         }
-        new_symbol("i_effect_speed", 1);
+        set_initial_symbol("i_effect_speed", 1);
     }
     else if(slow != NULL)
     {
@@ -862,16 +862,16 @@ static void do_effect(const char *appl, int no_effect, char *fast, char *slow)
         }
         else
         {
-            new_symbol("i_effect_custom", 1);
-            fx = new_named_buffer("effect_custom");
+            set_initial_symbol("i_effect_custom", 1);
+            fx = new_initial_named_buffer("effect_custom");
             membuf_append(fx, slow, strlen(slow));
-            new_symbol("i_effect_speed", 0);
+            set_initial_symbol("i_effect_speed", 0);
         }
     }
     else
     {
-        new_symbol("i_effect", 0);
-        new_symbol("i_effect_speed", 0);
+        set_initial_symbol("i_effect", 0);
+        set_initial_symbol("i_effect_speed", 0);
     }
 }
 
@@ -1028,7 +1028,7 @@ void sfx(const char *appl, int argc, char *argv[])
                 /* This is ugly, we really should allocate our own
                  * copy of the symbol string. */
                 *p = '\0';
-                new_symbol(flagarg, value);
+                set_initial_symbol(flagarg, value);
             }
             else
             {
@@ -1047,7 +1047,7 @@ void sfx(const char *appl, int argc, char *argv[])
 
     membuf_init(buf1);
     in = buf1;
-    out = new_named_buffer("crunched_data");
+    out = new_initial_named_buffer("crunched_data");
 
     infilev = argv + flagind + 1;
     infilec = argc - flagind - 1;
@@ -1196,37 +1196,37 @@ void sfx(const char *appl, int argc, char *argv[])
         out = buf1;
         membuf_clear(out);
 
-        new_symbol("r_start_addr", sys_addr);
-        /*symbol_dump_resolved(LOG_NORMAL, "r_start_addr");*/
-        new_symbol("r_target", decr_target);
-        /*symbol_dump_resolved(LOG_NORMAL, "r_target");*/
+        set_initial_symbol("r_start_addr", sys_addr);
+        /*initial_symbol_dump( LOG_NORMAL, "r_start_addr");*/
+        set_initial_symbol("r_target", decr_target);
+        /*initial_symbol_dump( LOG_NORMAL, "r_target");*/
 
         if(sys_addr == -2)
         {
             /* only set this if its changed from the default. */
             if(basic_txt_start != targetp->basic_txt_start)
             {
-                new_symbol("i_basic_txt_start", basic_txt_start);
-                symbol_dump_resolved(LOG_DEBUG, "i_basic_txt_start");
+                set_initial_symbol("i_basic_txt_start", basic_txt_start);
+                initial_symbol_dump( LOG_DEBUG, "i_basic_txt_start");
             }
             /* only set this if we've been given a value for it. */
             if(basic_var_start != -1)
             {
-                new_symbol("i_basic_var_start", basic_var_start);
-                symbol_dump_resolved(LOG_DEBUG, "i_basic_var_start");
+                set_initial_symbol("i_basic_var_start", basic_var_start);
+                initial_symbol_dump(LOG_DEBUG, "i_basic_var_start");
             }
             /* only set this if we've been given a value for it. */
             if(basic_highest_addr != -1)
             {
-                new_symbol("i_basic_highest_addr", basic_highest_addr);
-                symbol_dump_resolved(LOG_DEBUG, "i_basic_highest_addr");
+                set_initial_symbol("i_basic_highest_addr", basic_highest_addr);
+                initial_symbol_dump(LOG_DEBUG, "i_basic_highest_addr");
             }
         }
 
         if(info->literal_sequences_used)
         {
-            new_symbol("i_literal_sequences_used", 1);
-            symbol_dump_resolved(LOG_DEBUG, "i_literal_sequences_used");
+            set_initial_symbol("i_literal_sequences_used", 1);
+            initial_symbol_dump(LOG_DEBUG, "i_literal_sequences_used");
         }
 
         if(assemble(source, out) != 0)

@@ -40,7 +40,7 @@ void vec_init(struct vec *p, size_t elsize)
 void vec_clear(struct vec *p, cb_free * f)
 {
     struct vec_iterator i;
-    void *d;
+    const void *d;
 
     vec_get_iterator(p, &i);
 
@@ -48,11 +48,12 @@ void vec_clear(struct vec *p, cb_free * f)
     {
         while ((d = vec_iterator_next(&i)) != NULL)
         {
-            f(d);
+            f((void*)d);
         }
     }
     membuf_clear(&p->buf);
     p->flags = VEC_FLAG_SORTED;
+
 }
 
 void vec_free(struct vec *p, cb_free * f)
@@ -61,14 +62,14 @@ void vec_free(struct vec *p, cb_free * f)
     membuf_free(&p->buf);
 }
 
-int vec_count(struct vec *p)
+int vec_count(const struct vec *p)
 {
     int count;
     count = membuf_memlen(&p->buf) / p->elsize;
     return count;
 }
 
-void *vec_get(struct vec *p, int index)
+void *vec_get(const struct vec *p, int index)
 {
     char *buf = NULL;
 
@@ -111,7 +112,7 @@ void *vec_push(struct vec *p, const void *in)
     return out;
 }
 
-int vec_find(struct vec *p, cb_cmp * f, const void *in)
+int vec_find(const struct vec *p, cb_cmp * f, const void *in)
 {
     int lo;
 
@@ -147,7 +148,7 @@ int vec_find(struct vec *p, cb_cmp * f, const void *in)
     return -(lo + 2);
 }
 
-void *vec_find2(struct vec *p, cb_cmp * f, const void *key)
+void *vec_find2(const struct vec *p, cb_cmp * f, const void *key)
 {
     void *out = NULL;
     int pos = vec_find(p, f, key);
@@ -194,7 +195,7 @@ void vec_sort(struct vec *p, cb_cmp * f)
 }
 
 
-void vec_get_iterator(struct vec *p, struct vec_iterator *i)
+void vec_get_iterator(const struct vec *p, struct vec_iterator *i)
 {
     i->vec = p;
     i->pos = 0;

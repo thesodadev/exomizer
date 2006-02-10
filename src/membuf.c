@@ -79,7 +79,7 @@ void membuf_delete(struct membuf **sbp)
     *sbp = sb;
 }
 
-int membuf_memlen(struct membuf *sb)
+int membuf_memlen(const struct membuf *sb)
 {
     return sb->len;
 }
@@ -207,11 +207,11 @@ void membuf_atmost(struct membuf *sb, int len)
     }
 }
 
-int membuf_get_size(struct membuf *sb)
+int membuf_get_size(const struct membuf *sb)
 {
     return sb->size;
 }
-void *membuf_get(struct membuf *sb)
+void *membuf_get(const struct membuf *sb)
 {
     return sb->buf;
 }

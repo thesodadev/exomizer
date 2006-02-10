@@ -88,7 +88,7 @@ void *map_put(struct map *m, const char *key, void *value)
     return prev_value;
 }
 
-void *map_get(struct map *m, const char *key)
+void *map_get(const struct map *m, const char *key)
 {
     struct map_entry e[1];
     int pos;
@@ -111,7 +111,7 @@ void *map_get(struct map *m, const char *key)
     return value;
 }
 
-void map_put_all(struct map *m, struct map *source)
+void map_put_all(struct map *m, const struct map *source)
 {
     struct map_iterator i[1];
     const struct map_entry *e;
@@ -121,7 +121,7 @@ void map_put_all(struct map *m, struct map *source)
     }
 }
 
-int map_contains(struct map *m1, struct map *m2, cb_cmp *f)
+int map_contains(const struct map *m1, const struct map *m2, cb_cmp *f)
 {
     struct map_iterator i[1];
     const struct map_entry *e;
@@ -156,12 +156,12 @@ int map_contains(struct map *m1, struct map *m2, cb_cmp *f)
     return e == NULL;
 }
 
-int map_equals(struct map *m1, struct map *m2, cb_cmp *f)
+int map_equals(const struct map *m1, const struct map *m2, cb_cmp *f)
 {
     return map_contains(m1, m2, f) && map_contains(m2, m1, f);
 }
 
-void map_get_iterator(struct map *m, struct map_iterator *i)
+void map_get_iterator(const struct map *m, struct map_iterator *i)
 {
     vec_get_iterator(&m->vec, &i->vec);
 }
