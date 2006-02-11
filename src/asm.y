@@ -132,6 +132,7 @@ static struct vec asm_atoms[1];
 %token EQ
 %token NEQ
 %token ASSIGN
+%token GUESS
 %token <num> NUMBER
 
 %union
@@ -143,6 +144,7 @@ static struct vec asm_atoms[1];
 }
 
 %right ASSIGN
+%right GUESS
 %left LOR
 %left LAND
 %nonassoc LT GT EQ
@@ -172,6 +174,7 @@ static struct vec asm_atoms[1];
 stmts:	stmts stmt | stmt;
 stmt:	SYMBOL COLON { new_label($1); } |
 	SYMBOL ASSIGN expr { new_symbol_expr($1, $3); } |
+	SYMBOL GUESS expr { new_symbol_expr_guess($1, $3); } |
         IF LPAREN lexpr RPAREN { push_if_state($3); } |
         ORG LPAREN expr RPAREN { set_org($3); } |
         ERROR LPAREN STRING RPAREN { asm_error($3); } |

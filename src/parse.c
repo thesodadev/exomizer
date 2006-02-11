@@ -134,6 +134,15 @@ void new_symbol_expr(const char *symbol, struct expr *arg)
     }
 }
 
+void new_symbol_expr_guess(const char *symbol, struct expr *arg)
+{
+    /* Set a soft symbol only if it is not set */
+    if(map_get(s->guesses, symbol) == NULL)
+    {
+        map_put(s->guesses, symbol, arg);
+    }
+}
+
 const char *find_symref(const char *symbol,
                         struct expr **expp)
 {
@@ -141,25 +150,19 @@ const char *find_symref(const char *symbol,
     const char *p;
 
     p = NULL;
-    exp = map_get(s->sym_table, symbol);
+    exp = map_get(s->guesses, symbol);
     if(exp == NULL)
     {
-        static char buf[1024];
-        if(s->guesses != NULL)
+        exp = map_get(s->sym_table, symbol);
+        if(exp == NULL)
         {
-            exp = map_get(s->guesses, symbol);
-            if(exp == NULL)
-            {
-                exp = pc_get();
-                map_put(s->guesses, symbol, exp);
-            }
+            static char buf[1024];
+            /* error, symbol not found */
+            sprintf(buf, "symbol %s not found", symbol);
+            p = buf;
+            LOG(LOG_DEBUG, ("%s\n", p));
+            return p;
         }
-
-        /* error, symbol not found */
-        sprintf(buf, "symbol %s not found", symbol);
-        p = buf;
-        LOG(LOG_DEBUG, ("%s\n", p));
-        return p;
     }
 
     if(expp != NULL)
@@ -887,6 +890,8 @@ static int wasFinalPass(void)
     {
         struct expr *guess_expr;
         struct expr *sym_expr;
+
+        LOG(LOG_DEBUG, ("testing guessed symbol %s\n", me->key));
         /* Was this guessed symbol used in this pass? */
         if((sym_expr = map_get(s->sym_table, me->key)) == NULL)
         {
@@ -894,6 +899,11 @@ static int wasFinalPass(void)
             continue;
         }
         guess_expr = me->value;
+        LOG(LOG_DEBUG, ("guessed value "));
+        expr_dump(LOG_DEBUG, guess_expr);
+        LOG(LOG_DEBUG, ("actual value "));
+        expr_dump(LOG_DEBUG, sym_expr);
+
         if(expr_cmp_cb(me->value, sym_expr) != 0)
         {
             /* Not the same, not the last pass.
@@ -909,13 +919,14 @@ int assemble(struct membuf *source, struct membuf *dest)
 {
     struct vec guesses_history[1];
     struct map guesses_storage[1];
+    int dest_pos;
     int result;
 
     vec_init(guesses_history, sizeof(struct map));
     s->guesses = NULL;
+    dest_pos = membuf_memlen(dest);
     for(;;)
     {
-        parse_reset();
 
         map_put_all(s->sym_table, s->initial_symbols);
         named_buffer_copy(s->named_buffer, s->initial_named_buffer);
@@ -929,7 +940,7 @@ int assemble(struct membuf *source, struct membuf *dest)
         s->guesses = guesses_storage;
 
         result = assembleSinglePass(source, dest);
-        if(assemble != 0)
+        if(result != 0)
         {
             /* the assemble pass failed */
             break;
@@ -946,12 +957,18 @@ int assemble(struct membuf *source, struct membuf *dest)
         if(loopDetect(guesses_history))
         {
             /* More passes would only get us into a loop */
+            LOG(LOG_DEBUG, ("Aborting due to loop.\n"));
             result = -1;
             break;
         }
 
+        LOG(LOG_DEBUG, ("Trying another pass.\n"));
+
         /* allocate storage for the guesses in the history vector */
         s->guesses = vec_push(guesses_history, s->guesses);
+
+        parse_reset();
+        membuf_truncate(dest, dest_pos);
     }
     map_free(guesses_storage);
     vec_free(guesses_history, (cb_free*)map_free);

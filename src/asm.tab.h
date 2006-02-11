@@ -115,8 +115,9 @@
      EQ = 341,
      NEQ = 342,
      ASSIGN = 343,
-     NUMBER = 344,
-     vNEG = 345
+     GUESS = 344,
+     NUMBER = 345,
+     vNEG = 346
    };
 #endif
 /* Tokens.  */
@@ -206,14 +207,15 @@
 #define EQ 341
 #define NEQ 342
 #define ASSIGN 343
-#define NUMBER 344
-#define vNEG 345
+#define GUESS 344
+#define NUMBER 345
+#define vNEG 346
 
 
 
 
 #if ! defined (YYSTYPE) && ! defined (YYSTYPE_IS_DECLARED)
-#line 138 "asm.y"
+#line 139 "asm.y"
 typedef union YYSTYPE {
     i32 num;
     char *str;
@@ -221,7 +223,7 @@ typedef union YYSTYPE {
     struct expr *expr;
 } YYSTYPE;
 /* Line 1447 of yacc.c.  */
-#line 225 "asm.tab.h"
+#line 227 "asm.tab.h"
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1

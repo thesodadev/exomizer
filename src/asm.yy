@@ -164,6 +164,7 @@ $[0-9a-z]+	{ yylval.num = strtol(yytext + 1, NULL, 16); return NUMBER; }
 \%		return MOD;
 
 \=		return ASSIGN;
+\?=		return GUESS;
 
 x		return X;
 y		return Y;

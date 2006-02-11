@@ -44,6 +44,7 @@
 ; -- i_basic_var_start    /* will be set before basic start, if defined */
 ; -- i_basic_highest_addr /* will be set before basic start, if defined */
 ; -------------------------------------------------------------------
+
 .IF(!.DEFINED(r_target))
   .ERROR("Required symbol r_target not defined.")
 .ENDIF
@@ -593,6 +594,7 @@ exit_hook = 1
 ; -------------------------------------------------------------------
 ; -- Start of file header stuff -------------------------------------
 ; -------------------------------------------------------------------
+transfer_len ?= 0
 .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 4 || r_target == 64 || r_target == 128)
 zp_lo_len = $a7
@@ -609,7 +611,9 @@ zp_hi_bits = $9f
 	.BYTE($9e, decr_start / 1000 % 10 + 48, decr_start / 100 % 10 + 48)
 	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0)
 basic_end:
+    .IF(r_target == 4 || r_target == 128 || transfer_len % 256 != 0)
 	.BYTE(0,0)
+    .ENDIF
 ; -------------------------------------------------------------------
 decr_start:
   .ENDIF
@@ -667,6 +671,10 @@ zp_dest_hi = zp_bitbuf + 2	; dest addr hi
 ; -------------------------------------------------------------------
 ; -- start of stage 1 -----------------------------------------------
 ; -------------------------------------------------------------------
+max_transfer_len = .INCLEN("crunched_data") - 5
+.IF(transfer_len % 256 == 0)
+	ldy #0
+.ENDIF
 	.IF(.DEFINED(enter_hook))
 	  .INCLUDE("enter_hook")
 	.ENDIF
@@ -676,7 +684,15 @@ cploop:
 	sta $0100 - 4,x
 	dex
 	bne cploop
+.IF(transfer_len > 256)
+	ldx #transfer_len / 256
+.ENDIF
+.IF(transfer_len % 256 != 0)
+	ldy #transfer_len % 256
+.ENDIF
+.IF(transfer_len != max_transfer_len)
 	jmp stage2start
+.ENDIF
 stage1end:
 ; -------------------------------------------------------------------
 ; -- end of stage 1 -------------------------------------------------
@@ -698,7 +714,6 @@ lowest_addr = v_safety_addr
   .ENDIF
 .ENDIF
 
-max_transfer_len = .INCLEN("crunched_data") - 5
 .IF(raw_transfer_len > max_transfer_len)
 transfer_len = max_transfer_len
 .ELSE
@@ -712,11 +727,10 @@ file2end:
 ; -------------------------------------------------------------------
 ; -- start of stage 2 -----------------------------------------------
 ; -------------------------------------------------------------------
-stage2start:
 .IF(transfer_len == 0)
-	ldy #0
+stage2start:
 .ELIF(transfer_len < 257)
-	ldy #transfer_len % 256
+stage2start:
 copy1_loop:
   .IF(transfer_len == 256)
 	lda file1start,y
@@ -728,8 +742,6 @@ copy1_loop:
 	dey
 	bne copy1_loop
 .ELSE
-	ldx #transfer_len / 256
-	ldy #transfer_len % 256
 	bne copy2_loop1
 copy2_loop2:
 	dex
@@ -741,6 +753,7 @@ lda_fixup:
 	lda file1start + transfer_len / 256 * 256,y
 sta_fixup:
 	sta lowest_addr + transfer_len / 256 * 256,y
+stage2start:
 	tya
 	bne copy2_loop1
 	txa

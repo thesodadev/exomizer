@@ -114,6 +114,7 @@ struct expr *new_expr_incword(const char *name,
                               struct expr *skip);
 
 void new_symbol_expr(const char *symbol, struct expr *arg);
+void new_symbol_expr_guess(const char *symbol, struct expr *arg);
 
 /* returns NULL if found, not otherwise, expp may be NULL. */
 const char *find_symref(const char *symbol,
