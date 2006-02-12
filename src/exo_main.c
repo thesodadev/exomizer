@@ -793,7 +793,8 @@ get_target_info(int target)
             {4,   0x1001, "C16/plus4"},
             {64,  0x0801, "C64"},
             {128, 0x1c01, "C128"},
-            {168, 0x2c00, "Atari 400/800 XL/XE"},
+            {162, 0x0801, "Apple ][+"},
+            {168, 0x2000, "Atari 400/800 XL/XE"},
             {0, 0, NULL}
         };
     const struct target_info *targetp;
@@ -998,7 +999,7 @@ void sfx(const char *appl, int argc, char *argv[])
             {
                 LOG(LOG_ERROR,
                     ("error: invalid value, %d, for -t option, "
-                     "must be one of 4, 20, 23, 52, 55, 64, 128 or 168.",
+                     "must be one of 4, 20, 23, 52, 55, 64, 128, 162 or 168.",
                      decr_target));
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(-1);
@@ -1060,6 +1061,21 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     targetp = get_target_info(decr_target);
+    if(sys_addr == -2 && (targetp->id == 162 || targetp->id == 168))
+    {
+        /* basic start not implemented for Apple and Atari targets */
+        LOG(LOG_ERROR, ("Start address \"basic\" is not supported for "
+                        "the %s target.\n", targetp->model));
+        print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+    }
+    if(sys_addr == -1 && targetp->id == 162)
+    {
+        /* auto detecting of start address not implemented for Apple target */
+        LOG(LOG_ERROR, ("Start address \"sys\" is not supported for "
+                        "the %s target\n", targetp->model));
+        print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+    }
+
     if(basic_txt_start == -1)
     {
         basic_txt_start = targetp->basic_txt_start;

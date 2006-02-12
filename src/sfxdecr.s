@@ -138,6 +138,14 @@
   c_rom_config_value = $00
   c_ram_config_value = $3f
   c_default_table = $0334
+.ELIF(r_target == $a2)
+  c_end_of_mem_ram = $c000
+  c_end_of_mem_rom = $c000
+  c_effect_color = 0
+  c_border_color   = 0
+  c_rom_config_value = 0
+  c_ram_config_value = 0
+  c_default_table = $0334
 .ELIF(r_target == $a8)
   c_end_of_mem_ram = $d000
   c_end_of_mem_rom = $a000
@@ -318,8 +326,10 @@ exit_hook = 1
     .ENDIF
   .ENDIF
   .IF(r_start_addr == -2)
+    .IF(r_target == $a2)
+	.ERROR("Apple target can't handle basic start.")
     .IF(r_target == $a8)
-	.ERROR("Atari target can't handle basic start (yet).")
+	.ERROR("Atari target can't handle basic start.")
     .ELIF(r_target == 128)
       .IF(.DEFINED(i_basic_txt_start))
 	lda #i_basic_txt_start % 256
@@ -595,6 +605,9 @@ exit_hook = 1
 ; -- Start of file header stuff -------------------------------------
 ; -------------------------------------------------------------------
 transfer_len ?= 0
+; -------------------------------------------------------------------
+; -- Commodore file header stuff ------------------------------------
+; -------------------------------------------------------------------
 .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 4 || r_target == 64 || r_target == 128)
 zp_lo_len = $a7
@@ -608,27 +621,56 @@ zp_hi_bits = $9f
 	.WORD(c_basic_start)
 	.ORG(c_basic_start)
 	.WORD(basic_end, 20)
-	.BYTE($9e, decr_start / 1000 % 10 + 48, decr_start / 100 % 10 + 48)
-	.BYTE(decr_start / 10 % 10 + 48, decr_start % 10 + 48, 0)
+	.BYTE($9e, cbm_start / 1000 % 10 + 48, cbm_start / 100 % 10 + 48)
+	.BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48, 0)
 basic_end:
     .IF(r_target == 4 || r_target == 128 || transfer_len % 256 != 0)
 	.BYTE(0,0)
     .ENDIF
 ; -------------------------------------------------------------------
-decr_start:
+cbm_start:
   .ENDIF
 .ELIF(r_target == $a8)
+; -------------------------------------------------------------------
+; -- Atari file header stuff ------------------------------------
+; -------------------------------------------------------------------
 zp_lo_len = $f7
 zp_src_addr = $f9
 zp_hi_bits = $f8
 
-	.WORD($FFFF, a8start, a8end - 1)
+	.WORD($FFFF, a8_start, a8_end - 1)
   .IF(!.DEFINED(i_load_addr))
-	.ORG($2c00)
+	.ORG($2000)
   .ELSE
 	.ORG(i_load_addr)
   .ENDIF
-a8start:
+a8_start:
+.ELIF(r_target == $a2)
+; -------------------------------------------------------------------
+; -- Apple file header stuff ------------------------------------
+; -------------------------------------------------------------------
+zp_lo_len = $a7
+zp_src_addr = $ae
+zp_hi_bits = $9f
+
+  .IF(.DEFINED(i_load_addr))
+	;; binary file
+	.WORD(i_load_addr)
+	.WORD(a2_end - a2_start)
+	.ORG(i_load_addr)
+  .ELSE
+	;; Applesoft basic file
+	.WORD(a2_end - a2_start)
+	.ORG(c_basic_start)
+	.WORD(basic_end, 20)
+	.BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
+	.BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48, 0)
+basic_end:
+    .IF(r_target == 4 || r_target == 128 || transfer_len % 256 != 0)
+	.BYTE(0,0)
+    .ENDIF
+; -------------------------------------------------------------------
+a2_start:
 .ELSE
   .ERROR("Unhandled target for file header stuff")
 .ENDIF
@@ -1029,12 +1071,22 @@ file1end:
 ; -------------------------------------------------------------------
 ; -- Start of file footer stuff -------------------------------------
 ; -------------------------------------------------------------------
-
 .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 4 || r_target == 64 || r_target == 128)
+; -------------------------------------------------------------------
+; -- Start of Commodoer file footer stuff ---------------------------
+; -------------------------------------------------------------------
 .ELIF(r_target == $a8)
-a8end:
-	.WORD($02e0, $02e1, a8start)
+; -------------------------------------------------------------------
+; -- Start of Atari file footer stuff -------------------------------
+; -------------------------------------------------------------------
+a8_end:
+	.WORD($02e0, $02e1, a8_start)
+.ELIF(r_target == $a2)
+; -------------------------------------------------------------------
+; -- Start of Apple file footer stuff -------------------------------
+; -------------------------------------------------------------------
+a2_end:
 .ELSE
   .ERROR("Unhandled target for file header stuff")
 .ENDIF

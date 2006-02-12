@@ -14,6 +14,7 @@ o  Totally rewitten handling of the sfx decruncher:
    5) Supports the c128 and the vic20 (in several configurations).
    6) The Atari 400/800 XL/XE family is supported as sfx target 168.
    7) Can generate relocated sfx targets without basic line.
+   8) The Apple ][+ (and //e) is supported as sfx target 162.
 
 o  Reads Atari xex-files and autodetects the RUNAD vector if the sys keyword is
    given to the sfx command.
@@ -193,7 +194,8 @@ program after decrunch. (Not supported yet for the Atari target).
 itself in memory when run. The output file format depends on the target
 used. For all Commodore machines the output is a runnable prg-file that starts
 with a basic line. For the Atari the target is a auto running xex-file. The
-atari target doesn't support decrunching into extended memory.
+atari target doesn't support decrunching into extended memory. For the Apple
+the target is a Applesoft basic file.
 
  The sfx command has the following options:
 
@@ -362,9 +364,11 @@ The following symbol controls the sfx load address:
  i_load_addr
 
 If it is unset then the sfx file will load to the default basic start address
-of the target machine (For Atari the default load address is $2c00)
+of the target machine (For Atari the default load address is $2000)
 If it is set then the sfx file will load to the given address and it will not
-have any basic line. (The Atari target never has a basic line).
+have any basic line. (The Atari target never has a basic line). The apple
+target file format will change from an Applesoft basic file to an Apple binary
+file.
 
 The following symbols control the memory config:
  i_ram_enter      (defaults to standard ROM config)
