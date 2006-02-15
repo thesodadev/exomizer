@@ -922,6 +922,8 @@ int assemble(struct membuf *source, struct membuf *dest)
     int dest_pos;
     int result;
 
+    dump_sym_table(LOG_DEBUG, s->initial_symbols);
+
     vec_init(guesses_history, sizeof(struct map));
     s->guesses = NULL;
     dest_pos = membuf_memlen(dest);

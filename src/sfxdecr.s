@@ -139,17 +139,18 @@
   c_ram_config_value = $3f
   c_default_table = $0334
 .ELIF(r_target == $a2)
+  c_basic_start    = $0801
   c_end_of_mem_ram = $c000
-  c_end_of_mem_rom = $c000
-  c_effect_color = 0
-  c_border_color   = 0
+  c_end_of_mem_rom = $9600
+  c_effect_color   = $07f7
+  c_border_color   = $07f7
   c_rom_config_value = 0
   c_ram_config_value = 0
   c_default_table = $0334
 .ELIF(r_target == $a8)
   c_end_of_mem_ram = $d000
   c_end_of_mem_rom = $a000
-  c_effect_color = $d017
+  c_effect_color   = $d017
   c_border_color   = $d01a
   c_rom_config_value = $fd
   c_ram_config_value = $ff
@@ -278,6 +279,7 @@ stage2_exit_hook = 1
     i_irq_during = i_irq_enter
   .ELSE
     i_irq_during = 0
+  .ENDIF
 .ENDIF
 
 .IF(r_target == 4)
@@ -296,6 +298,7 @@ stage2_exit_hook = 1
 
 ; -------------------------------------------------------------------
 ; -- The decruncher enter macro definition --------------------------
+; -------------------------------------------------------------------
 enter_hook = 1
 .MACRO("enter_hook")
   .IF(i_irq_during != i_irq_enter)
@@ -309,7 +312,6 @@ enter_hook = 1
     .INCLUDE("b2d_ram")
   .ENDIF
 .ENDMACRO
-; -------------------------------------------------------------------
 ; -------------------------------------------------------------------
 ; -- The decruncher exit macro definition ---------------------------
 ; -------------------------------------------------------------------
@@ -328,7 +330,7 @@ exit_hook = 1
   .IF(r_start_addr == -2)
     .IF(r_target == $a2)
 	.ERROR("Apple target can't handle basic start.")
-    .IF(r_target == $a8)
+    .ELIF(r_target == $a8)
 	.ERROR("Atari target can't handle basic start.")
     .ELIF(r_target == 128)
       .IF(.DEFINED(i_basic_txt_start))
@@ -579,6 +581,18 @@ exit_hook = 1
   .ENDMACRO
   .MACRO("d2r_ram")
   .ENDMACRO
+.ELIF(r_target == $a2)
+; -------------------------------------------------------------------
+; -- The ram/rom switch macros for Apple ----------------------------
+; -------------------------------------------------------------------
+  .MACRO("b2d_ram")
+  .ENDMACRO
+  .MACRO("d2io")
+  .ENDMACRO
+  .MACRO("io2d")
+  .ENDMACRO
+  .MACRO("d2r_ram")
+  .ENDMACRO
 .ELIF(r_target == $a8)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for a8 -------------------------------
@@ -665,8 +679,9 @@ zp_hi_bits = $9f
 	.WORD(basic_end, 20)
 	.BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
 	.BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48, 0)
+  .ENDIF
 basic_end:
-    .IF(r_target == 4 || r_target == 128 || transfer_len % 256 != 0)
+    .IF(transfer_len % 256 != 0)
 	.BYTE(0,0)
     .ENDIF
 ; -------------------------------------------------------------------
