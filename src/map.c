@@ -88,11 +88,11 @@ void *map_put(struct map *m, const char *key, void *value)
     return prev_value;
 }
 
-void *map_get(const struct map *m, const char *key)
+static struct map_entry *get(const struct map *m, const char *key)
 {
     struct map_entry e[1];
     int pos;
-    void *value = NULL;
+    struct map_entry *out = NULL;
 
     e->key = key;
     pos = vec_find(&m->vec, map_entry_cmp, e);
@@ -104,8 +104,22 @@ void *map_get(const struct map *m, const char *key)
     }
     if(pos >= 0)
     {
-        struct map_entry *e;
-        e = vec_get(&m->vec, pos);
+        out = vec_get(&m->vec, pos);
+    }
+    return out;
+}
+
+int map_contains_key(const struct map *m, const char *key)
+{
+    return get(m, key) != NULL;
+}
+
+void *map_get(const struct map *m, const char *key)
+{
+    struct map_entry *e = get(m, key);
+    void *value = NULL;
+    if(e != NULL)
+    {
         value = e->value;
     }
     return value;

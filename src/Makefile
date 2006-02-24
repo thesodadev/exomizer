@@ -5,8 +5,8 @@ WFLAGS = -Wall -Wstrict-prototypes
 CFLAGS = $(WFLAGS) -O3 -ffast-math -mtune=i686 -fomit-frame-pointer -fgcse -pedantic
 LDFLAGS = -s
 
-#CFLAGS = -g -pg -mtune=i686 $(WFLAGS)
-#LDFLAGS = -g -pg -mtune=i686
+#CFLAGS = -g -mtune=i686 $(WFLAGS)
+#LDFLAGS = -g -mtune=i686
 
 SHARED_OBJS = getflag.o log.o membuf.o
 RAW_OBJS = match.o search.o exo_raw.o optimal.o output.o membuf_io.o \

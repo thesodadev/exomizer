@@ -619,27 +619,25 @@ void asm_include(const char *msg)
 void initial_symbol_dump(int level, const char *symbol)
 {
     i32 value;
-    const struct map_entry *e;
     struct expr *expr;
-    e = map_get(s->initial_symbols, symbol);
-    if(e != NULL)
+
+    expr = map_get(s->initial_symbols, symbol);
+    if(expr != NULL)
     {
-        expr = e->value;
-        if(expr != NULL)
-        {
-            value = resolve_expr(expr);
-            LOG(level, ("symbol \"%s\" resolves to %d ($%04X)\n",
-                        symbol, value, value));
-        }
-        else
-        {
-            LOG(level, ("symbol \"%s\" is defined but has no value\n",
-                        symbol));
-        }
+        value = resolve_expr(expr);
+        LOG(level, ("symbol \"%s\" resolves to %d ($%04X)\n",
+                    symbol, value, value));
     }
     else
     {
-        LOG(level, ("symbol \"%s\" not found\n", symbol));
+        if(map_contains_key(s->initial_symbols, symbol))
+        {
+            LOG(level, ("symbol \"%s\" defined but has no value\n", symbol));
+        }
+        else
+        {
+            LOG(level, ("symbol \"%s\" not found\n", symbol));
+        }
     }
 }
 

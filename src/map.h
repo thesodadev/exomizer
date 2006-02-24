@@ -52,6 +52,7 @@ void map_free(struct map *m);
 
 void *map_put(struct map *m, const char *key, void *value);
 void *map_get(const struct map *m, const char *key);
+int map_contains_key(const struct map *m, const char *key);
 void map_put_all(struct map *m, const struct map *source);
 
 int map_contains(const struct map *m1, const struct map *m2, cb_cmp *f);
