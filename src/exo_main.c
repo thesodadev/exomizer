@@ -196,6 +196,12 @@ static void load_plain_file(const char *name, struct membuf *mb)
     if(in == NULL)
     {
         char *p = strrchr(name, ',');
+        if(p == NULL)
+        {
+            /* not found and no comma  */
+            LOG(LOG_ERROR, ("Error: file not found.\n"));
+            exit(-1);
+        }
         *p = '\0';
         if(str_to_int(p + 1, &offset))
         {
