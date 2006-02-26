@@ -1,6 +1,6 @@
 + Don't use setjmp/longjmp due to obscure bug when building for mingw with -O3
-  -fomit-frame-pointer.
-+ Add multipass functionality to the assembler in order to e able to do more
+  -fomit-frame-pointer. Bug reported by iAN CooG/HokutoForce.
++ Add multipass functionality to the assembler in order to be able to do more
   complex things in the decruncher source.
 + fix the sfx decruncher to work for a wider range of i_load_addr values.
   Bug reported by iAN CooG/HokutoForce.

@@ -440,14 +440,12 @@ do_loads(int filec, char *filev[], struct membuf *mem,
                 {
                     *basic_var_startp = end;
                 }
-                else if(run == -1)
+                if(runp != NULL && run == -1)
                 {
-                    /* only if we didn't get run address from load_located */
-                    int sys_addr = find_sys(p + basic_txt_start);
-                    if(runp != NULL)
-                    {
-                        *runp = sys_addr;
-                    }
+                    /* only if we didn't get run address from load_located
+                     * (run is not -1 if we did) */
+                    run = find_sys(p + basic_txt_start);
+                    *runp = run;
                 }
             }
         }
@@ -471,8 +469,9 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         exit(-1);
     }
 
-    /* if we have a basic code loaded and we are doing a proper basic start */
-    if(basic_code && basic_var_startp != NULL)
+    /* if we have a basic code loaded and we are doing a proper basic start
+     * (the caller don't expect a sys address so runp is NULL */
+    if(basic_code && runp == NULL)
     {
         int valuepos = basic_txt_start - 1;
         /* the byte immediatley preceeding the basic start must be 0
@@ -1076,6 +1075,7 @@ void sfx(const char *appl, int argc, char *argv[])
         LOG(LOG_ERROR, ("Start address \"basic\" is not supported for "
                         "the %s target.\n", targetp->model));
         print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(-1);
     }
     if(sys_addr == -1 && targetp->id == 162)
     {
@@ -1083,6 +1083,7 @@ void sfx(const char *appl, int argc, char *argv[])
         LOG(LOG_ERROR, ("Start address \"sys\" is not supported for "
                         "the %s target\n", targetp->model));
         print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(-1);
     }
 
     if(basic_txt_start == -1)
