@@ -1,4 +1,4 @@
-Exomizer 2.0 beta2 released
+Exomizer 2.0 beta4 released
 
 NEW FEATURES SINCE V1.X:
 
