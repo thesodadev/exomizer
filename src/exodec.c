@@ -38,7 +38,7 @@ get_byte(struct dec_ctx *ctx)
     if(ctx->inpos == ctx->inend)
     {
         LOG(LOG_ERROR, ("unexpected end of input data\n"));
-        longjmp(ctx->done, 1);
+        exit(-1);
     }
     c = ctx->inbuf[ctx->inpos++];
 
@@ -89,78 +89,6 @@ get_cooked_code_phase2(struct dec_ctx *ctx, int index)
 
     base = tp->table_lo[index] | (tp->table_hi[index] << 8);
     return base + get_bits(ctx, tp->table_bi[index]);
-}
-
-void
-dec_loop(struct dec_ctx *ctx)
-{
-    int bits;
-    int val;
-    int i;
-    int len;
-    int offset;
-    int src = 0;
-
-    for(;;)
-    {
-        int literal = 0;
-        bits = ctx->bits_read;
-        if(get_bits(ctx, 1))
-        {
-            /* literal */
-            len = 1;
-
-            LOG(LOG_DEBUG, ("[%d] literal\n", membuf_memlen(ctx->outbuf)));
-
-            literal = 1;
-            goto literal;
-        }
-
-        val = get_gamma_code(ctx);
-        if(val == 16)
-        {
-            /* done */
-            longjmp(ctx->done, 1);
-        }
-        if(val == 17)
-        {
-            len = get_bits(ctx, 16);
-            literal = 1;
-
-            LOG(LOG_DEBUG, ("[%d] literal copy len %d\n",
-                            membuf_memlen(ctx->outbuf), len));
-
-            goto literal;
-        }
-
-        len = get_cooked_code_phase2(ctx, val);
-
-        i = (len > 3 ? 3 : len) - 1;
-
-        val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
-        offset = get_cooked_code_phase2(ctx, val);
-
-        LOG(LOG_DEBUG, ("[%d] sequence offset = %d, len = %d\n",
-                        membuf_memlen(ctx->outbuf), offset, len));
-
-        src = membuf_memlen(ctx->outbuf) - offset;
-
-    literal:
-        do {
-            if(literal)
-            {
-                val = get_byte(ctx);
-            }
-            else
-            {
-                val = get(ctx->outbuf)[src++];
-            }
-            membuf_append(ctx->outbuf, &val, 1);
-        } while (--len > 0);
-
-        LOG(LOG_DEBUG, ("bits read for this iteration %d.\n",
-                        ctx->bits_read - bits));
-    }
 }
 
 static
@@ -252,8 +180,71 @@ void dec_ctx_free(struct dec_ctx *ctx)
 
 void dec_ctx_decrunch(struct dec_ctx ctx[1])
 {
-    if(setjmp(ctx->done) == 0)
+    int bits;
+    int val;
+    int i;
+    int len;
+    int offset;
+    int src = 0;
+
+    for(;;)
     {
-        dec_loop(ctx);
+        int literal = 0;
+        bits = ctx->bits_read;
+        if(get_bits(ctx, 1))
+        {
+            /* literal */
+            len = 1;
+
+            LOG(LOG_DEBUG, ("[%d] literal\n", membuf_memlen(ctx->outbuf)));
+
+            literal = 1;
+            goto literal;
+        }
+
+        val = get_gamma_code(ctx);
+        if(val == 16)
+        {
+            /* done */
+            break;
+        }
+        if(val == 17)
+        {
+            len = get_bits(ctx, 16);
+            literal = 1;
+
+            LOG(LOG_DEBUG, ("[%d] literal copy len %d\n",
+                            membuf_memlen(ctx->outbuf), len));
+
+            goto literal;
+        }
+
+        len = get_cooked_code_phase2(ctx, val);
+
+        i = (len > 3 ? 3 : len) - 1;
+
+        val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
+        offset = get_cooked_code_phase2(ctx, val);
+
+        LOG(LOG_DEBUG, ("[%d] sequence offset = %d, len = %d\n",
+                        membuf_memlen(ctx->outbuf), offset, len));
+
+        src = membuf_memlen(ctx->outbuf) - offset;
+
+    literal:
+        do {
+            if(literal)
+            {
+                val = get_byte(ctx);
+            }
+            else
+            {
+                val = get(ctx->outbuf)[src++];
+            }
+            membuf_append(ctx->outbuf, &val, 1);
+        } while (--len > 0);
+
+        LOG(LOG_DEBUG, ("bits read for this iteration %d.\n",
+                        ctx->bits_read - bits));
     }
 }

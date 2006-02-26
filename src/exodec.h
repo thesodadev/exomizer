@@ -29,7 +29,6 @@
  */
 
 #include "membuf.h"
-#include <setjmp.h>
 
 struct dec_table
 {
@@ -47,7 +46,6 @@ struct dec_ctx
     unsigned char *inbuf;
     struct membuf *outbuf;
     unsigned int bitbuf;
-    jmp_buf done;
     /* dep_table */
     struct dec_table t[1];
     int bits_read;
@@ -55,7 +53,8 @@ struct dec_ctx
 
 /* returns the encoding */
 char *
-dec_ctx_init(struct dec_ctx ctx[1], struct membuf *inbuf, struct membuf *outbuf);
+dec_ctx_init(struct dec_ctx ctx[1],
+             struct membuf *inbuf, struct membuf *outbuf);
 
 void
 dec_ctx_free(struct dec_ctx ctx[1]);

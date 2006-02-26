@@ -585,6 +585,7 @@ void print_sfx_usage(const char *appl, enum log_level level,
          " they are given on the command-line, from left to right.\n"));
 }
 
+static
 void level(const char *appl, int argc, char *argv[])
 {
     int literal_sequences_used = 0;
@@ -663,6 +664,7 @@ void level(const char *appl, int argc, char *argv[])
     membuf_free(in);
 }
 
+static
 void mem(const char *appl, int argc, char *argv[])
 {
     int load_addr = -1;
@@ -876,6 +878,7 @@ static void do_effect(const char *appl, int no_effect, char *fast, char *slow)
     }
 }
 
+static
 void sfx(const char *appl, int argc, char *argv[])
 {
     int in_load;
@@ -1184,7 +1187,8 @@ void sfx(const char *appl, int argc, char *argv[])
         }
     }
 
-    LOG(LOG_NORMAL, (" Target is self-decrunching %s executable", targetp->model));
+    LOG(LOG_NORMAL, (" Target is self-decrunching %s executable",
+                     targetp->model));
     if(sys_addr == -1)
     {
         LOG(LOG_ERROR, ("\nError: cant find sys address at basic "
@@ -1260,6 +1264,7 @@ void sfx(const char *appl, int argc, char *argv[])
     parse_free();
 }
 
+static
 void raw(const char *appl, int argc, char *argv[])
 {
     char flags_arr[32];
