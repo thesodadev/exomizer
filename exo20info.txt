@@ -208,6 +208,7 @@ the target is a Applesoft basic file.
          55: Commodore Vic20  32+3kB memory expansion.
          64: Commodore c64. (The default target)
         128: Commodore c128.
+        162: Apple ][+ and //e
         168: Atari 400/800 XL/XE.
 
  -X<custom slow effect assembler fragment>

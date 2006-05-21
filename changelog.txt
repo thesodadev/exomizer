@@ -1,3 +1,4 @@
++ Fix length field error in generated Apple II file header.
 + Don't use setjmp/longjmp due to obscure bug when building for mingw with -O3
   -fomit-frame-pointer. Bug reported by iAN CooG/HokutoForce.
 + Add multipass functionality to the assembler in order to be able to do more

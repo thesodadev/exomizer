@@ -670,12 +670,14 @@ zp_hi_bits = $9f
   .IF(.DEFINED(i_load_addr))
 	;; binary file
 	.WORD(i_load_addr)
-	.WORD(a2_end - a2_start)
+	.WORD(a2_end - a2_load)
 	.ORG(i_load_addr)
+a2_load:
   .ELSE
 	;; Applesoft basic file
-	.WORD(a2_end - a2_start)
+	.WORD(a2_end - a2_load)
 	.ORG(c_basic_start)
+a2_load:
 	.WORD(basic_end, 20)
 	.BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
 	.BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48, 0)
