@@ -41,7 +41,7 @@ main2: deps $(TEST2_OBJS)
 
 clean:
 	-$(RM) $(TEST_OBJS) $(TEST2_OBJS) main main.exe main2 main2.exe \
-	deps *.exo *.oxe *.dec
+	*.o deps *.exo *.oxe *.dec
 
 -include deps
 

@@ -1,4 +1,4 @@
-2006-07-07
+2006-07-08
 Release of 2.0beta4 source code, Win32 and DOS binaries.
 + Change my email address (again).
 + Added option to the Apple target to disconnect the loaded DOS.
