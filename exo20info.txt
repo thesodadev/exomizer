@@ -352,7 +352,7 @@ Please don't hesitate to contact me if you have any feature/improvement
 suggestions, bugs to report or perhaps just have something to say about the
 exomizer program.
 
-My name is Magnus Lind and my email address is magli143@comhem.se
+My name is Magnus Lind and my email address is magli143@gmail.com
 
 -------------------------------------------------------------------------------
 -- Reference for the sfx decruncher symbols -----------------------------------
@@ -387,9 +387,12 @@ The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_during
  i_irq_exit
 
- To locate the decrunch table elsewhere than the default tape buffer or $0600
+To locate the decrunch table elsewhere than the default tape buffer or $0600
 for The Atari target, use the symbol i_table_addr:
  -Di_table_addr=<address>
+
+The apple target has an option to disconnect DOS. To do this, set the i_a2_disable_dos symbol to any value:
+ -Di_a2_disable_dos=1
 
 Effects are no longer selected by the use of symbols. They are now chosen by
 the -x or -X flags or deactivated by -n.

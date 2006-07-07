@@ -8,7 +8,7 @@
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
 #define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 31
+#define YY_FLEX_SUBMINOR_VERSION 33
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
 #endif
@@ -30,7 +30,15 @@
 
 /* C99 systems have <inttypes.h>. Non-C99 systems may or may not. */
 
-#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
+#if __STDC_VERSION__ >= 199901L
+
+/* C99 says to define __STDC_LIMIT_MACROS before including stdint.h,
+ * if you want the limit (max/min) macros for int types. 
+ */
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS 1
+#endif
+
 #include <inttypes.h>
 typedef int8_t flex_int8_t;
 typedef uint8_t flex_uint8_t;
@@ -133,6 +141,10 @@ typedef unsigned int flex_uint32_t;
 #ifndef YY_BUF_SIZE
 #define YY_BUF_SIZE 16384
 #endif
+
+/* The state buf must be large enough to hold one state per character in the main buffer.
+ */
+#define YY_STATE_BUF_SIZE   ((YY_BUF_SIZE + 2) * sizeof(yy_state_type))
 
 #ifndef YY_TYPEDEF_YY_BUFFER_STATE
 #define YY_TYPEDEF_YY_BUFFER_STATE
@@ -267,7 +279,7 @@ int yyleng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = (char *) 0;
-static int yy_init = 1;		/* whether we need to initialize */
+static int yy_init = 0;		/* whether we need to initialize */
 static int yy_start = 0;	/* start state number */
 
 /* Flag which is used to allow yywrap()'s to do buffer switches
@@ -323,7 +335,7 @@ void yyfree (void *  );
 
 /* Begin user sect3 */
 
-#define yywrap() 1
+#define yywrap(n) 1
 #define YY_SKIP_YYWRAP
 
 typedef unsigned char YY_CHAR;
@@ -652,7 +664,8 @@ int push_state_macro = 0;
 struct vec strdupped[1];
 
 
-#line 656 "lex.yy.c"
+#define YY_NO_UNISTD_H 1
+#line 669 "lex.yy.c"
 
 #define INITIAL 0
 #define SKIP 1
@@ -672,6 +685,8 @@ struct vec strdupped[1];
 #ifndef YY_EXTRA_TYPE
 #define YY_EXTRA_TYPE void *
 #endif
+
+static int yy_init_globals (void );
 
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
@@ -707,7 +722,7 @@ static int input (void );
 
         static int yy_start_stack_ptr = 0;
         static int yy_start_stack_depth = 0;
-        static int *yy_start_stack = 0;
+        static int *yy_start_stack = NULL;
     
     static void yy_push_state (int new_state );
     
@@ -818,7 +833,7 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 59 "asm.yy"
+#line 60 "asm.yy"
 
 
 	if(push_state_init)
@@ -828,11 +843,11 @@ YY_DECL
 	if(push_state_macro)
 	{push_state_macro = 0; yy_push_state(MACROO); }
 
-#line 832 "lex.yy.c"
+#line 847 "lex.yy.c"
 
-	if ( (yy_init) )
+	if ( !(yy_init) )
 		{
-		(yy_init) = 0;
+		(yy_init) = 1;
 
 #ifdef YY_USER_INIT
 		YY_USER_INIT;
@@ -909,552 +924,552 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 68 "asm.yy"
+#line 69 "asm.yy"
 return IF;
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 69 "asm.yy"
+#line 70 "asm.yy"
 BEGIN(SKIP_ALL);
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 70 "asm.yy"
+#line 71 "asm.yy"
 BEGIN(SKIP);
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 71 "asm.yy"
+#line 72 "asm.yy"
 yy_pop_state();
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 73 "asm.yy"
+#line 74 "asm.yy"
 return INCLUDE;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 74 "asm.yy"
+#line 75 "asm.yy"
 return MACRO;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 76 "asm.yy"
+#line 77 "asm.yy"
 return DEFINED;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 77 "asm.yy"
+#line 78 "asm.yy"
 return ORG;
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 78 "asm.yy"
+#line 79 "asm.yy"
 return ERROR;
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 79 "asm.yy"
+#line 80 "asm.yy"
 return ECHO;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 80 "asm.yy"
+#line 81 "asm.yy"
 return INCBIN;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 81 "asm.yy"
+#line 82 "asm.yy"
 return INCLEN;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 82 "asm.yy"
+#line 83 "asm.yy"
 return INCWORD;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 83 "asm.yy"
+#line 84 "asm.yy"
 return RES;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 84 "asm.yy"
+#line 85 "asm.yy"
 return WORD;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 85 "asm.yy"
+#line 86 "asm.yy"
 return BYTE;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 87 "asm.yy"
+#line 88 "asm.yy"
 BEGIN(QUOTED_STRING);
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 88 "asm.yy"
+#line 89 "asm.yy"
 BEGIN(SKIP_LINE);
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 90 "asm.yy"
+#line 91 "asm.yy"
 return LDA;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 91 "asm.yy"
+#line 92 "asm.yy"
 return LDX;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 92 "asm.yy"
+#line 93 "asm.yy"
 return LDY;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 93 "asm.yy"
+#line 94 "asm.yy"
 return STA;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 94 "asm.yy"
+#line 95 "asm.yy"
 return STX;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 95 "asm.yy"
+#line 96 "asm.yy"
 return STY;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 96 "asm.yy"
+#line 97 "asm.yy"
 return AND;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 97 "asm.yy"
+#line 98 "asm.yy"
 return ORA;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 98 "asm.yy"
+#line 99 "asm.yy"
 return EOR;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 99 "asm.yy"
+#line 100 "asm.yy"
 return ADC;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 100 "asm.yy"
+#line 101 "asm.yy"
 return SBC;
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 101 "asm.yy"
+#line 102 "asm.yy"
 return CMP;
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 102 "asm.yy"
+#line 103 "asm.yy"
 return CPX;
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 103 "asm.yy"
+#line 104 "asm.yy"
 return CPY;
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 105 "asm.yy"
+#line 106 "asm.yy"
 return TSX;
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 106 "asm.yy"
+#line 107 "asm.yy"
 return TXS;
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 107 "asm.yy"
+#line 108 "asm.yy"
 return PHA;
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 108 "asm.yy"
+#line 109 "asm.yy"
 return PLA;
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 109 "asm.yy"
+#line 110 "asm.yy"
 return PHP;
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 110 "asm.yy"
+#line 111 "asm.yy"
 return PLP;
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 111 "asm.yy"
+#line 112 "asm.yy"
 return SEI;
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 112 "asm.yy"
+#line 113 "asm.yy"
 return CLI;
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 113 "asm.yy"
+#line 114 "asm.yy"
 return NOP;
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 114 "asm.yy"
+#line 115 "asm.yy"
 return TYA;
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 115 "asm.yy"
+#line 116 "asm.yy"
 return TAY;
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 116 "asm.yy"
+#line 117 "asm.yy"
 return TXA;
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 117 "asm.yy"
+#line 118 "asm.yy"
 return TAX;
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 118 "asm.yy"
+#line 119 "asm.yy"
 return CLC;
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 119 "asm.yy"
+#line 120 "asm.yy"
 return SEC;
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 120 "asm.yy"
+#line 121 "asm.yy"
 return RTS;
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 122 "asm.yy"
+#line 123 "asm.yy"
 return JSR;
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 123 "asm.yy"
+#line 124 "asm.yy"
 return JMP;
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 124 "asm.yy"
+#line 125 "asm.yy"
 return BEQ;
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 125 "asm.yy"
+#line 126 "asm.yy"
 return BNE;
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 126 "asm.yy"
+#line 127 "asm.yy"
 return BCC;
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 127 "asm.yy"
+#line 128 "asm.yy"
 return BCS;
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 128 "asm.yy"
+#line 129 "asm.yy"
 return BPL;
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 129 "asm.yy"
+#line 130 "asm.yy"
 return BMI;
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 130 "asm.yy"
+#line 131 "asm.yy"
 return BVC;
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 131 "asm.yy"
+#line 132 "asm.yy"
 return BCS;
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 132 "asm.yy"
+#line 133 "asm.yy"
 return INX;
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 133 "asm.yy"
+#line 134 "asm.yy"
 return DEX;
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 134 "asm.yy"
+#line 135 "asm.yy"
 return INY;
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 135 "asm.yy"
+#line 136 "asm.yy"
 return DEY;
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 136 "asm.yy"
+#line 137 "asm.yy"
 return INC;
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 137 "asm.yy"
+#line 138 "asm.yy"
 return DEC;
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 138 "asm.yy"
+#line 139 "asm.yy"
 return LSR;
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 139 "asm.yy"
+#line 140 "asm.yy"
 return ASL;
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 140 "asm.yy"
+#line 141 "asm.yy"
 return ROR;
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 141 "asm.yy"
+#line 142 "asm.yy"
 return ROL;
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 143 "asm.yy"
+#line 144 "asm.yy"
 { yylval.num = atoi(yytext); return NUMBER; }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 145 "asm.yy"
+#line 146 "asm.yy"
 { yylval.num = strtol(yytext + 1, NULL, 16); return NUMBER; }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 147 "asm.yy"
+#line 148 "asm.yy"
 return LT;
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 148 "asm.yy"
+#line 149 "asm.yy"
 return GT;
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 149 "asm.yy"
+#line 150 "asm.yy"
 return EQ;
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 150 "asm.yy"
+#line 151 "asm.yy"
 return NEQ;
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 151 "asm.yy"
+#line 152 "asm.yy"
 return LNOT;
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 152 "asm.yy"
+#line 153 "asm.yy"
 return LAND;
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 153 "asm.yy"
+#line 154 "asm.yy"
 return LOR;
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 155 "asm.yy"
+#line 156 "asm.yy"
 return LPAREN;
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 156 "asm.yy"
+#line 157 "asm.yy"
 return RPAREN;
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 157 "asm.yy"
+#line 158 "asm.yy"
 return COMMA;
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 158 "asm.yy"
+#line 159 "asm.yy"
 return COLON;
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 159 "asm.yy"
+#line 160 "asm.yy"
 return HASH;
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 160 "asm.yy"
+#line 161 "asm.yy"
 return PLUS;
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 161 "asm.yy"
+#line 162 "asm.yy"
 return MINUS;
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 162 "asm.yy"
+#line 163 "asm.yy"
 return MULT;
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 163 "asm.yy"
+#line 164 "asm.yy"
 return DIV;
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 164 "asm.yy"
+#line 165 "asm.yy"
 return MOD;
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 166 "asm.yy"
+#line 167 "asm.yy"
 return ASSIGN;
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 167 "asm.yy"
+#line 168 "asm.yy"
 return GUESS;
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 169 "asm.yy"
+#line 170 "asm.yy"
 return X;
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 170 "asm.yy"
+#line 171 "asm.yy"
 return Y;
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 172 "asm.yy"
+#line 173 "asm.yy"
 { yylval.str = strdupped_get(yytext); return SYMBOL; }
 	YY_BREAK
 case 93:
 /* rule 93 can match eol */
 YY_RULE_SETUP
-#line 174 "asm.yy"
+#line 175 "asm.yy"
 ++num_lines;
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 176 "asm.yy"
+#line 177 "asm.yy"
 /* eat whitespace */
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 178 "asm.yy"
+#line 179 "asm.yy"
 printf("unknown character found %s\n", yytext);
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 180 "asm.yy"
+#line 181 "asm.yy"
 yy_push_state(SKIP_ALL);
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 181 "asm.yy"
+#line 182 "asm.yy"
 { yy_pop_state(); return IF; }
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 182 "asm.yy"
+#line 183 "asm.yy"
 BEGIN(INITIAL);
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
-#line 183 "asm.yy"
+#line 184 "asm.yy"
 yy_pop_state();
 	YY_BREAK
 case 100:
 /* rule 100 can match eol */
 YY_RULE_SETUP
-#line 184 "asm.yy"
+#line 185 "asm.yy"
 ++num_lines;
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 185 "asm.yy"
+#line 186 "asm.yy"
 
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 187 "asm.yy"
+#line 188 "asm.yy"
 yy_pop_state();
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 188 "asm.yy"
+#line 189 "asm.yy"
 { yylval.str = yytext; return MACRO_STRING; }
 	YY_BREAK
 case 104:
 /* rule 104 can match eol */
 YY_RULE_SETUP
-#line 189 "asm.yy"
+#line 190 "asm.yy"
 { yylval.str = yytext; return MACRO_STRING; }
 	YY_BREAK
 case 105:
 YY_RULE_SETUP
-#line 191 "asm.yy"
+#line 192 "asm.yy"
 yy_push_state(SKIP_ALL);
 	YY_BREAK
 case 106:
 YY_RULE_SETUP
-#line 192 "asm.yy"
+#line 193 "asm.yy"
 yy_pop_state();
 	YY_BREAK
 case 107:
 /* rule 107 can match eol */
 YY_RULE_SETUP
-#line 193 "asm.yy"
+#line 194 "asm.yy"
 ++num_lines;
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
-#line 194 "asm.yy"
+#line 195 "asm.yy"
 
 	YY_BREAK
 case 109:
 /* rule 109 can match eol */
 YY_RULE_SETUP
-#line 196 "asm.yy"
+#line 197 "asm.yy"
 {
     ++num_lines;
     yylval.str = strdupped_get(yytext);
@@ -1464,7 +1479,7 @@ YY_RULE_SETUP
 case 110:
 /* rule 110 can match eol */
 YY_RULE_SETUP
-#line 202 "asm.yy"
+#line 203 "asm.yy"
 {
     yylval.str = strdupped_get(yytext);
     return STRING;
@@ -1472,13 +1487,13 @@ YY_RULE_SETUP
 	YY_BREAK
 case 111:
 YY_RULE_SETUP
-#line 206 "asm.yy"
+#line 207 "asm.yy"
 BEGIN(INITIAL);
 	YY_BREAK
 case 112:
 /* rule 112 can match eol */
 YY_RULE_SETUP
-#line 208 "asm.yy"
+#line 209 "asm.yy"
 { ++num_lines; BEGIN(INITIAL); }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
@@ -1487,7 +1502,7 @@ case YY_STATE_EOF(SKIP_ALL):
 case YY_STATE_EOF(QUOTED_STRING):
 case YY_STATE_EOF(SKIP_LINE):
 case YY_STATE_EOF(MACROO):
-#line 210 "asm.yy"
+#line 211 "asm.yy"
 {
 	    if(--src_buffer_depth == 0)
 	    {
@@ -1502,10 +1517,10 @@ case YY_STATE_EOF(MACROO):
 	YY_BREAK
 case 113:
 YY_RULE_SETUP
-#line 222 "asm.yy"
+#line 223 "asm.yy"
 ECHO;
 	YY_BREAK
-#line 1509 "lex.yy.c"
+#line 1524 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -1690,7 +1705,7 @@ static int yy_get_next_buffer (void)
 
 	else
 		{
-			size_t num_to_read =
+			int num_to_read =
 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
 		while ( num_to_read <= 0 )
@@ -2050,7 +2065,11 @@ static void yy_load_buffer_state  (void)
 #ifdef __cplusplus
 extern "C" {
 #endif
+#ifdef __THROW /* this is a gnuism */
 extern int isatty (int ) __THROW;
+#else
+extern int isatty (int );
+#endif
 #ifdef __cplusplus
 }
 #endif
@@ -2242,16 +2261,16 @@ YY_BUFFER_STATE yy_scan_buffer  (char * base, yy_size_t  size )
 
 /** Setup the input buffer state to scan a string. The next call to yylex() will
  * scan from a @e copy of @a str.
- * @param yy_str a NUL-terminated string to scan
+ * @param str a NUL-terminated string to scan
  * 
  * @return the newly allocated buffer state object.
  * @note If you want to scan bytes that may contain NUL values, then use
  *       yy_scan_bytes() instead.
  */
-YY_BUFFER_STATE yy_scan_string (yyconst char * yy_str )
+YY_BUFFER_STATE yy_scan_string (yyconst char * __yystr )
 {
     
-	return yy_scan_bytes(yy_str,strlen(yy_str) );
+	return yy_scan_bytes(__yystr,strlen(__yystr) );
 }
 
 /** Setup the input buffer state to scan the given bytes. The next call to yylex() will
@@ -2261,7 +2280,7 @@ YY_BUFFER_STATE yy_scan_string (yyconst char * yy_str )
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE yy_scan_bytes  (yyconst char * bytes, int  len )
+YY_BUFFER_STATE yy_scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
@@ -2269,15 +2288,15 @@ YY_BUFFER_STATE yy_scan_bytes  (yyconst char * bytes, int  len )
 	int i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
-	n = len + 2;
+	n = _yybytes_len + 2;
 	buf = (char *) yyalloc(n  );
 	if ( ! buf )
 		YY_FATAL_ERROR( "out of dynamic memory in yy_scan_bytes()" );
 
-	for ( i = 0; i < len; ++i )
-		buf[i] = bytes[i];
+	for ( i = 0; i < _yybytes_len; ++i )
+		buf[i] = yybytes[i];
 
-	buf[len] = buf[len+1] = YY_END_OF_BUFFER_CHAR;
+	buf[_yybytes_len] = buf[_yybytes_len+1] = YY_END_OF_BUFFER_CHAR;
 
 	b = yy_scan_buffer(buf,n );
 	if ( ! b )
@@ -2436,6 +2455,38 @@ void yyset_debug (int  bdebug )
         yy_flex_debug = bdebug ;
 }
 
+static int yy_init_globals (void)
+{
+        /* Initialization is the same as for the non-reentrant scanner.
+     * This function is called from yylex_destroy(), so don't allocate here.
+     */
+
+    (yy_buffer_stack) = 0;
+    (yy_buffer_stack_top) = 0;
+    (yy_buffer_stack_max) = 0;
+    (yy_c_buf_p) = (char *) 0;
+    (yy_init) = 0;
+    (yy_start) = 0;
+
+    (yy_start_stack_ptr) = 0;
+    (yy_start_stack_depth) = 0;
+    (yy_start_stack) =  NULL;
+
+/* Defined in main.c */
+#ifdef YY_STDINIT
+    yyin = stdin;
+    yyout = stdout;
+#else
+    yyin = (FILE *) 0;
+    yyout = (FILE *) 0;
+#endif
+
+    /* For future reference: Set errno on error, since we are called by
+     * yylex_init()
+     */
+    return 0;
+}
+
 /* yylex_destroy is for both reentrant and non-reentrant scanners. */
 int yylex_destroy  (void)
 {
@@ -2455,6 +2506,10 @@ int yylex_destroy  (void)
         yyfree((yy_start_stack)  );
         (yy_start_stack) = NULL;
 
+    /* Reset the globals. This is important in a non-reentrant scanner so the next time
+     * yylex() is called, initialization will occur. */
+    yy_init_globals( );
+
     return 0;
 }
 
@@ -2466,7 +2521,7 @@ int yylex_destroy  (void)
 static void yy_flex_strncpy (char* s1, yyconst char * s2, int n )
 {
 	register int i;
-    	for ( i = 0; i < n; ++i )
+	for ( i = 0; i < n; ++i )
 		s1[i] = s2[i];
 }
 #endif
@@ -2475,7 +2530,7 @@ static void yy_flex_strncpy (char* s1, yyconst char * s2, int n )
 static int yy_flex_strlen (yyconst char * s )
 {
 	register int n;
-    	for ( n = 0; s[n]; ++n )
+	for ( n = 0; s[n]; ++n )
 		;
 
 	return n;
@@ -2506,19 +2561,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#undef YY_NEW_FILE
-#undef YY_FLUSH_BUFFER
-#undef yy_set_bol
-#undef yy_new_buffer
-#undef yy_set_interactive
-#undef yytext_ptr
-#undef YY_DO_BEFORE_ACTION
-
-#ifdef YY_DECL_IS_OURS
-#undef YY_DECL_IS_OURS
-#undef YY_DECL
-#endif
-#line 222 "asm.yy"
+#line 223 "asm.yy"
 
 
 

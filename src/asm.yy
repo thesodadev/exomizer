@@ -55,6 +55,7 @@ struct vec strdupped[1];
 %option noyywrap
 %option case-insensitive
 %option stack
+%option nounistd
 
 %%
 

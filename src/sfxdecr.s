@@ -688,6 +688,12 @@ basic_end:
     .ENDIF
 ; -------------------------------------------------------------------
 a2_start:
+    .IF(.DEFINED(i_a2_disable_dos))
+	lda #$00
+	jsr $fe95
+	lda #$00
+	jsr $fe8b
+    .ENDIF
 .ELSE
   .ERROR("Unhandled target for file header stuff")
 .ENDIF

@@ -1,3 +1,7 @@
+2006-07-07
+Release of 2.0beta4 source code, Win32 and DOS binaries.
++ Change my email address (again).
++ Added option to the Apple target to disconnect the loaded DOS.
 + Fix length field error in generated Apple II file header.
 + Don't use setjmp/longjmp due to obscure bug when building for mingw with -O3
   -fomit-frame-pointer. Bug reported by iAN CooG/HokutoForce.
