@@ -41,7 +41,7 @@
 ; -------------------------------------------------------------------
 ; if literal sequences is not used (the data was crunched with the -c
 ; flag) then the following line can be uncommented for shorter code.
-LITERAL_SEQUENCES_NOT_USED=1
+;LITERAL_SEQUENCES_NOT_USED = 1
 ; -------------------------------------------------------------------
 ; zero page addresses used
 ; -------------------------------------------------------------------
