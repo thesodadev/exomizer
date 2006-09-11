@@ -241,7 +241,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             {
                 val = get(ctx->outbuf)[src++];
             }
-            membuf_append(ctx->outbuf, &val, 1);
+            membuf_append_char(ctx->outbuf, val);
         } while (--len > 0);
 
         LOG(LOG_DEBUG, ("bits read for this iteration %d.\n",

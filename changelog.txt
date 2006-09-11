@@ -1,3 +1,7 @@
++ Remove broken usage of membuf_append that breaks on big-endian targets. Bug
+  reported by MagerValp.
++ Add a dasm version of the exodecruncher source.
+
 2006-07-08
 Release of 2.0beta4 source code, Win32 and DOS binaries.
 + Change my email address (again).

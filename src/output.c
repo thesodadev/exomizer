@@ -57,10 +57,9 @@ void output_byte(output_ctx ctx,        /* IN/OUT */
     {
         while(ctx->pos > membuf_memlen(ctx->buf))
         {
-            char c = '\0';
-            membuf_append(ctx->buf, &c, 1);
+            membuf_append_char(ctx->buf, '\0');
         }
-        membuf_append(ctx->buf, &byte, 1);
+        membuf_append_char(ctx->buf, byte);
     }
     ++(ctx->pos);
 }
