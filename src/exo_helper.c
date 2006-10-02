@@ -346,7 +346,8 @@ void crunch(struct membuf *inbuf,
     crunch_backwards(inbuf, outbuf, options, info);
 
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
-    reverse_buffer((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
+    reverse_buffer((char*)membuf_get(outbuf) + outpos,
+                   membuf_memlen(outbuf) - outpos);
 }
 
 void decrunch(int level,
@@ -374,7 +375,8 @@ void decrunch_backwards(int level,
     decrunch(level, inbuf, outbuf);
 
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
-    reverse_buffer((char*)membuf_get(outbuf) + outpos, membuf_memlen(outbuf));
+    reverse_buffer((char*)membuf_get(outbuf) + outpos,
+                   membuf_memlen(outbuf) - outpos);
 }
 
 const char *fixup_appl(char *appl)

@@ -526,6 +526,8 @@ void print_level_usage(const char *appl, enum log_level level,
         ("usage: %s level [option]... infile[,<address>]...\n"
          "  The level command generates outfiles that are intended to be decrunched on\n"
          "  the fly while being read.\n", appl));
+    LOG(level,
+        ("  -f            crunch forward\n"));
     print_shared_flags(level, default_outfile);
     LOG(level,
         (" All infiles are crunched separately and concatenated in the outfile in the\n"
@@ -544,6 +546,8 @@ void print_mem_usage(const char *appl, enum log_level level,
     LOG(level,
         ("  -l <address>  adds load address to the outfile, using \"none\" as <address>\n"
          "                will skip the load address.\n"));
+    LOG(level,
+        ("  -f            crunch forward\n"));
     print_shared_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
@@ -593,6 +597,8 @@ void print_sfx_usage(const char *appl, enum log_level level,
 static
 void level(const char *appl, int argc, char *argv[])
 {
+    char flags_arr[32];
+    int forward_mode = 0;
     int literal_sequences_used = 0;
     int max_safety = 0;
     int c;
@@ -608,10 +614,18 @@ void level(const char *appl, int argc, char *argv[])
     flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    while ((c = getflag(argc, argv, SHARED_FLAGS)) != -1)
+    sprintf(flags_arr, "f%s", SHARED_FLAGS);
+    while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
-        handle_shared_flags(c, flagarg, print_level_usage, appl, flags);
+        switch (c)
+        {
+        case 'f':
+            forward_mode = 1;
+            break;
+        default:
+            handle_shared_flags(c, flagarg, print_level_usage, appl, flags);
+        }
     }
 
     membuf_init(in);
@@ -638,7 +652,27 @@ void level(const char *appl, int argc, char *argv[])
 
         in_load = do_load(infilev[c], in);
         in_len = membuf_memlen(in);
-        crunch_backwards(in, out, options, info);
+
+        if(forward_mode)
+        {
+            /* append the starting address of decrunching */
+            membuf_append_char(out, in_load >> 8);
+            membuf_append_char(out, in_load & 255);
+
+            crunch(in, out, options, info);
+        }
+        else
+        {
+            crunch_backwards(in, out, options, info);
+
+            /* append the starting address of decrunching */
+            membuf_append_char(out, (in_load + in_len) & 255);
+            membuf_append_char(out, (in_load + in_len) >> 8);
+
+            /* reverse the just appended segment of the out buffer */
+            reverse_buffer((char*)membuf_get(out) + out_pos,
+                           membuf_memlen(out) - out_pos);
+        }
 
         if(info->literal_sequences_used)
         {
@@ -648,14 +682,6 @@ void level(const char *appl, int argc, char *argv[])
         {
             max_safety = info->needed_safety_offset;
         }
-
-        /* append the starting address of decrunching */
-        membuf_append_char(out, (in_load + in_len) & 255);
-        membuf_append_char(out, (in_load + in_len) >> 8);
-
-        /* reverse the just appended segment of the out buffer */
-        reverse_buffer((char*)membuf_get(out) + out_pos,
-                       membuf_memlen(out) - out_pos);
     }
 
     LOG(LOG_NORMAL, (" Literal sequences are %sused and",
@@ -672,9 +698,10 @@ void level(const char *appl, int argc, char *argv[])
 static
 void mem(const char *appl, int argc, char *argv[])
 {
+    char flags_arr[32];
+    int forward_mode = 0;
     int load_addr = -1;
     int prepend_load_addr = 1;
-    char flags_arr[32];
     int c;
     int infilec;
     char **infilev;
@@ -688,12 +715,15 @@ void mem(const char *appl, int argc, char *argv[])
     flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "l:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "fl:%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
         switch(c)
         {
+        case 'f':
+            forward_mode = 1;
+            break;
         case 'l':
             if(strcmp(flagarg, "none") == 0)
             {
@@ -742,12 +772,24 @@ void mem(const char *appl, int argc, char *argv[])
             membuf_append(out, NULL, 2);
         }
 
-        crunch_backwards(in, out, options, info);
-        safety = info->needed_safety_offset;
+        if(forward_mode)
+        {
+            /* append the in_loading address of decrunching */
+            membuf_append_char(out, in_load & 255);
+            membuf_append_char(out, in_load >> 8);
 
-        /* append the in_loading address of decrunching */
-        membuf_append_char(out, (in_load + in_len) & 255);
-        membuf_append_char(out, (in_load + in_len) >> 8);
+            crunch(in, out, options, info);
+            safety = info->needed_safety_offset;
+        }
+        else
+        {
+            crunch_backwards(in, out, options, info);
+            safety = info->needed_safety_offset;
+
+            /* append the in_loading address of decrunching */
+            membuf_append_char(out, (in_load + in_len) & 255);
+            membuf_append_char(out, (in_load + in_len) >> 8);
+        }
 
         /* prepend load addr */
         if(prepend_load_addr)
@@ -756,7 +798,15 @@ void mem(const char *appl, int argc, char *argv[])
             if(load_addr < 0)
             {
                 /* auto load addr specified */
-                load_addr = in_load - safety;
+                load_addr = in_load;
+                if(forward_mode)
+                {
+                    load_addr += in_len + safety - membuf_memlen(out) + 2;
+                }
+                else
+                {
+                    load_addr -= safety;
+                }
             }
             p = membuf_get(out);
             p[0] = load_addr & 255;
