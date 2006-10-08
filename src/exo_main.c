@@ -775,8 +775,8 @@ void mem(const char *appl, int argc, char *argv[])
         if(forward_mode)
         {
             /* append the in_loading address of decrunching */
-            membuf_append_char(out, in_load & 255);
             membuf_append_char(out, in_load >> 8);
+            membuf_append_char(out, in_load & 255);
 
             crunch(in, out, options, info);
             safety = info->needed_safety_offset;

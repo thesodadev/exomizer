@@ -1,3 +1,3 @@
 .export end_of_data
-	.incbin "data.exo"
+	.incbin "data.exo", 2
 end_of_data:

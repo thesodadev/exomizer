@@ -164,13 +164,24 @@ monitors or by assembler directives like incbin.
         However, the file doesn't need to be decrunched from that address. Any
         address that doesn't cause data being decrunched to overwrite data yet
         to be decrunched will work.
+-f      Crunch the file forward intead of backwards that is the default. This
+        means that in this mode the read and write pointers move forward in
+        memory while decrunching. The exodecrunch.s does not support forward
+        decrunching. For this feature to work You'll have to use Krill's
+        modified decruncher.
 
 -------------------------------------------------------------------------------
 -- The level sub command ------------------------------------------------------
 -------------------------------------------------------------------------------
 
  The level command writes the files in its own format that is easy to read back
-and decrunch on the fly. It has no options of its own.
+and decrunch on the fly.
+
+-f      Crunch the file forward intead of backwards that is the default. This
+        means that in this mode the write pointer move forward in memory while
+        decrunching. The exodecrunch.s does not support forward decrunching.
+        For this feature to work You'll have to use Krill's modified
+        decruncher.
 
 -------------------------------------------------------------------------------
 -- The sfx sub command --------------------------------------------------------
