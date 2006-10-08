@@ -1,3 +1,5 @@
+2006-10-08
+Release of 2.0beta5 source code, Win32 and DOS binaries.
 + Add a decruncher able to decrunch forwards, exodepack.s, contributed by
   Krill/Plush.
 + Add support for forward crunching to the mem and level sub commands.
