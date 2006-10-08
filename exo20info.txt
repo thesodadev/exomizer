@@ -270,9 +270,11 @@ $ exomizer raw <infile>,-13,10 -o <outfile>
 There are two directories with source code in the distribution:
 
 exodecrs/
-         This contains the source code of three 6502 assembler decrunchers. One
-        backward deruncher that decrunches data crunched by the mem sub
-        command. call this decruncher once to decrunch the data to its targeted
+         This contains the source code of four 6502 assembler decrunchers. One
+        backwards decruncher that decrunches data crunched by the mem sub
+        command. It also contains a forward decruncher contributed by
+        Krill/Plush for data crunched by the mem sub command and the -f option.
+        Call these two decrunchers once to decrunch the data to its targeted
         location.
          Also contained in this directory are two streaming forward decrunchers
         for data crunched with the raw sub command. Both use a circular buffer
@@ -282,7 +284,7 @@ exodecrs/
         capable of handling the literal sequence escape mechanism so data must
         be cruncher with the -c flag.
          Also included are a Makefile and some example code and data that use
-        the three decrunchers. The assembler syntax is ca65, the assembler of
+        the four decrunchers. The assembler syntax is ca65, the assembler of
         the cc65 tool chain. This tool chain is needed to build the examples.
 
 rawdecrs/
@@ -305,6 +307,11 @@ Csabo / LOD
 Ninja / The Dreams
 Richard / TND
 Jack Alien / Remember
+Krill / Plush
+
+Contributed code
+----------------
+Krill / Plush
 
 Bug reports
 -----------
