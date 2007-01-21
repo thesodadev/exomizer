@@ -81,7 +81,7 @@ void output_bits_flush(output_ctx ctx)  /* IN/OUT */
     {
         output_byte(ctx, 1);
     }
-    /*LOG(LOG_DUMP, ("bitstream flushed 0x%02X\n", ctx->bitbuf & 0xFF)); */
+    LOG(LOG_DUMP, ("bitstream flushed 0x%02X\n", ctx->bitbuf & 0xFF));
 
     /* reset it */
     ctx->bitbuf = 1;
@@ -104,11 +104,10 @@ void bits_dump(int count, int val)
     LOG(LOG_NORMAL, ("%s\n", buf));
 }
 
-void output_bits(output_ctx ctx,        /* IN/OUT */
-                 int count,     /* IN */
-                 int val)       /* IN */
+static void output_bits_int(output_ctx ctx,        /* IN/OUT */
+                            int count,     /* IN */
+                            int val)       /* IN */
 {
-    /*LOG(LOG_DUMP, ("output_bits: count = %d, val = %d\n", count, val)); */
     /* this makes the bits appear in reversed
      * big endian order in the output stream */
     while (count-- > 0)
@@ -120,19 +119,28 @@ void output_bits(output_ctx ctx,        /* IN/OUT */
         {
             /* full byte, flush it */
             output_byte(ctx, (unsigned char) (ctx->bitbuf & 0xFF));
-            /*LOG(LOG_DUMP,
-               ("bitstream byte 0x%02X\n", ctx->bitbuf & 0xFF)); */
+            LOG(LOG_DUMP,
+               ("bitstream byte 0x%02X\n", ctx->bitbuf & 0xFF));
             ctx->bitbuf = 1;
         }
     }
 }
 
+void output_bits(output_ctx ctx,        /* IN/OUT */
+                 int count,     /* IN */
+                 int val)       /* IN */
+{
+    LOG(LOG_DUMP, ("output bits: count = %d, val = %d\n", count, val));
+    output_bits_int(ctx, count, val);
+}
+
 void output_gamma_code(output_ctx ctx,  /* IN/OUT */
                        int code)        /* IN */
 {
-    output_bits(ctx, 1, 1);
+    LOG(LOG_DUMP, ("output gamma: code = %d\n", code));
+    output_bits_int(ctx, 1, 1);
     while (code-- > 0)
     {
-        output_bits(ctx, 1, 0);
+        output_bits_int(ctx, 1, 0);
     }
 }

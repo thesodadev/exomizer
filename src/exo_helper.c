@@ -134,6 +134,8 @@ int do_output(match_ctx ctx,
                 if(mp->len == 1)
                 {
                     /* literal */
+                    LOG(LOG_DUMP, ("literal byte: $%02X\n",
+                                   ctx->buf[snp->index]));
                     output_byte(out, ctx->buf[snp->index]);
                     output_bits(out, 1, 1);
                 } else

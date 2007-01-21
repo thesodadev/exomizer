@@ -68,7 +68,16 @@
   .ERROR("Symbol i_load_addr must be undefined or [0 or 65535].")
 .ENDIF
 
-.IF(r_target == 20)
+.IF(r_target == 1)
+  c_end_of_mem_ram = $C000
+  c_end_of_mem_rom = $C000
+  c_effect_char    = $bfdf
+  c_effect_color   = $bfde
+  c_border_color   = $bfdf
+  c_rom_config_value = 0
+  c_ram_config_value = 0
+  c_default_table = $b800
+.ELIF(r_target == 20)
   c_basic_start    = $1001
   c_end_of_mem_ram = $2000
   c_end_of_mem_rom = $2000
@@ -228,18 +237,18 @@ v_safety_addr = .INCWORD("crunched_data", 0)
 ; -------------------------------------------------------------------
 v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
 
-.IF(i_effect == 0 &&
-    .DEFINED(c_effect_color) &&
-	    c_effect_color < v_safety_addr &&
-	    c_effect_color > i_table_addr + 156)
-v_start_of_decrunchable_mem = c_effect_color
-.ELSE
-v_start_of_decrunchable_mem = i_table_addr + 156
-.ENDIF
+; .IF(i_effect == 0 &&
+;     .DEFINED(c_effect_color) &&
+; 	    c_effect_color < v_safety_addr &&
+; 	    c_effect_color > i_table_addr + 156)
+; v_start_of_decrunchable_mem = c_effect_color
+; .ELSE
+; v_start_of_decrunchable_mem = i_table_addr + 156
+; .ENDIF
 
-.IF(v_safety_addr < v_start_of_decrunchable_mem)
-	  .ERROR("This target can't support the memory demands of the data.")
-.ENDIF
+; .IF(v_safety_addr < v_start_of_decrunchable_mem)
+; 	  .ERROR("This target can't support the memory demands of the data.")
+; .ENDIF
 
 ; -------------------------------------------------------------------
 ; -- file2_start_hook and stage2_exit_hook --------------------------
@@ -413,6 +422,10 @@ exit_hook = 1
       .IF(r_target == 4)
 	lda <$fd,x
 	sta c_effect_color
+      .ELIF(r_target == 1)
+	lda <$fd,x
+	and #$1f
+	sta c_effect_color
       .ELSE
 	stx c_effect_color
       .ENDIF
@@ -457,7 +470,19 @@ exit_hook = 1
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for decrunching ----------------------
 ; -------------------------------------------------------------------
-.IF(r_target == 64)
+.IF(r_target == 1)
+; -------------------------------------------------------------------
+; -- The ram/rom switch macros for Oric-1 ---------------------------
+; -------------------------------------------------------------------
+  .MACRO("b2d_ram")
+  .ENDMACRO
+  .MACRO("d2io")
+  .ENDMACRO
+  .MACRO("io2d")
+  .ENDMACRO
+  .MACRO("d2r_ram")
+  .ENDMACRO
+.ELIF(r_target == 64)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for c64 ------------------------------
 ; -------------------------------------------------------------------
@@ -610,7 +635,7 @@ exit_hook = 1
 	sta $d301
   .ENDMACRO
 .ELSE
-  .ERROR("Unhanded target for macro definitions.")
+  .ERROR("Unhandled target for macro definitions.")
 .ENDIF
 ; -------------------------------------------------------------------
 ; -- End of bank switch definitions ---------------------------------
@@ -619,10 +644,29 @@ exit_hook = 1
 ; -- Start of file header stuff -------------------------------------
 ; -------------------------------------------------------------------
 transfer_len ?= 0
+
+.IF(r_target == 1)
+; -------------------------------------------------------------------
+; -- Oric-1 file header stuff ---------------------------------------
+; -------------------------------------------------------------------
+zp_lo_len = $f7
+zp_src_addr = $f9
+zp_hi_bits = $f8
+
+	.BYTE($16,$16,$16,$24,$00,$00,$80,$01)
+	.BYTE(o1_end / 256, o1_end % 256)
+	.BYTE(o1_start / 256, o1_start % 256)
+	.BYTE(0, 0)
+  .IF(!.DEFINED(i_load_addr))
+	.ORG($0400)
+  .ELSE
+	.ORG(i_load_addr)
+  .ENDIF
+o1_start:
 ; -------------------------------------------------------------------
 ; -- Commodore file header stuff ------------------------------------
 ; -------------------------------------------------------------------
-.IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
+.ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 4 || r_target == 64 || r_target == 128)
 zp_lo_len = $a7
 zp_src_addr = $ae
@@ -1094,7 +1138,12 @@ file1end:
 ; -------------------------------------------------------------------
 ; -- Start of file footer stuff -------------------------------------
 ; -------------------------------------------------------------------
-.IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
+.IF(r_target == 1)
+; -------------------------------------------------------------------
+; -- Start of Oric-1 file footer stuff ------------------------------
+; -------------------------------------------------------------------
+o1_end:
+.ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 4 || r_target == 64 || r_target == 128)
 ; -------------------------------------------------------------------
 ; -- Start of Commodoer file footer stuff ---------------------------

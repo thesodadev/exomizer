@@ -843,6 +843,7 @@ get_target_info(int target)
 {
     static const struct target_info targets[] =
         {
+            {1,   0x1001, "Oric-1"},
             {20,  0x1001, "Vic20"},
             {23,  0x0401, "Vic20+3kB"},
             {52,  0x1201, "Vic20+32kB"},
@@ -1450,7 +1451,7 @@ main(int argc, char *argv[])
     const char *appl;
 
     /* init logging */
-    LOG_INIT_CONSOLE(LOG_NORMAL);
+    LOG_INIT_CONSOLE(LOG_DUMP);
 
     appl = fixup_appl(argv[0]);
     if(argc < 2)

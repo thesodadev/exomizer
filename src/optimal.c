@@ -142,11 +142,11 @@ float optimal_encode_int(int arg, void *priv, output_ctxp out)
         output_bits(out, inp->bits, arg - inp->start);
         if (inp->flags < 0)
         {
-            LOG(LOG_DUMP, ("gamma prefix code = %d", inp->depth));
+            LOG(LOG_DUMP, ("gamma prefix code = %d\n", inp->depth));
             output_gamma_code(out, inp->depth);
         } else
         {
-            LOG(LOG_DUMP, ("flat prefix %d bits ", inp->depth));
+            LOG(LOG_DUMP, ("flat prefix %d bits\n", inp->depth));
             output_bits(out, inp->prefix, inp->depth);
         }
     }
