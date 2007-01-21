@@ -137,7 +137,7 @@
   c_border_color   = $d020
   c_rom_config_value = $00
   c_ram_config_value = $3f
-  c_default_table = $0334
+  c_default_table = $0b00
 .ELIF(r_target == $a2)
   c_basic_start    = $0801
   c_end_of_mem_ram = $c000
