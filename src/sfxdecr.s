@@ -139,7 +139,7 @@
   c_default_table = $0334
 .ELIF(r_target == 128)
   c_basic_start    = $1c01
-  c_end_of_mem_ram = $fff0
+  c_end_of_mem_ram = $ff00
   c_end_of_mem_rom = $4000
   c_effect_char    = $07e7
   c_effect_color   = $dbe7
@@ -536,7 +536,7 @@ exit_hook = 1
 ; -------------------------------------------------------------------
   .MACRO("b2d_ram")
 	lda #i_ram_during
-	sta $fff0
+	sta $ff00
   .ENDMACRO
   .MACRO("d2io")
     .IF(i_ram_during == $3f)
@@ -547,7 +547,7 @@ exit_hook = 1
 	pha
       .ENDIF
 	lda #c_rom_config_value
-	sta $fff0
+	sta $ff00
       .IF(i_effect == 1)
 	pla
       .ENDIF
@@ -559,7 +559,7 @@ exit_hook = 1
 	pha
       .ENDIF
 	lda #i_ram_during
-	sta $fff0
+	sta $ff00
       .IF(i_effect == 1)
 	pla
       .ENDIF
@@ -570,7 +570,7 @@ exit_hook = 1
   .ENDMACRO
   .MACRO("d2r_ram")
 	lda #i_ram_exit
-	sta $fff0
+	sta $ff00
   .ENDMACRO
 .ELIF(r_target == 4)
 ; -------------------------------------------------------------------

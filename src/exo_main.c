@@ -1451,7 +1451,7 @@ main(int argc, char *argv[])
     const char *appl;
 
     /* init logging */
-    LOG_INIT_CONSOLE(LOG_DUMP);
+    LOG_INIT_CONSOLE(LOG_NORMAL);
 
     appl = fixup_appl(argv[0]);
     if(argc < 2)
