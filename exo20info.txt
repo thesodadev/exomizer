@@ -15,6 +15,7 @@ o  Totally rewitten handling of the sfx decruncher:
    6) The Atari 400/800 XL/XE family is supported as sfx target 168.
    7) Can generate relocated sfx targets without basic line.
    8) The Apple ][+ (and //e) is supported as sfx target 162.
+   9) The Oric 1 is supported as sfx target 1 (untested).
 
 o  Reads Atari xex-files and autodetects the RUNAD vector if the sys keyword is
    given to the sfx command.
