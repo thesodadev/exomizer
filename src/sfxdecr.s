@@ -653,7 +653,7 @@ zp_lo_len = $f7
 zp_src_addr = $f9
 zp_hi_bits = $f8
 
-	.BYTE($16,$16,$16,$24,$00,$00,$80,$01)
+	.BYTE($16,$16,$16,$24,$00,$00,$80,$c7)
 	.BYTE(o1_end / 256, o1_end % 256)
 	.BYTE(o1_start / 256, o1_start % 256)
 	.BYTE(0, 0)

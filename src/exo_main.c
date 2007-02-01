@@ -87,16 +87,29 @@ static int find_sys(const unsigned char *buf)
     return outstart;
 }
 
-static int get_word(FILE *in)
+static int get_byte(FILE *in)
 {
-    int word = fgetc(in);
-    word |= fgetc(in) << 8;
-    if(word < 0)
+    int byte = fgetc(in);
+    if(byte == EOF)
     {
         LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
         fclose(in);
         exit(-1);
     }
+    return byte;
+}
+
+static int get_le_word(FILE *in)
+{
+    int word = get_byte(in);
+    word |= get_byte(in) << 8;
+    return word;
+}
+
+static int get_be_word(FILE *in)
+{
+    int word = get_byte(in) << 8;
+    word |= get_byte(in);
     return word;
 }
 
@@ -163,7 +176,7 @@ open_file(char *name, int *load_addr)
     if(is_prg)
     {
         /* read the prg load address */
-        int prg_load = get_word(in);
+        int prg_load = get_le_word(in);
         if(!is_relocated)
         {
             load = prg_load;
@@ -173,6 +186,11 @@ open_file(char *name, int *load_addr)
                 /* differentiate this from relocated $ffff files so it is
                  * possible to override the xex auto-detection. */
                 load = -1;
+            }
+            /* unrelocated prg loading to $1616 is Oric tap */
+            else if(prg_load == 0x1616)
+            {
+                load = -2;
             }
         }
     }
@@ -300,14 +318,14 @@ static void load_xex(unsigned char mem[65536], FILE *in,
         if(start == EOF) break;
         ungetc(start, in);
 
-        start = get_word(in);
+        start = get_le_word(in);
         if(start == 0xffff)
         {
             /* allowed optional header */
         initial_state:
-            start = get_word(in);
+            start = get_le_word(in);
         }
-        end = get_word(in);
+        end = get_le_word(in);
         if(start > 0xffff || end > 0xffff || end < start)
         {
             LOG(LOG_ERROR, ("Error: corrupt data in xex-file."));
@@ -317,14 +335,14 @@ static void load_xex(unsigned char mem[65536], FILE *in,
         if(start == 0x2e2 && end == 0x2e3)
         {
             /* init vector */
-            jsr = get_word(in);
+            jsr = get_le_word(in);
             LOG(LOG_VERBOSE, ("Found xex initad $%04X.\n", jsr));
             continue;
         }
         if(start == 0x2e0 && end == 0x2e1)
         {
             /* run vector */
-            run = get_word(in);
+            run = get_le_word(in);
             LOG(LOG_VERBOSE, ("Found xex runad $%04X.\n", run));
             continue;
         }
@@ -336,7 +354,7 @@ static void load_xex(unsigned char mem[65536], FILE *in,
         len = fread(mem + start, 1, end - start, in);
         if(len != end - start)
         {
-            LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
+            LOG(LOG_ERROR, ("Error: unexpected end of xex-file.\n"));
             fclose(in);
             exit(-1);
         }
@@ -351,6 +369,68 @@ static void load_xex(unsigned char mem[65536], FILE *in,
     if(run != -1 && runp != NULL) *runp = run;
 }
 
+static void load_oric_tap(unsigned char mem[65536], FILE *in,
+                          int *startp, int *endp, int *runp)
+{
+    int c;
+    int autostart;
+    int start, end, len;
+
+    /* read oric tap header */
+
+    /* next byte must be 0x16 as we have already read two and must
+     * have at least three */
+    if(get_byte(in) != 0x16)
+    {
+        LOG(LOG_ERROR, ("Error: fewer than three lead-in bytes ($16) "
+                        "in Oric tap-file header.\n"));
+        fclose(in);
+        exit(-1);
+    }
+    /* optionally more 0x16 bytes */
+    while((c = get_byte(in)) == 0x16);
+    /* next byte must be 0x24 */
+    if(c != 0x24)
+    {
+        LOG(LOG_ERROR, ("Error: bad sync byte after lead-in in Oric tap-file "
+                        "header, got $%02X but expected $24\n", c));
+        fclose(in);
+        exit(-1);
+    }
+
+    /* now we are in sync, lets be lenient */
+    get_byte(in); /* should be 0x0 */
+    get_byte(in); /* should be 0x0 */
+    get_byte(in); /* should be 0x0 or 0x80 */
+    autostart = (get_byte(in) != 0);  /* should be 0x0, 0x80 or 0xc7 */
+    end = get_be_word(in);
+    start = get_be_word(in);
+    get_byte(in); /* should be 0x0 */
+    /* read optional file name */
+    while(get_byte(in) != 0x0);
+
+    /* read the data */
+    len = fread(mem + start, 1, end - start, in);
+    if(len != end - start)
+    {
+        LOG(LOG_ERROR, ("Error: unexpected end of Oric tap-file.\n"));
+        fclose(in);
+        exit(-1);
+    }
+    if(fgetc(in) != EOF)
+    {
+        LOG(LOG_ERROR, ("Error: unexpected data at end of Oric tap-file.\n"));
+        fclose(in);
+        exit(-1);
+    }
+    LOG(LOG_VERBOSE, (" Oric tap-file loading from $%04X to $%04X\n",
+                      start, end));
+
+    if(startp != NULL) *startp = start;
+    if(endp != NULL) *endp = end;
+    if(autostart && runp != NULL) *runp = start;
+}
+
 static void load_located(char *filename, unsigned char mem[65536],
                          int *startp, int *endp, int *runp)
 {
@@ -363,6 +443,11 @@ static void load_located(char *filename, unsigned char mem[65536],
     {
         /* file is an xex file */
         load_xex(mem, in, &sp, &ep, runp);
+    }
+    else if(load == -2)
+    {
+        printf("oric\n");
+        load_oric_tap(mem, in, &sp, &ep, runp);
     }
     else
     {

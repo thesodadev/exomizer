@@ -178,7 +178,8 @@ stmt:	SYMBOL COLON { new_label($1); } |
         IF LPAREN lexpr RPAREN { push_if_state($3); } |
         ORG LPAREN expr RPAREN { set_org($3); } |
         ERROR LPAREN STRING RPAREN { asm_error($3); } |
-        ECHO LPAREN STRING RPAREN { asm_echo($3); } |
+        ECHO LPAREN STRING RPAREN { asm_echo($3, NULL); } |
+        ECHO LPAREN STRING COMMA exprs RPAREN { asm_echo($3, $5); } |
         INCLUDE LPAREN STRING RPAREN { asm_include($3); } |
         MACRO LPAREN STRING RPAREN { push_macro_state($3); } |
         atom { vec_push(asm_atoms, &$1); } |

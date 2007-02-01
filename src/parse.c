@@ -603,10 +603,41 @@ void asm_error(const char *msg)
     exit(1);
 }
 
-void asm_echo(const char *msg)
+void asm_echo(const char *msg, struct atom *atom)
 {
-    fprintf(stdout, "%s\n", msg);
+    struct vec_iterator i[1];
+    struct expr **exprp;
+    struct expr *expr;
+    i32 e[10];
+
+    if(atom->type != ATOM_TYPE_EXPRS || vec_count(atom->u.exprs) > 10)
+    {
+        LOG(LOG_ERROR, ("echo arguments must be a string followed by none "
+                        "or at most ten expressions.\n"));
+        exit(1);
+    }
+    i = 0;
+    vec_get_iterator(atom->u.exprs, i2);
+    while((exprp = vec_iterator_next(i2)) != NULL)
+    {
+        expr = *exprp;
+        e[i] = resolve_expr(expr);
+    }
+    for(; i < 10; ++i)
+    {
+        e[i] = 0;
+    }
+    fprintf(stdout, msg, e[0], e[1], e[2], e[3],
+            e[4], e[5], e[6], e[7], e[8], e[9]);
 }
+struct atom *exprs_to_byte_exprs(struct atom *atom)
+{
+    atom->type = ATOM_TYPE_BYTE_EXPRS;
+
+    pc_add(vec_count(atom->u.exprs));
+    return atom;
+}
+
 
 void asm_include(const char *msg)
 {
