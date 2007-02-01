@@ -237,6 +237,12 @@ v_safety_addr = .INCWORD("crunched_data", 0)
 ; -------------------------------------------------------------------
 v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
 
+.ECHO("Data covers $%04X - $%04X.", v_safety_addr, v_highest_addr)
+.ECHO("Table covers $%04X - $%04X.", i_table_addr, i_table_addr + 156)
+.IF(i_effect == 0)
+  .ECHO("Effect writes $%04X.", c_effect_color)
+.ENDIF
+
 ; .IF(i_effect == 0 &&
 ;     .DEFINED(c_effect_color) &&
 ; 	    c_effect_color < v_safety_addr &&

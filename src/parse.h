@@ -128,7 +128,7 @@ void push_if_state(struct expr *arg);
 void push_macro_state(const char *name);
 void macro_append(const char *text);
 void asm_error(const char *msg);
-void asm_echo(const char *msg);
+void asm_echo(const char *msg, struct atom *atom);
 void asm_include(const char *msg);
 
 void output_atoms(struct membuf *out, struct vec *mem);

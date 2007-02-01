@@ -438,7 +438,7 @@ void optimal_encoding_import(encode_match_data emd,
     offsets = (interval_nodep*)data->offset_f_priv;
 
     /* lengths */
-    npp = (interval_nodep*)&data->len_f_priv;
+    npp = (void*)&data->len_f_priv;
     import_helper(npp, &encoding, -1);
 
     /* offsets, len = 1 */

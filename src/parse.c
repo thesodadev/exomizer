@@ -608,6 +608,7 @@ void asm_echo(const char *msg, struct atom *atom)
     struct vec_iterator i[1];
     struct expr **exprp;
     struct expr *expr;
+    int count;
     i32 e[10];
 
     if(atom->type != ATOM_TYPE_EXPRS || vec_count(atom->u.exprs) > 10)
@@ -616,28 +617,20 @@ void asm_echo(const char *msg, struct atom *atom)
                         "or at most ten expressions.\n"));
         exit(1);
     }
-    i = 0;
-    vec_get_iterator(atom->u.exprs, i2);
-    while((exprp = vec_iterator_next(i2)) != NULL)
+    count = 0;
+    vec_get_iterator(atom->u.exprs, i);
+    while((exprp = vec_iterator_next(i)) != NULL)
     {
         expr = *exprp;
-        e[i] = resolve_expr(expr);
+        e[count++] = resolve_expr(expr);
     }
-    for(; i < 10; ++i)
+    for(; count < 10; ++count)
     {
-        e[i] = 0;
+        e[count] = 0;
     }
     fprintf(stdout, msg, e[0], e[1], e[2], e[3],
             e[4], e[5], e[6], e[7], e[8], e[9]);
 }
-struct atom *exprs_to_byte_exprs(struct atom *atom)
-{
-    atom->type = ATOM_TYPE_BYTE_EXPRS;
-
-    pc_add(vec_count(atom->u.exprs));
-    return atom;
-}
-
 
 void asm_include(const char *msg)
 {
