@@ -607,7 +607,6 @@ void asm_echo(const char *msg, struct atom *atom)
 {
     struct vec_iterator i[1];
     struct expr **exprp;
-    struct expr *expr;
     int count;
     i32 e[10];
 
@@ -617,12 +616,12 @@ void asm_echo(const char *msg, struct atom *atom)
                         "or at most ten expressions.\n"));
         exit(1);
     }
+
     count = 0;
     vec_get_iterator(atom->u.exprs, i);
     while((exprp = vec_iterator_next(i)) != NULL)
     {
-        expr = *exprp;
-        e[count++] = resolve_expr(expr);
+        e[count++] = resolve_expr(*exprp);
     }
     for(; count < 10; ++count)
     {
@@ -630,6 +629,8 @@ void asm_echo(const char *msg, struct atom *atom)
     }
     fprintf(stdout, msg, e[0], e[1], e[2], e[3],
             e[4], e[5], e[6], e[7], e[8], e[9]);
+
+    fprintf(stdout, "\n");
 }
 
 void asm_include(const char *msg)
