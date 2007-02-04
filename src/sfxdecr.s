@@ -69,13 +69,13 @@
 .ENDIF
 
 .IF(r_target == 1)
-  c_end_of_mem_ram = $C000
-  c_end_of_mem_rom = $C000
+  c_end_of_mem_ram = $10000
+  c_end_of_mem_rom = $c000
   c_effect_char    = $bfdf
-  c_effect_color   = $bfde
+  c_effect_color   = $bfdf
   c_border_color   = $bfdf
   c_rom_config_value = 0
-  c_ram_config_value = 0
+  c_ram_config_value = 1
   c_default_table = $b800
 .ELIF(r_target == 20)
   c_basic_start    = $1001
@@ -207,7 +207,7 @@
 ; -------------------------------------------------------------------
 ; -- validate some input parameters ---------------------------------
 ; -------------------------------------------------------------------
-.IF(r_target == 4)
+.IF(r_target == 1 || r_target == 4)
   .IF(i_ram_exit != 0 && i_ram_exit != 1)
     .ERROR("Symbol i_ram_exit must have a value [0-1].")
   .ENDIF
@@ -237,10 +237,11 @@ v_safety_addr = .INCWORD("crunched_data", 0)
 ; -------------------------------------------------------------------
 v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
 
-.ECHO("Data covers $%04X - $%04X.", v_safety_addr, v_highest_addr)
-.ECHO("Table covers $%04X - $%04X.", i_table_addr, i_table_addr + 156)
+.ECHO("Memory layout:")
+.ECHO(" Data covers $%04X to $%04X.", v_safety_addr, v_highest_addr)
+.ECHO(" Table covers $%04X to $%04X.", i_table_addr, i_table_addr + 156)
 .IF(i_effect == 0)
-  .ECHO("Effect writes $%04X.", c_effect_color)
+  .ECHO(" Decrunch effect writes to $%04X.", c_effect_color)
 .ENDIF
 
 ; .IF(i_effect == 0 &&
@@ -347,6 +348,8 @@ exit_hook = 1
 	.ERROR("Apple target can't handle basic start.")
     .ELIF(r_target == $a8)
 	.ERROR("Atari target can't handle basic start.")
+    .ELIF(r_target == 1)
+	.ERROR("Oric target can't handle basic start.")
     .ELIF(r_target == 128)
       .IF(.DEFINED(i_basic_txt_start))
 	lda #i_basic_txt_start % 256
@@ -430,7 +433,8 @@ exit_hook = 1
 	sta c_effect_color
       .ELIF(r_target == 1)
 	lda <$fd,x
-	and #$1f
+	and #$07
+	ora #$10
 	sta c_effect_color
       .ELSE
 	stx c_effect_color
@@ -481,12 +485,34 @@ exit_hook = 1
 ; -- The ram/rom switch macros for Oric-1 ---------------------------
 ; -------------------------------------------------------------------
   .MACRO("b2d_ram")
+    .IF(i_ram_during == c_ram_config_value)
+	lda $0314
+	and #$fd
+	ora #$80
+	sta $0314 ; -- %1xxxxx0x -- RAM at $c000-$10000 -------------
+    .ELSE
+	lda $0314
+	and #$7f
+	ora #$02
+	sta $0314 ; -- %0xxxxx1x -- ROM at $c000-$10000 -------------
+    .ENDIF
   .ENDMACRO
   .MACRO("d2io")
   .ENDMACRO
   .MACRO("io2d")
   .ENDMACRO
   .MACRO("d2r_ram")
+    .IF(i_ram_exit == c_rom_config_value)
+	lda $0314
+	and #$7f
+	ora #$02
+	sta $0314 ; -- %0xxxxx1x -- ROM at $c000-$10000 -------------
+    .ELSE
+	lda $0314
+	and #$fd
+	ora #$80
+	sta $0314 ; -- %1xxxxx0x -- RAM at $c000-$10000 -------------
+    .ENDIF
   .ENDMACRO
 .ELIF(r_target == 64)
 ; -------------------------------------------------------------------
@@ -660,11 +686,11 @@ zp_src_addr = $f9
 zp_hi_bits = $f8
 
 	.BYTE($16,$16,$16,$24,$00,$00,$80,$c7)
-	.BYTE(o1_end / 256, o1_end % 256)
+	.BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
 	.BYTE(o1_start / 256, o1_start % 256)
 	.BYTE(0, 0)
   .IF(!.DEFINED(i_load_addr))
-	.ORG($0400)
+	.ORG($0500)
   .ELSE
 	.ORG(i_load_addr)
   .ENDIF

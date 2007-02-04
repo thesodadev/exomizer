@@ -403,7 +403,7 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
     get_byte(in); /* should be 0x0 */
     get_byte(in); /* should be 0x0 or 0x80 */
     autostart = (get_byte(in) != 0);  /* should be 0x0, 0x80 or 0xc7 */
-    end = get_be_word(in);
+    end = get_be_word(in) + 1; /* the header end address is inclusive */
     start = get_be_word(in);
     get_byte(in); /* should be 0x0 */
     /* read optional file name */
@@ -413,15 +413,9 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
     len = fread(mem + start, 1, end - start, in);
     if(len != end - start)
     {
-        LOG(LOG_ERROR, ("Error: unexpected end of Oric tap-file.\n"));
-        fclose(in);
-        exit(-1);
-    }
-    if(fgetc(in) != EOF)
-    {
-        LOG(LOG_ERROR, ("Error: unexpected data at end of Oric tap-file.\n"));
-        fclose(in);
-        exit(-1);
+        LOG(LOG_BRIEF, ("Warning: Oric tap-file contains %d byte(s) data "
+                        "less than expected.\n", end - start - len));
+        end = start + len;
     }
     LOG(LOG_VERBOSE, (" Oric tap-file loading from $%04X to $%04X\n",
                       start, end));
@@ -446,7 +440,6 @@ static void load_located(char *filename, unsigned char mem[65536],
     }
     else if(load == -2)
     {
-        printf("oric\n");
         load_oric_tap(mem, in, &sp, &ep, runp);
     }
     else
@@ -511,7 +504,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         load_located(filev[i], p, &start, &end, &run);
         if(run != -1 && runp != NULL)
         {
-            LOG(LOG_DEBUG, ("Propagating xex runad %04X.\n", run));
+            LOG(LOG_DEBUG, ("Propagating found run address %04X.\n", run));
             *runp = run;
         }
 
