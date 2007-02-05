@@ -126,18 +126,19 @@ data. They share the following option flags:
 
 The mem, level and sfx command all crunches files backwards. The files have to
 belocated in a 16-bit address space and are also limited in size to that 16bit
-address space. The file format of the input files are prg files, xex files or
-located plain files (plain files that are given an address to load to.)
+address space. The file format of the input files are prg files, Atari xex
+files, Oric tap files or located plain files (plain files that are given an
+address to load to.)
 
- The syntax for loading a prg or xex file is simply the filename:
-$ exomizer mem <prg file> <xex file> -o <output prg file name>
+ The syntax for loading a prg, xex or Oric tap file is simply the filename:
+$ exomizer mem <prg file> <xex file> <Oric tap file> -o <output prg file name>
 
  If you want to load a prg file to a different address than it contains you can
 simply append a comma and the new load address:
 $ exomizer mem <prg file>,<new address> -o <output prg file name>
 
- Relocation does not work for xex files. An relocated xex file will simply be
-treated as if it was a relocated prg file.
+ Relocation does not work for xex or tap files. An relocated xex or tap file
+will simply be treated as if it was a relocated prg file.
 
  Plain located files are given using a similar syntax:
 $ exomizer mem <plain file>@<address> -o <output prg file name>
@@ -147,6 +148,10 @@ where they are located and then crunch the covered memory area. Any unused
 space between files will be zero-filled. The level command loads each input
 file separately, crunches it and then appends the crunched data to the output
 file.
+
+The autodetection of xex or Oric tap files is not perfect. Prg files that load
+at $ffff or $1616 will be wrongly detected as xex or Oric tap. To disable the
+autodetection relocate the prg files to the same address they normally load to.
 
 -------------------------------------------------------------------------------
 -- The mem sub command --------------------------------------------------------
@@ -207,12 +212,14 @@ itself in memory when run. The output file format depends on the target
 used. For all Commodore machines the output is a runnable prg-file that starts
 with a basic line. For the Atari the target is a auto running xex-file. The
 atari target doesn't support decrunching into extended memory. For the Apple
-the target is a Applesoft basic file.
+the target is a Applesoft basic file. For the Oric 1 the target is a Oric tap
+file.
 
  The sfx command has the following options:
 
 -t<target>
         Sets the decruncher target. The possible target are:
+          1: Oric 1.
           4: Commodore c16/plus4.
          20: Commodore Vic20, unexpanded memory.
          23: Commodore Vic20, 3kB memory expansion.
@@ -234,7 +241,8 @@ the target is a Applesoft basic file.
         1:      Accumulator based fast border flash
         2:      X-register based fast border flash
         3:      Y-register based fast border flash
-        Default effect is a slow character flash.
+        Default effect is a slow character flash. The 1-3 presets is only
+        available for targets that supports changing border color.
 
 -n      No decrunch effect. This option can't be combined with -X or -x
 
@@ -384,7 +392,9 @@ The following symbol controls the sfx load address:
  i_load_addr
 
 If it is unset then the sfx file will load to the default basic start address
-of the target machine (For Atari the default load address is $2000)
+of the target machine. For Atari the default load address is $2000. For the
+Oric the default load address is $0500.
+
 If it is set then the sfx file will load to the given address and it will not
 have any basic line. (The Atari target never has a basic line). The apple
 target file format will change from an Applesoft basic file to an Apple binary
@@ -396,10 +406,13 @@ The following symbols control the memory config:
  i_ram_exit       (defaults to standard ROM config)
 
 For the c64 and the c128 target the value of the above symbols will be stored
-into $fff0 (c128) or $01 (c64) to set the mem config. For the c16/+4 target
-0=ROM and 1=RAM. For the Atari the value will be stored in $d301.
-Default is $37 for the c64, $00 for the c128, 0 for the c16/+4 and $fd for the
-Atari.
+into $ff00 (c128) or $01 (c64) to set the mem config. For the c16/+4 target the
+possible values are 0=ROM and 1=RAM. For the Atari the value will be stored in
+$d301. The Oric target supports 0=ROM and 1=RAM where 1 will enable decrunching
+into the top 16kB RAM supplied by the microdisc controller.
+
+Default is $37 for the c64, $00 for the c128, 0 for the c16/+4 and Oric and $fd
+for the Atari.
 
 The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_enter      (defaults to 1)
@@ -410,7 +423,8 @@ To locate the decrunch table elsewhere than the default tape buffer or $0600
 for The Atari target, use the symbol i_table_addr:
  -Di_table_addr=<address>
 
-The apple target has an option to disconnect DOS. To do this, set the i_a2_disable_dos symbol to any value:
+The apple target has an option to disconnect DOS. To do this, set the
+i_a2_disable_dos symbol to any value:
  -Di_a2_disable_dos=1
 
 Effects are no longer selected by the use of symbols. They are now chosen by

@@ -1,3 +1,6 @@
++ Add loading of Oric tap files to the sfx command.
++ Add support for microcontroller RAM to Oric sfx target
+
 2007-01-28
 Release of 2.0beta6 source code, Win32 and DOS binaries.
 + Fix c128 target bugs in the sfx command
