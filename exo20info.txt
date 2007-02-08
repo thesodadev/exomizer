@@ -15,7 +15,7 @@ o  Totally rewitten handling of the sfx decruncher:
    6) The Atari 400/800 XL/XE family is supported as sfx target 168.
    7) Can generate relocated sfx targets without basic line.
    8) The Apple ][+ (and //e) is supported as sfx target 162.
-   9) The Oric 1 is supported as sfx target 1 (untested).
+   9) The Oric 8-bit family is supported as sfx target 1.
 
 o  Reads Atari xex-files and autodetects the RUNAD vector if the sys keyword is
    given to the sfx command.
@@ -77,6 +77,10 @@ A note about addresses:
 An address in this context is a positive 16-bit value [0 - 65536]. It can be
 given in decimal, hexadecimal (prefixed with $ or 0x) or octal (prefixed with
 0) notation. Examples: 3, 54, $3456, 0x1111, 06543.
+
+All addresses that end an interval of any kind, printed by exomizer or given by
+the user as an argument, are exclusive. In other words they point to the
+address just following the last byte of the memory area the interval covers.
 
 Exomizer has four sub commands: mem, level, sfx and raw. They all compress
 data. They share the following option flags:
@@ -205,21 +209,31 @@ autodetected. Either from the runad vector for the Atari target or by scanning
 the area of the basic start for a sys basic command.
 
  If the run address is the string basic then the computer will run a basic
-program after decrunch. (Not supported yet for the Atari target).
+program after decrunch. (Not supported yet for the Atari and Apple ][ target).
+
+This mode takes up to three optional addresses. They are in order: start of
+basic variables, start of basic and highest address used by basic.
+
+$ exomizer sfx basic[,<start vars>[,<start basic>[,<highest address>]]]
+
+Normally these addresses are autodetected and/or defaulted. However, they are
+useful if non standard settings are needed. Examples of such situations could
+be when a basic program needs to be run at a non standard address and/or some
+graphic needs to be protected from basic variables.
 
  The output of the sfx command is a runnable program file that decrunches
 itself in memory when run. The output file format depends on the target
 used. For all Commodore machines the output is a runnable prg-file that starts
 with a basic line. For the Atari the target is a auto running xex-file. The
 atari target doesn't support decrunching into extended memory. For the Apple
-the target is a Applesoft basic file. For the Oric 1 the target is a Oric tap
-file.
+the target is a Applesoft basic file. For the Oric family the target is a Oric
+tap file.
 
  The sfx command has the following options:
 
 -t<target>
         Sets the decruncher target. The possible target are:
-          1: Oric 1.
+          1: Oric 1, Oric Atmos and Telestrat.
           4: Commodore c16/plus4.
          20: Commodore Vic20, unexpanded memory.
          23: Commodore Vic20, 3kB memory expansion.

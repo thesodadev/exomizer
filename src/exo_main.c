@@ -921,7 +921,7 @@ get_target_info(int target)
 {
     static const struct target_info targets[] =
         {
-            {1,   0x1001, "Oric-1"},
+            {1,   0x0501, "Oric"},
             {20,  0x1001, "Vic20"},
             {23,  0x0401, "Vic20+3kB"},
             {52,  0x1201, "Vic20+32kB"},

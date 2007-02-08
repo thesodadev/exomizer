@@ -291,7 +291,7 @@ stage2_exit_hook = 1
 .ENDIF
 
 .IF(!.DEFINED(i_irq_during))
-  .IF(i_irq_enter == i_irq_exit && i_ram_during == i_ram_enter)
+  .IF(i_irq_enter==i_irq_exit && i_ram_during==i_ram_enter && r_target!=1)
     i_irq_during = i_irq_enter
   .ELSE
     i_irq_during = 0
@@ -349,7 +349,24 @@ exit_hook = 1
     .ELIF(r_target == $a8)
 	.ERROR("Atari target can't handle basic start.")
     .ELIF(r_target == 1)
-	.ERROR("Oric target can't handle basic start.")
+      .IF(.DEFINED(i_basic_txt_start))
+	lda #i_basic_txt_start % 256
+	sta <$9a
+	lda #i_basic_txt_start / 256
+	sta <$9b
+      .ENDIF
+      .IF(.DEFINED(i_basic_var_start))
+	lda #(i_basic_var_start - 1) % 256
+	sta <$9c
+	lda #(i_basic_var_start - 1) / 256
+	sta <$9d
+      .ENDIF
+      .IF(.DEFINED(i_basic_highest_addr))
+	lda #(i_basic_highest_addr - 1) % 256
+	sta <$a6
+	lda #(i_basic_highest_addr - 1) / 256
+	sta <$a7
+      .ENDIF
     .ELIF(r_target == 128)
       .IF(.DEFINED(i_basic_txt_start))
 	lda #i_basic_txt_start % 256
@@ -406,6 +423,15 @@ exit_hook = 1
 	jsr $5ab5		; init
 	jsr $4f4f		; regenerate line links and set $1210/$1211
 	jmp $4af6		; start
+    .ELIF(r_target == 1)
+	ldx $fff9
+	dex
+	beq oric_ROM11
+	jsr $c56f		; regenerate line links
+	jmp $e7d3		; start
+oric_ROM11:
+	jsr $c55f		; regenerate line links
+	jmp $e900		; start
     .ENDIF
   .ELSE
 	jmp r_start_addr
@@ -681,9 +707,9 @@ transfer_len ?= 0
 ; -------------------------------------------------------------------
 ; -- Oric-1 file header stuff ---------------------------------------
 ; -------------------------------------------------------------------
-zp_lo_len = $f7
-zp_src_addr = $f9
-zp_hi_bits = $f8
+zp_lo_len = $80
+zp_src_addr = $82
+zp_hi_bits = $81
 
 	.BYTE($16,$16,$16,$24,$00,$00,$80,$c7)
 	.BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
