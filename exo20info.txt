@@ -209,7 +209,9 @@ autodetected. Either from the runad vector for the Atari target or by scanning
 the area of the basic start for a sys basic command.
 
  If the run address is the string basic then the computer will run a basic
-program after decrunch. (Not supported yet for the Atari and Apple ][ target).
+program after decrunch. This is not supported yet for the Atari, Apple ][.
+The Oric target support basic start for the Oric 1 and Atmos computers but not
+for the Telestrat.
 
 This mode takes up to three optional addresses. They are in order: start of
 basic variables, start of basic and highest address used by basic.
