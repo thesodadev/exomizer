@@ -365,8 +365,8 @@ op:	ROL        { $$ = new_op0(0x2a); } |
 	ROL am_a   { $$ = new_op(0x2e, ATOM_TYPE_OP_ARG_U16, $2); } |
 	ROL am_ax  { $$ = new_op(0x3e, ATOM_TYPE_OP_ARG_U16, $2); };
 
-op:	BIT { $$ = new_op(0x24, ATOM_TYPE_OP_ARG_U8, $2); } |
-	BIT { $$ = new_op(0x2c, ATOM_TYPE_OP_ARG_U16, $2); };
+op:	BIT am_zp  { $$ = new_op(0x24, ATOM_TYPE_OP_ARG_U8, $2); } |
+	BIT am_a   { $$ = new_op(0x2c, ATOM_TYPE_OP_ARG_U16, $2); };
 
 am_im:	HASH expr { $$ = $2; };
 am_a:	expr { $$ = $1; };

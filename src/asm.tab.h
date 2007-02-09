@@ -103,31 +103,32 @@
      ASL = 319,
      ROR = 320,
      ROL = 321,
-     SYMBOL = 322,
-     STRING = 323,
-     LAND = 324,
-     LOR = 325,
-     LNOT = 326,
-     LPAREN = 327,
-     RPAREN = 328,
-     COMMA = 329,
-     COLON = 330,
-     X = 331,
-     Y = 332,
-     HASH = 333,
-     PLUS = 334,
-     MINUS = 335,
-     MULT = 336,
-     DIV = 337,
-     MOD = 338,
-     LT = 339,
-     GT = 340,
-     EQ = 341,
-     NEQ = 342,
-     ASSIGN = 343,
-     GUESS = 344,
-     NUMBER = 345,
-     vNEG = 346
+     BIT = 322,
+     SYMBOL = 323,
+     STRING = 324,
+     LAND = 325,
+     LOR = 326,
+     LNOT = 327,
+     LPAREN = 328,
+     RPAREN = 329,
+     COMMA = 330,
+     COLON = 331,
+     X = 332,
+     Y = 333,
+     HASH = 334,
+     PLUS = 335,
+     MINUS = 336,
+     MULT = 337,
+     DIV = 338,
+     MOD = 339,
+     LT = 340,
+     GT = 341,
+     EQ = 342,
+     NEQ = 343,
+     ASSIGN = 344,
+     GUESS = 345,
+     NUMBER = 346,
+     vNEG = 347
    };
 #endif
 /* Tokens.  */
@@ -195,38 +196,39 @@
 #define ASL 319
 #define ROR 320
 #define ROL 321
-#define SYMBOL 322
-#define STRING 323
-#define LAND 324
-#define LOR 325
-#define LNOT 326
-#define LPAREN 327
-#define RPAREN 328
-#define COMMA 329
-#define COLON 330
-#define X 331
-#define Y 332
-#define HASH 333
-#define PLUS 334
-#define MINUS 335
-#define MULT 336
-#define DIV 337
-#define MOD 338
-#define LT 339
-#define GT 340
-#define EQ 341
-#define NEQ 342
-#define ASSIGN 343
-#define GUESS 344
-#define NUMBER 345
-#define vNEG 346
+#define BIT 322
+#define SYMBOL 323
+#define STRING 324
+#define LAND 325
+#define LOR 326
+#define LNOT 327
+#define LPAREN 328
+#define RPAREN 329
+#define COMMA 330
+#define COLON 331
+#define X 332
+#define Y 333
+#define HASH 334
+#define PLUS 335
+#define MINUS 336
+#define MULT 337
+#define DIV 338
+#define MOD 339
+#define LT 340
+#define GT 341
+#define EQ 342
+#define NEQ 343
+#define ASSIGN 344
+#define GUESS 345
+#define NUMBER 346
+#define vNEG 347
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 139 "asm.y"
+#line 140 "asm.y"
 {
     i32 num;
     char *str;
@@ -234,7 +236,7 @@ typedef union YYSTYPE
     struct expr *expr;
 }
 /* Line 1489 of yacc.c.  */
-#line 238 "asm.tab.h"
+#line 240 "asm.tab.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
