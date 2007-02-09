@@ -424,9 +424,8 @@ exit_hook = 1
 	jsr $4f4f		; regenerate line links and set $1210/$1211
 	jmp $4af6		; start
     .ELIF(r_target == 1)
-	ldx $fff9
-	dex
-	beq oric_ROM11
+	bit $fffc
+	bmi oric_ROM11
 	jsr $c56f		; regenerate line links
 	jmp $e7d3		; start
 oric_ROM11:
@@ -512,15 +511,11 @@ oric_ROM11:
 ; -------------------------------------------------------------------
   .MACRO("b2d_ram")
     .IF(i_ram_during == c_ram_config_value)
-	lda $0314
-	and #$fd
-	ora #$80
+	lda #$84
 	sta $0314 ; -- %1xxxxx0x -- RAM at $c000-$10000 -------------
     .ELSE
-	lda $0314
-	and #$7f
-	ora #$02
-	sta $0314 ; -- %0xxxxx1x -- ROM at $c000-$10000 -------------
+	lda #$86
+	sta $0314 ; -- %xxxxxx1x -- ROM at $c000-$10000 -------------
     .ENDIF
   .ENDMACRO
   .MACRO("d2io")
@@ -529,14 +524,10 @@ oric_ROM11:
   .ENDMACRO
   .MACRO("d2r_ram")
     .IF(i_ram_exit == c_rom_config_value)
-	lda $0314
-	and #$7f
-	ora #$02
-	sta $0314 ; -- %0xxxxx1x -- ROM at $c000-$10000 -------------
+	lda #$86
+	sta $0314 ; -- %xxxxxx1x -- ROM at $c000-$10000 -------------
     .ELSE
-	lda $0314
-	and #$fd
-	ora #$80
+	lda #$84
 	sta $0314 ; -- %1xxxxx0x -- RAM at $c000-$10000 -------------
     .ENDIF
   .ENDMACRO

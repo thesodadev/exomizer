@@ -140,6 +140,7 @@ lsr		return LSR;
 asl		return ASL;
 ror		return ROR;
 rol		return ROL;
+bit		return BIT;
 
 [0-9]+		{ yylval.num = atoi(yytext); return NUMBER; }
 
