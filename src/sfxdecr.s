@@ -69,6 +69,7 @@
 .ENDIF
 
 .IF(r_target == 1)
+  c_basic_start    = $0501
   c_end_of_mem_ram = $10000
   c_end_of_mem_rom = $c000
   c_effect_char    = $bfdf
@@ -702,14 +703,27 @@ zp_lo_len = $80
 zp_src_addr = $82
 zp_hi_bits = $81
 
+  .IF(r_start_addr == -2)
+	.BYTE($16,$16,$16,$24,$00,$00,$00,$c7)
+	.BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
+	.BYTE(c_basic_start / 256, c_basic_start % 256)
+	.BYTE(0, 0)
+        .ORG(c_basic_start)
+	.WORD(basic_end, 20)
+	.BYTE($bf, o1_start / 1000 % 10 + 48, o1_start / 100 % 10 + 48)
+	.BYTE(o1_start / 10 % 10 + 48, o1_start % 10 + 48, 0)
+basic_end:
+	.BYTE(0,0)
+  .ELSE
 	.BYTE($16,$16,$16,$24,$00,$00,$80,$c7)
 	.BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
 	.BYTE(o1_start / 256, o1_start % 256)
 	.BYTE(0, 0)
-  .IF(!.DEFINED(i_load_addr))
+    .IF(!.DEFINED(i_load_addr))
 	.ORG($0500)
-  .ELSE
+    .ELSE
 	.ORG(i_load_addr)
+    .ENDIF
   .ENDIF
 o1_start:
 ; -------------------------------------------------------------------
