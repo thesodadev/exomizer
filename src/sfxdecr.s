@@ -428,10 +428,10 @@ exit_hook = 1
 	bit $fffc
 	bmi oric_ROM11
 	jsr $c56f		; regenerate line links
-	jmp $e7d3		; start
+	jmp $c733		; start
 oric_ROM11:
 	jsr $c55f		; regenerate line links
-	jmp $e900		; start
+	jmp $c708		; start
     .ENDIF
   .ELSE
 	jmp r_start_addr
