@@ -51,6 +51,7 @@ void *membuf_memcpy(struct membuf *sb, int offset, const void *mem, int len);
 void *membuf_append(struct membuf *sb, const void *mem, int len);
 void *membuf_append_char(struct membuf *sb, char c);
 void *membuf_insert(struct membuf *sb, int offset, const void *mem, int len);
+void membuf_remove(struct membuf *sb, int offset, int len);
 void membuf_atleast(struct membuf *sb, int size);
 void membuf_atmost(struct membuf *sb, int size);
 int membuf_get_size(const struct membuf *sb);

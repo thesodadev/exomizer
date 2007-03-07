@@ -357,9 +357,9 @@ exit_hook = 1
 	sta <$9b
       .ENDIF
       .IF(.DEFINED(i_basic_var_start))
-	lda #(i_basic_var_start - 1) % 256
+	lda #i_basic_var_start % 256
 	sta <$9c
-	lda #(i_basic_var_start - 1) / 256
+	lda #i_basic_var_start / 256
 	sta <$9d
       .ENDIF
       .IF(.DEFINED(i_basic_highest_addr))

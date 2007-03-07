@@ -154,12 +154,30 @@ void *membuf_insert(struct membuf *sb, int offset, const void *mem, int len)
     void *to;
     newlen = sb->len + len;
     membuf_atleast(sb, newlen);
-    from = (char *) sb->buf + offset;
+    from = (char *)sb->buf + offset;
     to = (char *)from + len;
     memmove(to, from, sb->len - offset);
-    memcpy(from, mem, len);
+    if(mem == NULL)
+    {
+        memset(from, 0, len);
+    }
+    else
+    {
+        memcpy(from, mem, len);
+    }
     sb->len = newlen;
     return from;
+}
+
+void membuf_remove(struct membuf *sb, int offset, int len)
+{
+    void *from;
+    void *to;
+    to = (char *)sb->buf + offset;
+    from = (char *)to + len;
+    sb->len -= len;
+    memmove(to, from, sb->len - offset);
+
 }
 
 void membuf_atleast(struct membuf *sb, int len)

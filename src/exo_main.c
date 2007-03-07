@@ -44,7 +44,7 @@ extern struct membuf sfxdecr[];
 
 #define DEFAULT_OUTFILE "a.out"
 
-static int find_sys(const unsigned char *buf)
+static int find_cbm_sys(const unsigned char *buf)
 {
     int outstart = -1;
     int state = 1;
@@ -118,7 +118,7 @@ FILE *
 open_file(char *name, int *load_addr)
 {
     FILE * in;
-    int is_prg = 1;
+    int is_plain = 0;
     int is_relocated = 0;
     int load;
 
@@ -140,7 +140,7 @@ open_file(char *name, int *load_addr)
         at_str = strrchr(name, '@');
         if(at_str != NULL && (load_str == NULL || at_str > load_str))
         {
-            is_prg = 0;
+            is_plain = 1;
             load_str = at_str;
         }
 
@@ -173,7 +173,7 @@ open_file(char *name, int *load_addr)
         exit(-1);
     }
 
-    if(is_prg)
+    if(!is_plain)
     {
         /* read the prg load address */
         int prg_load = get_le_word(in);
@@ -302,8 +302,17 @@ static void load_plain_file(const char *name, struct membuf *mb)
     fclose(in);
 }
 
+struct load_info
+{
+    int basic_txt_start; /* in */
+    int basic_var_start; /* out */
+    int run; /* out */
+    int start; /* out */
+    int end; /* out */
+};
+
 static void load_xex(unsigned char mem[65536], FILE *in,
-                     int *startp, int *endp, int *runp)
+                     struct load_info *info)
 {
     int run = -1;
     int jsr = -1;
@@ -364,13 +373,18 @@ static void load_xex(unsigned char mem[65536], FILE *in,
 
     if(run == -1 && jsr != -1) run = jsr;
 
-    if(startp != NULL) *startp = min;
-    if(endp != NULL) *endp = max;
-    if(run != -1 && runp != NULL) *runp = run;
+    info->start = min;
+    info->end = max;
+    info->basic_var_start = -1;
+    info->run = -1;
+    if(run != -1)
+    {
+        info->run = run;
+    }
 }
 
 static void load_oric_tap(unsigned char mem[65536], FILE *in,
-                          int *startp, int *endp, int *runp)
+                          struct load_info *info)
 {
     int c;
     int autostart;
@@ -420,15 +434,41 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
     LOG(LOG_VERBOSE, (" Oric tap-file loading from $%04X to $%04X\n",
                       start, end));
 
-    if(startp != NULL) *startp = start;
-    if(endp != NULL) *endp = end;
-    if(autostart && runp != NULL) *runp = start;
+    /* fill in the fields */
+    info->start = start;
+    info->end = end;
+    info->run = -1;
+    info->basic_var_start = -1;
+    if(autostart)
+    {
+        info->run = start;
+    }
+    if(info->basic_txt_start >= start &&
+       info->basic_txt_start < end)
+    {
+        info->basic_var_start = end - 1;
+    }
+}
+
+static void load_prg(unsigned char mem[65536], FILE *in,
+                     struct load_info *info)
+{
+    int len;
+    len = fread(mem + info->start, 1, 65536 - info->start, in);
+
+    info->end = info->start + len;
+    info->basic_var_start = -1;
+    info->run = -1;
+    if(info->basic_txt_start >= info->start &&
+       info->basic_txt_start < info->end)
+    {
+        info->basic_var_start = info->end;
+    }
 }
 
 static void load_located(char *filename, unsigned char mem[65536],
-                         int *startp, int *endp, int *runp)
+                         struct load_info *info)
 {
-    int sp, ep;
     int load;
     FILE *in;
 
@@ -436,49 +476,46 @@ static void load_located(char *filename, unsigned char mem[65536],
     if(load == -1)
     {
         /* file is an xex file */
-        load_xex(mem, in, &sp, &ep, runp);
+        load_xex(mem, in, info);
     }
     else if(load == -2)
     {
-        load_oric_tap(mem, in, &sp, &ep, runp);
+        /* file is an oric tap file */
+        load_oric_tap(mem, in, info);
     }
     else
     {
-        int len;
-        load &= 0xffff;
-        len = fread(mem + load, 1, 65536 - load, in);
-        sp = load;
-        ep = load + len;
+        /* file is a located plain file or a prg file */
+        info->start = load;
+        load_prg(mem, in, info);
     }
     fclose(in);
 
     LOG(LOG_NORMAL,
         (" filename: \"%s\", loading from $%04X to $%04X\n",
-         filename, sp, ep));
-
-    if(startp != NULL) *startp = sp;
-    if(endp != NULL) *endp = ep;
+         filename, info->start, info->end));
 }
 
 static
 int
 do_load(char *file_name, struct membuf *mem)
 {
-    int start, end;
+    struct load_info info[1];
     unsigned char *p;
 
     membuf_clear(mem);
     membuf_append(mem, NULL, 65536);
     p = membuf_get(mem);
 
-    load_located(file_name, p, &start, &end, NULL);
+    load_located(file_name, p, info);
 
     /* move memory to beginning of buffer */
-    membuf_truncate(mem, end);
-    membuf_trim(mem, start);
+    membuf_truncate(mem, info->end);
+    membuf_trim(mem, info->start);
 
-    LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ", start, end));
-    return start;
+    LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ",
+                     info->start, info->end));
+    return info->start;
 }
 
 static
@@ -492,6 +529,8 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     int basic_code = 0;
     int i;
     unsigned char *p;
+    struct load_info info[1];
+
 
     membuf_clear(mem);
     membuf_append(mem, NULL, 65536);
@@ -499,42 +538,51 @@ do_loads(int filec, char *filev[], struct membuf *mem,
 
     for (i = 0; i < filec; ++i)
     {
-        int start, end;
-
-        load_located(filev[i], p, &start, &end, &run);
+        info->basic_txt_start = basic_txt_start;
+        load_located(filev[i], p, info);
+        run = info->run;
         if(run != -1 && runp != NULL)
         {
-            LOG(LOG_DEBUG, ("Propagating found run address %04X.\n", run));
-            *runp = run;
+            LOG(LOG_DEBUG, ("Propagating found run address %04X.\n",
+                            info->run));
+            *runp = info->run;
         }
 
-        /* if any file loads to the basic start */
+        /* do we expect any basic file? */
         if(basic_txt_start >= 0)
         {
-            if(start <= basic_txt_start && end > basic_txt_start)
+            if(info->basic_var_start >= 0)
             {
                 basic_code = 1;
                 if(basic_var_startp != NULL)
                 {
-                    *basic_var_startp = end;
+                    *basic_var_startp = info->basic_var_start;
                 }
                 if(runp != NULL && run == -1)
                 {
                     /* only if we didn't get run address from load_located
                      * (run is not -1 if we did) */
-                    run = find_sys(p + basic_txt_start);
+                    run = find_cbm_sys(p + basic_txt_start);
                     *runp = run;
                 }
             }
         }
 
-        if (start < min_start)
+        if (info->start < min_start)
         {
-            min_start = start;
+            min_start = info->start;
         }
-        if (end > max_end)
+        if (info->end > max_end)
         {
-            max_end = end;
+            max_end = info->end;
+        }
+        if(info->basic_var_start != -1)
+        {
+            info->basic_var_start = info->basic_var_start;
+        }
+        if(info->run != -1)
+        {
+            info->run = info->run;
         }
     }
 

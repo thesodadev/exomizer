@@ -31,7 +31,7 @@
 #include "callback.h"
 #include "membuf.h"
 #include <string.h>
-
+#include <stdio.h>
 
 #define STATIC_VEC_INIT(EL_SIZE) {(EL_SIZE), STATIC_MEMBUF_INIT, 1}
 
@@ -59,6 +59,7 @@ void *vec_get(const struct vec *p, int index);
  **/
 void *vec_set(struct vec *p, int index, const void *in);
 void *vec_insert(struct vec *p, int index, const void *in);
+void vec_remove(struct vec *p, int index);
 
 void *vec_push(struct vec *p, const void *in);
 
@@ -88,5 +89,7 @@ void vec_sort(struct vec *p, cb_cmp * f);
 void vec_get_iterator(const struct vec *p, struct vec_iterator *i);
 void *vec_iterator_next(struct vec_iterator *i);
 
+int vec_equals(const struct vec *a, const struct vec *b, cb_cmp *equals);
+void vec_fprint(FILE *, const struct vec *a, cb_fprint *fprint);
 
 #endif
