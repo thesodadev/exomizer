@@ -937,11 +937,13 @@ void mem(const char *appl, int argc, char *argv[])
             p = membuf_get(out);
             p[0] = load_addr & 255;
             p[1] = load_addr >> 8;
-            LOG(LOG_NORMAL, (" The load address is $%04X.\n", load_addr));
+            LOG(LOG_NORMAL, (" The load address is $%04X - $%04X.\n",
+                             load_addr, membuf_memlen(out) - 2));
         }
         else
         {
-            LOG(LOG_NORMAL, (" No load address is used.\n", load_addr));
+            LOG(LOG_NORMAL, (" No load address, data length is $%04X.\n",
+                             membuf_memlen(out)));
         }
 
         LOG(LOG_NORMAL, (" Literal sequences are %sused and",
