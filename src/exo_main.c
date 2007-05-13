@@ -706,14 +706,17 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "  the <jmpaddress> start argument will jmp to the given address.\n"
          "  -t<target>    sets the decruncher target, must be one of 4, 20, 23, 52, 55,\n", appl));
     LOG(level,
-        ("                64, 128 or 168, default is 64.\n"
+        ("                64, 128 or 168, default is 64\n"
          "  -X<custom slow effect assembler fragment>\n"
          "  -x[1-3]|<custom fast effect assembler fragment>\n"
          "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
          "                or carry) or 1 - 3 for different fast border flash effects\n"
          "  -n            no effect, can't be combined with -X or -x\n"
          "  -D<symbol>=<value>\n"
-         "                predefines symbols for the sfx assembler.\n"));
+         "                predefines symbols for the sfx assembler\n"));
+    LOG(level,
+        ("  -s<custom enter assembler fragment>\n"
+         "  -f<custom exit assembler fragment>\n"));
     print_shared_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
@@ -1074,6 +1077,8 @@ void sfx(const char *appl, int argc, char *argv[])
     int no_effect = 0;
     char *fast = NULL;
     char *slow = NULL;
+    char *enter_custom = NULL;
+    char *exit_custom = NULL;
     char flags_arr[32];
     int c;
     int infilec;
@@ -1173,7 +1178,7 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "nD:t:x:X:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "nD:t:x:X:s:f:%s", SHARED_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
@@ -1200,6 +1205,12 @@ void sfx(const char *appl, int argc, char *argv[])
             break;
         case 'X':
             slow = strdup(flagarg);
+            break;
+        case 's':
+            enter_custom = strdup(flagarg);
+            break;
+        case 'f':
+            exit_custom = strdup(flagarg);
             break;
         case 'D':
             p = strrchr(flagarg, '=');
@@ -1232,6 +1243,18 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     do_effect(appl, no_effect, fast, slow);
+    if(enter_custom != NULL)
+    {
+        set_initial_symbol("i_enter_custom", 1);
+        membuf_append(new_initial_named_buffer("enter_custom"),
+                      enter_custom, strlen(enter_custom));
+    }
+    if(exit_custom != NULL)
+    {
+        set_initial_symbol("i_exit_custom", 1);
+        membuf_append(new_initial_named_buffer("exit_custom"),
+                      exit_custom, strlen(exit_custom));
+    }
 
     membuf_init(buf1);
     in = buf1;

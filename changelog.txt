@@ -1,5 +1,9 @@
+2007-05-13
+Prerelease of 2.0beta7 source code, Win32 and DOS binaries.
 + Add loading of Oric tap files to the sfx command.
-+ Add support for microcontroller RAM to Oric sfx target
++ Add support for microcontroller RAM to Oric sfx target.
++ Add flags to customize enter and exit code for the sfx sub-command.
++ The level and mem sub-commands now output more info about the generated file.
 
 2007-01-28
 Release of 2.0beta6 source code, Win32 and DOS binaries.

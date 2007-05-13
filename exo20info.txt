@@ -246,8 +246,8 @@ tap file.
         162: Apple ][+ and //e
         168: Atari 400/800 XL/XE.
 
- -X<custom slow effect assembler fragment>
- -x[1-3]|<custom fast effect assembler fragment>
+-X<custom slow effect assembler fragment>
+-x[1-3]|<custom fast effect assembler fragment>
         Sets the decrunch effect. If an assembler fragment is given, it must
         not change the X-register, Y-register or modify the carry flag.
         Separate instructions with a space. Please note that including spaces
@@ -266,6 +266,17 @@ tap file.
         Defines symbols for the sfx assembler. More advanced features of the
         decruncher is ontrolled by defining symbole. More on this in the
         decruncher symbol reference section below.
+
+-s<custom decruncher enter asembler fragment>
+        Specifies an optional assembler fragment to be executed when the
+	decruncher starts decrunching. It must not change the Y-register. For
+        things like clearing the screen, changing background and/or border
+        color, changing a c128 to 2MHz mode or enable 'Skip internal cycles'
+        and burst mode on a DTV2.
+-f<custom decruncher exit asembler fragment>
+        Specifies an optional assembler fragment to be executed when the
+        decruncher has finished decrunching. For things like restoring a c128
+        to 1MHz or disabling 'Skip internal cycles' and burst mode on a DTV2.
 
 -------------------------------------------------------------------------------
 -- The raw sub command --------------------------------------------------------
@@ -420,6 +431,11 @@ The following symbols control the memory config:
  i_ram_enter      (defaults to standard ROM config)
  i_ram_during
  i_ram_exit       (defaults to standard ROM config)
+
+The i_ram_enter symbol differs from the other two. It isn't used to set the
+memory config. It tells the exomizer of which memory config to expect when
+the decruncher is run. This information is used to minimize the decruncher
+size.<
 
 For the c64 and the c128 target the value of the above symbols will be stored
 into $ff00 (c128) or $01 (c64) to set the mem config. For the c16/+4 target the

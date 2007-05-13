@@ -325,17 +325,23 @@ enter_hook = 1
 	sei
     .ENDIF
   .ENDIF
+  .IF(.DEFINED(i_enter_custom))
+    .INCLUDE("enter_custom")
+  .ENDIF
   .IF(i_ram_during != i_ram_enter)
     .INCLUDE("b2d_ram")
   .ENDIF
 .ENDMACRO
 ; -------------------------------------------------------------------
 ; -- The decruncher exit macro definition ---------------------------
-; -------------------------------------------------------------------
+; ------------------------------------------------------------------
 exit_hook = 1
 .MACRO("exit_hook")
   .IF(i_ram_exit != i_ram_during)
     .INCLUDE("d2r_ram")
+  .ENDIF
+  .IF(.DEFINED(i_exit_custom))
+    .INCLUDE("exit_custom")
   .ENDIF
   .IF(i_irq_exit != i_irq_during)
     .IF(i_irq_exit == 1)
@@ -939,7 +945,7 @@ tabl_hi = i_table_addr + 104
 	inx
 	tya
 	and #$0f
-	beq shortcut		; starta på ny sekvens
+	beq shortcut		; start a new sequence
 
 	txa			; this clears reg a
 	lsr			; and sets the carry flag
@@ -1209,7 +1215,7 @@ o1_end:
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 4 || r_target == 64 || r_target == 128)
 ; -------------------------------------------------------------------
-; -- Start of Commodoer file footer stuff ---------------------------
+; -- Start of Commodore file footer stuff ---------------------------
 ; -------------------------------------------------------------------
 .ELIF(r_target == $a8)
 ; -------------------------------------------------------------------
