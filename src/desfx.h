@@ -1,8 +1,8 @@
-#ifndef INCLUDED_INT
-#define INCLUDED_INT
+#ifndef ALREADY_INCLUDED_DESFX
+#define ALREADY_INCLUDED_DESFX
 
 /*
- * Copyright (c) 2005 Magnus Lind.
+ * Copyright (c) 2007 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -28,12 +28,8 @@
  *
  */
 
-typedef signed char i8;
-typedef signed short int i16;
-typedef signed int i32;
+#include "int.h"
 
-typedef unsigned char u8;
-typedef unsigned short int u16;
-typedef unsigned int u32;
+u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *start, u16 *end);
 
 #endif

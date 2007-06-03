@@ -39,29 +39,36 @@
 #include "exo_helper.h"
 #include "parse.h"
 #include "named_buffer.h"
+#include "desfx.h"
 
 extern struct membuf sfxdecr[];
 
 #define DEFAULT_OUTFILE "a.out"
 
-static int find_cbm_sys(const unsigned char *buf)
+static int find_sys(const unsigned char *buf, int target)
 {
     int outstart = -1;
     int state = 1;
     int i = 0;
-    /* skip línk and line number */
+    /* skip link and line number */
     buf += 4;
     /* exit loop at line end */
     while(i < 1000 && buf[i] != '\0')
     {
         unsigned char *sys_end;
         int c = buf[i];
-
         switch(state)
         {
             /* look for and consume sys token */
         case 1:
-            if(c == 0x9e) state = 2;
+            if((target == -1 &&
+                (c == 0x9e /* cbm */ ||
+                 c == 0x8c /* apple 2*/ ||
+                 c == 0xbf /* oric 1*/)) ||
+               c == target)
+            {
+                state = 2;
+            }
             break;
             /* skip spaces and left parenthesis, if any */
         case 2:
@@ -507,6 +514,8 @@ do_load(char *file_name, struct membuf *mem)
     membuf_append(mem, NULL, 65536);
     p = membuf_get(mem);
 
+    info->basic_txt_start = -1;
+
     load_located(file_name, p, info);
 
     /* move memory to beginning of buffer */
@@ -518,10 +527,19 @@ do_load(char *file_name, struct membuf *mem)
     return info->start;
 }
 
+struct target_info
+{
+    int id;
+    int basic_txt_start;
+    int sys_token;
+    const char *model;
+};
+
 static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
-         int basic_txt_start, int *basic_var_startp, int *runp)
+         int basic_txt_start, int sys_token,
+         int *basic_var_startp, int *runp)
 {
     int run = -1;
     int min_start = 65537;
@@ -562,7 +580,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
                 {
                     /* only if we didn't get run address from load_located
                      * (run is not -1 if we did) */
-                    run = find_cbm_sys(p + basic_txt_start);
+                    run = find_sys(p + basic_txt_start, sys_token);
                     *runp = run;
                 }
             }
@@ -892,7 +910,7 @@ void mem(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
 
-        in_load = do_loads(infilec, infilev, in, -1, NULL, NULL);
+        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL);
         in_len = membuf_memlen(in);
 
         /* make room for load addr */
@@ -961,30 +979,23 @@ void mem(const char *appl, int argc, char *argv[])
     membuf_free(in);
 }
 
-struct target_info
-{
-    int id;
-    int basic_txt_start;
-    const char *model;
-};
-
 static
 const struct target_info *
 get_target_info(int target)
 {
     static const struct target_info targets[] =
         {
-            {1,   0x0501, "Oric"},
-            {20,  0x1001, "Vic20"},
-            {23,  0x0401, "Vic20+3kB"},
-            {52,  0x1201, "Vic20+32kB"},
-            {55,  0x1201, "Vic20+3kB+32kB"},
-            {4,   0x1001, "C16/plus4"},
-            {64,  0x0801, "C64"},
-            {128, 0x1c01, "C128"},
-            {162, 0x0801, "Apple ][+"},
-            {168, 0x2000, "Atari 400/800 XL/XE"},
-            {0, 0, NULL}
+            {1,   0xbf, 0x0501, "Oric"},
+            {20,  0x9e, 0x1001, "Vic20"},
+            {23,  0x9e, 0x0401, "Vic20+3kB"},
+            {52,  0x9e, 0x1201, "Vic20+32kB"},
+            {55,  0x9e, 0x1201, "Vic20+3kB+32kB"},
+            {4,   0x9e, 0x1001, "C16/plus4"},
+            {64,  0x9e, 0x0801, "C64"},
+            {128, 0x9e, 0x1c01, "C128"},
+            {162, 0x8c, 0x0801, "Apple ][+"},
+            {168, -1,   0x2000, "Atari 400/800 XL/XE"},
+            {0,   -1,   -1,     NULL}
         };
     const struct target_info *targetp;
     for(targetp = targets; targetp->id != 0; ++targetp)
@@ -1317,7 +1328,8 @@ void sfx(const char *appl, int argc, char *argv[])
         }
 
         in_load = do_loads(infilec, infilev, in,
-                           basic_start, basic_var_startp, sys_addrp);
+                           basic_start, targetp->sys_token,
+                           basic_var_startp, sys_addrp);
         in_len = membuf_memlen(in);
 
         if(decr_target == 20 || decr_target == 52)
@@ -1596,6 +1608,50 @@ void raw(const char *appl, int argc, char *argv[])
     membuf_free(inbuf);
 }
 
+static
+void desfx(const char *appl, int argc, char *argv[])
+{
+    struct load_info info[1];
+    struct membuf mem[1];
+    u8 *p;
+    u16 start;
+    u16 end;
+    u16 entry;
+
+    membuf_init(mem);
+    membuf_append(mem, NULL, 65536);
+
+    p = membuf_get(mem);
+
+    /* load file, don't care about tracking basic*/
+    info->basic_txt_start = -1;
+    load_located(argv[1], p, info);
+
+    /* no start address from load*/
+    if(info->run == -1)
+    {
+        /* look for sys line */
+        info->run = find_sys(p + info->start, -1);
+    }
+    LOG(LOG_NORMAL, (" crunched entry point $%04X\n", info->run));
+    entry = decrunch_sfx(p, info->run, &start, &end);
+
+    LOG(LOG_NORMAL, (" decrunched entry point $%04X, from %04X to $%04X\n",
+                     entry, start, end));
+
+    membuf_truncate(mem, end);
+    membuf_trim(mem, start);
+    membuf_insert(mem, 0, NULL, 2);
+
+    p = membuf_get(mem);
+    p[0] = start;
+    p[1] = start >> 8;
+
+    write_file(argv[2], mem);
+
+    membuf_free(mem);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1631,6 +1687,10 @@ main(int argc, char *argv[])
     else if(strcmp(argv[0], "raw") == 0)
     {
         raw(appl, argc, argv);
+    }
+    else if(strcmp(argv[0], "desfx") == 0)
+    {
+        desfx(appl, argc, argv);
     }
     else
     {
