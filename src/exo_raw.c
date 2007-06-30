@@ -45,7 +45,7 @@ void print_usage(const char *appl, enum log_level level,
         ("  -b            crunch/decrunch backwards\n"
          "  -r            write outfile in reverse order\n"
          "  -d            decrunch (instead of crunch)\n"));
-    print_shared_flags(level, default_out_name);
+    print_crunch_flags(level, default_out_name);
 }
 
 #define DEFAULT_OUTFILE "a.out"
@@ -72,7 +72,7 @@ main(int argc, char *argv[])
     LOG_INIT_CONSOLE(LOG_NORMAL);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "bdr%s", SHARED_FLAGS);
+    sprintf(flags_arr, "bdr%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
@@ -88,7 +88,7 @@ main(int argc, char *argv[])
             decrunch_mode = 1;
             break;
         default:
-            handle_shared_flags(c, flagarg, print_usage, appl, flags);
+            handle_crunch_flags(c, flagarg, print_usage, appl, flags);
         }
     }
 

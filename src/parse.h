@@ -120,6 +120,7 @@ void new_symbol_expr_guess(const char *symbol, struct expr *arg);
 const char *find_symref(const char *symbol,
                         struct expr **expp);
 
+int resolve_symbol(const char *symbol, int *has_valuep, i32 *valuep);
 void symbol_dump_resolved(int level, const char *symbol);
 
 void new_label(const char *label);

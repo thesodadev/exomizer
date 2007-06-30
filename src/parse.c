@@ -149,8 +149,12 @@ const char *find_symref(const char *symbol,
     struct expr *exp;
     const char *p;
 
+    exp = NULL;
     p = NULL;
-    exp = map_get(s->guesses, symbol);
+    if(s->guesses != NULL)
+    {
+        exp = map_get(s->guesses, symbol);
+    }
     if(exp == NULL)
     {
         exp = map_get(s->sym_table, symbol);
@@ -667,17 +671,47 @@ void initial_symbol_dump(int level, const char *symbol)
     }
 }
 
-void symbol_dump_resolved(int level, const char *symbol)
+int resolve_symbol(const char *symbol, int *has_valuep, i32 *valuep)
 {
-    i32 value;
+    int found = 0;
+    int has_value = 0;
+    i32 value = 0;
     struct expr *e;
     const char *p;
+
     p = find_symref(symbol, &e);
     if(p == NULL)
     {
         if(e != NULL)
         {
             value = resolve_expr(e);
+            has_value = 1;
+        }
+        found = 1;
+    }
+    if(found)
+    {
+        if(has_valuep != NULL)
+        {
+            *has_valuep = has_value;
+        }
+        if(has_value && valuep != NULL)
+        {
+            *valuep = value;
+        }
+    }
+    return found;
+}
+
+void symbol_dump_resolved(int level, const char *symbol)
+{
+    int has_value;
+    i32 value;
+
+    if(resolve_symbol(symbol, &has_value, &value))
+    {
+        if(has_value)
+        {
             LOG(level, ("symbol \"%s\" resolves to %d ($%04X)\n",
                         symbol, value, value));
         }
@@ -998,5 +1032,6 @@ int assemble(struct membuf *source, struct membuf *dest)
     }
     map_free(guesses_storage);
     vec_free(guesses_history, (cb_free*)map_free);
+    s->guesses = NULL;
     return result;
 }

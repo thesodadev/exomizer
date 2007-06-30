@@ -405,12 +405,11 @@ const char *fixup_appl(char *appl)
     return appl;
 }
 
-static
 void print_license(void)
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v2.0beta7, Copyright (c) 2002 - 2007 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v2.0beta7, Copyright (c) 2002-2007 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -436,62 +435,38 @@ void print_license(void)
          "nor affected by this license in any way.\n"));
 }
 
-void print_shared_flags(enum log_level level, const char *default_outfile)
+void print_base_flags(enum log_level level, const char *default_outfile)
 {
     LOG(level,
-        ("  -c            compatibility mode, disables the use of literal sequences\n"
-         "  -e <encoding> uses the given encoding for crunching\n"
-         "  -m <offset>   limits the maximum offset size, default is 65535\n"
-         "  -o <outfile>  sets the outfile name, default is \"%s\"\n",
+        ("  -o <outfile>  sets the outfile name, default is \"%s\"\n",
          default_outfile));
     LOG(level,
-        ("  -p <passes>   limits the number of optimization passes, default is 65535\n"
-         "  -q            quiet mode, disables display output\n"
+        ("  -q            quiet mode, disables display output\n"
          "  -v            displays version and the usage license\n"
          "  --            treats all following arguments as non-options\n"
          "  -?            displays this help screen\n"));
 }
 
-void handle_shared_flags(int flag_char, /* IN */
-                         const char *flag_arg, /* IN */
-                         print_usage_f *print_usage, /* IN */
-                         const char *appl, /* IN */
-                         struct common_flags *flags) /* OUT */
+void print_crunch_flags(enum log_level level, const char *default_outfile)
 {
-    struct crunch_options *options = flags->options;
-    const char *default_outfile = flags->outfile;
+    LOG(level,
+        ("  -c            compatibility mode, disables the use of literal sequences\n"
+         "  -e <encoding> uses the given encoding for crunching\n"
+         "  -m <offset>   limits the maximum offset size, default is 65535\n"
+         "  -p <passes>   limits the number of optimization passes, default is 65535\n"));
+    print_base_flags(level, default_outfile);
+}
+
+void handle_base_flags(int flag_char, /* IN */
+                       const char *flag_arg, /* IN */
+                       print_usage_f *print_usage, /* IN */
+                       const char *appl, /* IN */
+                       const char **default_outfilep) /* IN */
+{
     switch(flag_char)
     {
-    case 'c':
-        options->use_literal_sequences = 0;
-        break;
-    case 'e':
-        options->exported_encoding = flag_arg;
-        break;
-    case 'm':
-        if (str_to_int(flag_arg, &options->max_offset) != 0 ||
-            options->max_offset < 0 || options->max_offset >= 65536)
-        {
-            LOG(LOG_ERROR,
-                ("Error: invalid offset for -m option, "
-                 "must be in the range of [0 - 65535]\n"));
-            print_usage(appl, LOG_NORMAL, default_outfile);
-            exit(-1);
-        }
-        break;
     case 'o':
-        flags->outfile = flag_arg;
-        break;
-    case 'p':
-        if (str_to_int(flag_arg, &options->max_passes) != 0 ||
-            options->max_passes < 1 || options->max_passes >= 65536)
-        {
-            LOG(LOG_ERROR,
-                ("Error: invalid value for -p option, "
-                 "must be in the range of [1 - 65535]\n"));
-            print_usage(appl, LOG_NORMAL, default_outfile);
-            exit(-1);
-        }
+        *default_outfilep = flag_arg;
         break;
     case 'q':
         LOG_SET_LEVEL(LOG_BRIEF);
@@ -510,7 +485,50 @@ void handle_shared_flags(int flag_char, /* IN */
             }
             LOG(LOG_ERROR, ("\n"));
         }
-        print_usage(appl, LOG_BRIEF, default_outfile);
+        print_usage(appl, LOG_BRIEF, *default_outfilep);
         exit(0);
+    }
+}
+
+void handle_crunch_flags(int flag_char, /* IN */
+                         const char *flag_arg, /* IN */
+                         print_usage_f *print_usage, /* IN */
+                         const char *appl, /* IN */
+                         struct common_flags *flags) /* OUT */
+{
+    struct crunch_options *options = flags->options;
+    switch(flag_char)
+    {
+    case 'c':
+        options->use_literal_sequences = 0;
+        break;
+    case 'e':
+        options->exported_encoding = flag_arg;
+        break;
+    case 'm':
+        if (str_to_int(flag_arg, &options->max_offset) != 0 ||
+            options->max_offset < 0 || options->max_offset >= 65536)
+        {
+            LOG(LOG_ERROR,
+                ("Error: invalid offset for -m option, "
+                 "must be in the range of [0 - 65535]\n"));
+            print_usage(appl, LOG_NORMAL, flags->outfile);
+            exit(-1);
+        }
+        break;
+    case 'p':
+        if (str_to_int(flag_arg, &options->max_passes) != 0 ||
+            options->max_passes < 1 || options->max_passes >= 65536)
+        {
+            LOG(LOG_ERROR,
+                ("Error: invalid value for -p option, "
+                 "must be in the range of [1 - 65535]\n"));
+            print_usage(appl, LOG_NORMAL, flags->outfile);
+            exit(-1);
+        }
+        break;
+    default:
+        handle_base_flags(flag_char, flag_arg, print_usage,
+                          appl, &flags->outfile);
     }
 }

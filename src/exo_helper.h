@@ -41,18 +41,27 @@ struct common_flags
     const char *outfile;
 };
 
-#define SHARED_FLAGS "ce:m:o:p:qv"
+#define CRUNCH_FLAGS "ce:m:p:o:qv"
+#define BASE_FLAGS "o:qv"
 
-void print_shared_flags(enum log_level level, const char *default_outfile);
+void print_crunch_flags(enum log_level level, const char *default_outfile);
+
+void print_base_flags(enum log_level level, const char *default_outfile);
 
 typedef void print_usage_f(const char *appl, enum log_level level,
                            const char *default_outfile);
 
-void handle_shared_flags(int flag_char, /* IN */
+void handle_crunch_flags(int flag_char, /* IN */
                          const char *flag_arg, /* IN */
                          print_usage_f *print_usage, /* IN */
                          const char *appl, /* IN */
                          struct common_flags *options); /* OUT */
+
+void handle_base_flags(int flag_char, /* IN */
+                       const char *flag_arg, /* IN */
+                       print_usage_f *print_usage, /* IN */
+                       const char *appl, /* IN */
+                       const char **default_outfilep); /* OUT */
 
 const char *fixup_appl(char *appl);
 
@@ -69,6 +78,8 @@ struct crunch_info
     int literal_sequences_used;
     int needed_safety_offset;
 };
+
+void print_license(void);
 
 void crunch_backwards(struct membuf *inbuf,
                       struct membuf *outbuf,

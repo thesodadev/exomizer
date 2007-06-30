@@ -652,11 +652,11 @@ do_loads(int filec, char *filev[], struct membuf *mem,
 }
 
 static
-void print_usage(const char *appl, enum log_level level)
+void print_command_usage(const char *appl, enum log_level level)
 {
     /* done */
     LOG(level,
-        ("usage: %s level|mem|sfx|raw [option]... infile[,<address>]...\n"
+        ("usage: %s level|mem|sfx|raw|desfx [option]... infile[,<address>]...\n"
          "  see the individual commands for more help.\n",
          appl));
 }
@@ -672,7 +672,7 @@ void print_level_usage(const char *appl, enum log_level level,
          "  the fly while being read.\n", appl));
     LOG(level,
         ("  -f            crunch forward\n"));
-    print_shared_flags(level, default_outfile);
+    print_crunch_flags(level, default_outfile);
     LOG(level,
         (" All infiles are crunched separately and concatenated in the outfile in the\n"
          " order they are given on the command-line.\n"));
@@ -692,7 +692,7 @@ void print_mem_usage(const char *appl, enum log_level level,
          "                will skip the load address.\n"));
     LOG(level,
         ("  -f            crunch forward\n"));
-    print_shared_flags(level, default_outfile);
+    print_crunch_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
          " they are given on the command-line, from left to right.\n"));
@@ -707,7 +707,7 @@ void print_raw_usage(const char *appl, enum log_level level,
         ("  -b            crunch/decrunch backwards\n"
          "  -r            write outfile in reverse order\n"
          "  -d            decrunch (instead of crunch)\n"));
-    print_shared_flags(level, default_out_name);
+    print_crunch_flags(level, default_out_name);
 }
 
 static
@@ -722,9 +722,9 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "  The sys start argument will auto detect the start address by searching the\n"
          "  basic start for a sys command.\n"
          "  the <jmpaddress> start argument will jmp to the given address.\n"
-         "  -t<target>    sets the decruncher target, must be one of 4, 20, 23, 52, 55,\n", appl));
+         "  -t<target>    sets the decruncher target, must be one of 1, 4, 20, 23, 52,\n", appl));
     LOG(level,
-        ("                64, 128 or 168, default is 64\n"
+        ("                55, 64, 128, 162 or 168, default is 64\n"
          "  -X<custom slow effect assembler fragment>\n"
          "  -x[1-3]|<custom fast effect assembler fragment>\n"
          "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
@@ -735,10 +735,22 @@ void print_sfx_usage(const char *appl, enum log_level level,
     LOG(level,
         ("  -s<custom enter assembler fragment>\n"
          "  -f<custom exit assembler fragment>\n"));
-    print_shared_flags(level, default_outfile);
+    print_crunch_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
          " they are given on the command-line, from left to right.\n"));
+}
+
+static
+void print_desfx_usage(const char *appl, enum log_level level,
+                       const char *default_outfile)
+{
+    /* done */
+    LOG(level,
+        ("usage: %s desfx [option]... infile\n"
+         "  The desfx command decrunches files that previously been crunched using the\n"
+         "  sfx command.\n", appl));
+    print_base_flags(level, default_outfile);
 }
 
 static
@@ -761,7 +773,7 @@ void level(const char *appl, int argc, char *argv[])
     flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "f%s", SHARED_FLAGS);
+    sprintf(flags_arr, "f%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
@@ -771,7 +783,7 @@ void level(const char *appl, int argc, char *argv[])
             forward_mode = 1;
             break;
         default:
-            handle_shared_flags(c, flagarg, print_level_usage, appl, flags);
+            handle_crunch_flags(c, flagarg, print_level_usage, appl, flags);
         }
     }
 
@@ -862,7 +874,7 @@ void mem(const char *appl, int argc, char *argv[])
     flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "fl:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "fl:%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
@@ -887,7 +899,7 @@ void mem(const char *appl, int argc, char *argv[])
             }
             break;
         default:
-            handle_shared_flags(c, flagarg, print_mem_usage, appl, flags);
+            handle_crunch_flags(c, flagarg, print_mem_usage, appl, flags);
         }
     }
 
@@ -1189,7 +1201,7 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "nD:t:x:X:s:f:%s", SHARED_FLAGS);
+    sprintf(flags_arr, "nD:t:x:X:s:f:%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
@@ -1201,8 +1213,8 @@ void sfx(const char *appl, int argc, char *argv[])
                 get_target_info(decr_target) == NULL)
             {
                 LOG(LOG_ERROR,
-                    ("error: invalid value, %d, for -t option, "
-                     "must be one of 4, 20, 23, 52, 55, 64, 128, 162 or 168.",
+                    ("error: invalid value, %d, for -t option, must be one of "
+                     "1, 4, 20, 23, 52, 55, 64, 128, 162 or 168.\n",
                      decr_target));
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(-1);
@@ -1249,7 +1261,7 @@ void sfx(const char *appl, int argc, char *argv[])
             }
             break;
         default:
-            handle_shared_flags(c, flagarg, print_sfx_usage, appl, flags);
+            handle_crunch_flags(c, flagarg, print_sfx_usage, appl, flags);
         }
     }
 
@@ -1474,6 +1486,31 @@ void sfx(const char *appl, int argc, char *argv[])
         {
             LOG(LOG_ERROR, ("Parse failure.\n"));
         }
+        else
+        {
+            i32 v_safety_addr;
+            i32 v_highest_addr;
+            i32 i_table_addr;
+            i32 i_effect;
+            i32 c_effect_color;
+
+            resolve_symbol("v_safety_addr", NULL, &v_safety_addr);
+            resolve_symbol("v_highest_addr", NULL, &v_highest_addr);
+            resolve_symbol("i_table_addr", NULL, &i_table_addr);
+            resolve_symbol("i_effect", NULL, &i_effect);
+
+            LOG(LOG_NORMAL, ("Memory layout:\n"));
+            LOG(LOG_NORMAL, (" Data covers $%04X to $%04X.\n",
+                             v_safety_addr, v_highest_addr));
+            LOG(LOG_NORMAL, (" Decrunch table is located at $%04X to $%04X.\n",
+                             i_table_addr, i_table_addr + 156));
+            if(i_effect == 0)
+            {
+                resolve_symbol("c_effect_color", NULL, &c_effect_color);
+                LOG(LOG_NORMAL, (" Decrunch effect writes to $%04X.\n",
+                                 c_effect_color));
+            }
+        }
 
         membuf_free(source);
     }
@@ -1502,7 +1539,7 @@ void raw(const char *appl, int argc, char *argv[])
     struct membuf outbuf[1];
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "bdr%s", SHARED_FLAGS);
+    sprintf(flags_arr, "bdr%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
@@ -1518,7 +1555,7 @@ void raw(const char *appl, int argc, char *argv[])
             decrunch_mode = 1;
             break;
         default:
-            handle_shared_flags(c, flagarg, print_raw_usage, appl, flags);
+            handle_crunch_flags(c, flagarg, print_raw_usage, appl, flags);
         }
     }
 
@@ -1613,10 +1650,30 @@ void desfx(const char *appl, int argc, char *argv[])
 {
     struct load_info info[1];
     struct membuf mem[1];
+    const char *outfile = DEFAULT_OUTFILE;
+    int c, infilec;
+    char **infilev;
     u8 *p;
     u16 start;
     u16 end;
     u16 entry;
+
+    LOG(LOG_DUMP, ("flagind %d\n", flagind));
+    while ((c = getflag(argc, argv, BASE_FLAGS)) != -1)
+    {
+        LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
+        handle_base_flags(c, flagarg, print_desfx_usage, appl, &outfile);
+    }
+
+    infilev = argv + flagind;
+    infilec = argc - flagind;
+
+    if (infilec != 1)
+    {
+        LOG(LOG_ERROR, ("Error: exactly one input file must be given.\n"));
+        print_desfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(-1);
+    }
 
     membuf_init(mem);
     membuf_append(mem, NULL, 65536);
@@ -1633,7 +1690,13 @@ void desfx(const char *appl, int argc, char *argv[])
         /* look for sys line */
         info->run = find_sys(p + info->start, -1);
     }
-    LOG(LOG_NORMAL, (" crunched entry point $%04X\n", info->run));
+    if(info->run == -1)
+    {
+        LOG(LOG_ERROR, ("Error, can't find entry point.\n"));
+        exit(-1);
+    }
+
+    LOG(LOG_NORMAL, (" crunched file entry point $%04X\n", info->run));
     entry = decrunch_sfx(p, info->run, &start, &end);
 
     LOG(LOG_NORMAL, (" decrunched entry point $%04X, from %04X to $%04X\n",
@@ -1647,7 +1710,7 @@ void desfx(const char *appl, int argc, char *argv[])
     p[0] = start;
     p[1] = start >> 8;
 
-    write_file(argv[2], mem);
+    write_file(outfile, mem);
 
     membuf_free(mem);
 }
@@ -1664,10 +1727,8 @@ main(int argc, char *argv[])
     if(argc < 2)
     {
         /* missing required command */
-        LOG(LOG_ERROR,
-            ("Error: required command is missing, please use level, "
-             "mem or sfx.\n"));
-        print_usage(appl, LOG_ERROR);
+        LOG(LOG_ERROR, ("Error: required command is missing.\n"));
+        print_command_usage(appl, LOG_ERROR);
         exit(-1);
     }
     ++argv;
@@ -1692,12 +1753,20 @@ main(int argc, char *argv[])
     {
         desfx(appl, argc, argv);
     }
+    else if(strcmp(argv[0], "-v") == 0)
+    {
+        print_license();
+    }
+    else if(strcmp(argv[0], "-?") == 0)
+    {
+        print_command_usage(appl, LOG_NORMAL);
+    }
     else
     {
         /* unknown command */
         LOG(LOG_ERROR,
-            ("Error: unrecognised command, please use level, mem or sfx.\n"));
-        print_usage(appl, LOG_ERROR);
+            ("Error: unrecognised command \"%s\".\n"));
+        print_command_usage(appl, LOG_ERROR);
         exit(-1);
     }
 
