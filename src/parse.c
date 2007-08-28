@@ -949,7 +949,7 @@ static int wasFinalPass(void)
         struct expr *guess_expr;
         struct expr *sym_expr;
 
-        LOG(LOG_DEBUG, ("testing guessed symbol %s\n", me->key));
+        LOG(LOG_VERBOSE, ("Checking guessed symbol %s: ", me->key));
         /* Was this guessed symbol used in this pass? */
         if((sym_expr = map_get(s->sym_table, me->key)) == NULL)
         {
@@ -957,10 +957,9 @@ static int wasFinalPass(void)
             continue;
         }
         guess_expr = me->value;
-        LOG(LOG_DEBUG, ("guessed value "));
-        expr_dump(LOG_DEBUG, guess_expr);
-        LOG(LOG_DEBUG, ("actual value "));
-        expr_dump(LOG_DEBUG, sym_expr);
+        LOG(LOG_VERBOSE, ("expected %d, actual %d\n",
+             resolve_expr(guess_expr),
+             resolve_expr(sym_expr)));
 
         if(expr_cmp_cb(me->value, sym_expr) != 0)
         {
@@ -1017,12 +1016,12 @@ int assemble(struct membuf *source, struct membuf *dest)
         if(loopDetect(guesses_history))
         {
             /* More passes would only get us into a loop */
-            LOG(LOG_DEBUG, ("Aborting due to loop.\n"));
+            LOG(LOG_VERBOSE, ("Aborting due to loop.\n"));
             result = -1;
             break;
         }
 
-        LOG(LOG_DEBUG, ("Trying another pass.\n"));
+        LOG(LOG_VERBOSE, ("Trying another pass.\n"));
 
         /* allocate storage for the guesses in the history vector */
         s->guesses = vec_push(guesses_history, s->guesses);

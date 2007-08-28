@@ -327,7 +327,7 @@ enter_hook = 1
 .ENDMACRO
 ; -------------------------------------------------------------------
 ; -- The decruncher exit macro definition ---------------------------
-; ------------------------------------------------------------------
+; -------------------------------------------------------------------
 exit_hook = 1
 .MACRO("exit_hook")
   .IF(i_ram_exit != i_ram_during)
@@ -744,8 +744,12 @@ zp_hi_bits = $9f
 	.BYTE($9e, cbm_start / 1000 % 10 + 48, cbm_start / 100 % 10 + 48)
 	.BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48, 0)
 basic_end:
-    .IF(r_target == 4 || r_target == 128 || transfer_len % 256 != 0)
+trqwrk ?= 2
+    .IF(r_target == 4 || r_target == 128 || (transfer_len - trqwrk) % 256 != 0)
 	.BYTE(0,0)
+trqwrk = 2
+    .ELSE
+trqwrk = 0
     .ENDIF
 ; -------------------------------------------------------------------
 cbm_start:
@@ -843,9 +847,7 @@ zp_dest_hi = zp_bitbuf + 2	; dest addr hi
 ; -- start of stage 1 -----------------------------------------------
 ; -------------------------------------------------------------------
 max_transfer_len = .INCLEN("crunched_data") - 5
-.IF(transfer_len % 256 == 0)
-	ldy #0
-.ENDIF
+	ldy #transfer_len % 256
 	.IF(.DEFINED(enter_hook))
 	  .INCLUDE("enter_hook")
 	.ENDIF
@@ -857,9 +859,6 @@ cploop:
 	bne cploop
 .IF(transfer_len > 256)
 	ldx #transfer_len / 256
-.ENDIF
-.IF(transfer_len % 256 != 0)
-	ldy #transfer_len % 256
 .ENDIF
 .IF(transfer_len != max_transfer_len)
 	jmp stage2start
