@@ -77,6 +77,8 @@
   c_border_color   = $bfdf
   c_rom_config_value = 0
   c_ram_config_value = 1
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $b800
 .ELIF(r_target == 20)
   c_basic_start    = $1001
@@ -87,6 +89,8 @@
   c_border_color   = $900f
   c_rom_config_value = 0
   c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == 23)
   c_basic_start    = $0401
@@ -97,6 +101,8 @@
   c_border_color   = $900f
   c_rom_config_value = 0
   c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == 52)
   c_basic_start    = $1201
@@ -107,6 +113,8 @@
   c_border_color   = $900f
   c_rom_config_value = 0
   c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == 55)
   c_basic_start    = $1201
@@ -117,6 +125,8 @@
   c_border_color   = $900f
   c_rom_config_value = 0
   c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == 4)
   c_basic_start    = $1001
@@ -127,6 +137,8 @@
   c_border_color   = $ff19
   c_rom_config_value = 0
   c_ram_config_value = 1
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == 64)
   c_basic_start    = $0801
@@ -137,6 +149,8 @@
   c_border_color   = $d020
   c_rom_config_value = $37
   c_ram_config_value = $38
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == 128)
   c_basic_start    = $1c01
@@ -147,6 +161,8 @@
   c_border_color   = $d020
   c_rom_config_value = $00
   c_ram_config_value = $3f
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0b00
 .ELIF(r_target == $a2)
   c_basic_start    = $0801
@@ -156,14 +172,18 @@
   c_border_color   = $07f7
   c_rom_config_value = 0
   c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == $a8)
   c_end_of_mem_ram = $d000
   c_end_of_mem_rom = $a000
   c_effect_color   = $d017
   c_border_color   = $d01a
-  c_rom_config_value = $fd
-  c_ram_config_value = $ff
+  c_rom_config_value = $ff
+  c_ram_config_value = $fe
+  c_rom_nmi_value = $40
+  c_ram_nmi_value = 0
   c_default_table = $0600
 .ELSE
   .ERROR("Symbol r_target_addr has an invalid value.")
@@ -173,12 +193,20 @@
   i_ram_enter = c_rom_config_value
 .ENDIF
 
+.IF(!.DEFINED(i_nmi_enter))
+  i_nmi_enter = c_rom_nmi_value
+.ENDIF
+
 .IF(!.DEFINED(i_irq_enter))
   i_irq_enter = 1
 .ENDIF
 
 .IF(!.DEFINED(i_ram_exit))
   i_ram_exit = c_rom_config_value
+.ENDIF
+
+.IF(!.DEFINED(i_nmi_exit))
+  i_nmi_exit = c_rom_nmi_value
 .ENDIF
 
 .IF(!.DEFINED(i_irq_exit))
@@ -284,6 +312,14 @@ stage2_exit_hook = 1
   .ENDIF
 .ENDIF
 
+.IF(!.DEFINED(i_nmi_during))
+  .IF(v_highest_addr > c_end_of_mem_rom)
+    i_nmi_during = c_ram_nmi_value
+  .ELSE
+    i_nmi_during = i_nmi_enter
+  .ENDIF
+.ENDIF
+
 .IF(!.DEFINED(i_irq_during))
   .IF(i_irq_enter==i_irq_exit && i_ram_during==i_ram_enter && r_target!=1)
     i_irq_during = i_irq_enter
@@ -318,6 +354,9 @@ enter_hook = 1
 	sei
     .ENDIF
   .ENDIF
+  .IF(i_nmi_during != i_nmi_enter)
+    .INCLUDE("b2d_nmi")
+  .ENDIF
   .IF(.DEFINED(i_enter_custom))
     .INCLUDE("enter_custom")
   .ENDIF
@@ -335,6 +374,9 @@ exit_hook = 1
   .ENDIF
   .IF(.DEFINED(i_exit_custom))
     .INCLUDE("exit_custom")
+  .ENDIF
+  .IF(i_nmi_exit != i_nmi_during)
+    .INCLUDE("d2r_nmi")
   .ENDIF
   .IF(i_irq_exit != i_irq_during)
     .IF(i_irq_exit == 1)
@@ -509,6 +551,8 @@ oric_ROM11:
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for Oric-1 ---------------------------
 ; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
   .MACRO("b2d_ram")
     .IF(i_ram_during == c_ram_config_value)
 	lda #$84
@@ -531,10 +575,14 @@ oric_ROM11:
 	sta $0314 ; -- %1xxxxx0x -- RAM at $c000-$10000 -------------
     .ENDIF
   .ENDMACRO
+  .MACRO("d2r_nmi")
+  .ENDMACRO
 .ELIF(r_target == 64)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for c64 ------------------------------
 ; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
   .MACRO("b2d_ram")
     .IF(i_ram_during == i_ram_enter + 1)
 	inc <$01
@@ -579,10 +627,14 @@ oric_ROM11:
 	sta <$01
     .ENDIF
   .ENDMACRO
+  .MACRO("d2r_nmi")
+  .ENDMACRO
 .ELIF(r_target == 128)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for c128 -----------------------------
 ; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
   .MACRO("b2d_ram")
 	lda #i_ram_during
 	sta $ff00
@@ -621,10 +673,14 @@ oric_ROM11:
 	lda #i_ram_exit
 	sta $ff00
   .ENDMACRO
+  .MACRO("d2r_nmi")
+  .ENDMACRO
 .ELIF(r_target == 4)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for c16/+4 ---------------------------
 ; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
   .MACRO("b2d_ram")
     .IF(i_ram_during == c_ram_config_value)
 	sta $ff3f
@@ -643,10 +699,14 @@ oric_ROM11:
 	sta $ff3f
     .ENDIF
   .ENDMACRO
+  .MACRO("d2r_nmi")
+  .ENDMACRO
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for c20 ------------------------------
 ; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
   .MACRO("b2d_ram")
   .ENDMACRO
   .MACRO("d2io")
@@ -654,11 +714,15 @@ oric_ROM11:
   .MACRO("io2d")
   .ENDMACRO
   .MACRO("d2r_ram")
+  .ENDMACRO
+  .MACRO("d2r_nmi")
   .ENDMACRO
 .ELIF(r_target == $a2)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for Apple ----------------------------
 ; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
   .MACRO("b2d_ram")
   .ENDMACRO
   .MACRO("d2io")
@@ -667,10 +731,16 @@ oric_ROM11:
   .ENDMACRO
   .MACRO("d2r_ram")
   .ENDMACRO
+  .MACRO("d2r_nmi")
+  .ENDMACRO
 .ELIF(r_target == $a8)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for a8 -------------------------------
 ; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+	lda #i_nmi_during
+	sta $d40e
+  .ENDMACRO
   .MACRO("b2d_ram")
 	lda #i_ram_during
 	sta $d301
@@ -682,6 +752,10 @@ oric_ROM11:
   .MACRO("d2r_ram")
 	lda #i_ram_exit
 	sta $d301
+  .ENDMACRO
+  .MACRO("d2r_nmi")
+	lda #i_nmi_exit
+	sta $d40e
   .ENDMACRO
 .ELSE
   .ERROR("Unhandled target for macro definitions.")
