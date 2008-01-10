@@ -53,7 +53,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
     search_nodep best_rle_snp;
 
-    int len = ctx->len;
+    int len = ctx->len + 1;
 
     progress_init(prog, "finding.cheapest.path.",len, 0);
 
@@ -61,6 +61,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
     snp_arr = membuf_get(backing);
     memset(snp_arr, 0, len * sizeof(search_node));
 
+    --len;
     snp = snp_arr[len];
     snp->index = len;
     snp->match->offset = 0;
