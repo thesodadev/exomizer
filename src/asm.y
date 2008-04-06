@@ -219,7 +219,7 @@ op:	LDY am_im  { $$ = new_op(0xA0, ATOM_TYPE_OP_ARG_UI8, $2); } |
 	LDY am_zp  { $$ = new_op(0xA4, ATOM_TYPE_OP_ARG_U8,  $2); } |
 	LDY am_zpx { $$ = new_op(0xB4, ATOM_TYPE_OP_ARG_U8,  $2); } |
 	LDY am_a   { $$ = new_op(0xAC, ATOM_TYPE_OP_ARG_U16, $2); } |
-	LDY am_ay  { $$ = new_op(0xBC, ATOM_TYPE_OP_ARG_U16, $2); };
+	LDY am_ax  { $$ = new_op(0xBC, ATOM_TYPE_OP_ARG_U16, $2); };
 
 op:	STA am_zp  { $$ = new_op(0x85, ATOM_TYPE_OP_ARG_U8,  $2); } |
 	STA am_zpx { $$ = new_op(0x95, ATOM_TYPE_OP_ARG_U8,  $2); } |

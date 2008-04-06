@@ -1,3 +1,12 @@
++ Add an experimental desfx command that should be able to decrunch sfx
+  crunched files.
++ Fix rare situation when sfxdecr.s failed to assemble.
++ Improve the help text when no sub-command is given.
++ Improve the handling of ROM/RAM-banking and NMIs for the atari target in the
+  sfx decruncher.
++ Fix broken op definition ldy abs,x in the sfx assembler, bug reported by
+   Stefano Tognon.
+
 2007-05-13
 Prerelease of 2.0beta7 source code, Win32 and DOS binaries.
 + Add loading of Oric tap files to the sfx command.
