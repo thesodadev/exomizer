@@ -1,4 +1,4 @@
-Exomizer 2.0 beta4 released
+Exomizer 2.0
 
 NEW FEATURES SINCE V1.X:
 
@@ -37,9 +37,9 @@ o  New raw mode that features:
       is now possible to crunch.
    5) Comes with two different C-source decrunchers, one thread safe forward
       pull decruncher and one low-level backwards push decruncher, perfect to
-      base an assembler port on. (Any z80 programmers out there?)
+      base an assembler port on.
 
-FEATURES STILL TO DO BEFORE PROPER RELEASE:
+FEATURES PLANNED FOR NEXT STABLE RELEASE:
 
 o  Sfx decruncher in exomizer:
    1) Handle the vic20 target better with regards to memory holes.
@@ -54,9 +54,7 @@ o  There is no 6502 assembler decruncher for streaming data crunched forward
 
 o  The sfx command sometimes crunch better with the -c flag. The cruncher
    doesn't take the sfx decuncher size increase due to enabling the literal
-   sequence escape mechanism.
-
-o Update the usage descriptions properly.
+   sequence escape mechanism into consideration.
 
 -------------------------------------------------------------------------------
 The command line syntax differs from v1.x. Here's a quick translation guide:
@@ -197,7 +195,7 @@ and decrunch on the fly.
 -- The sfx sub command --------------------------------------------------------
 -------------------------------------------------------------------------------
 
- The sfx command generates a runnable stand alone, in memory decrunching file.
+ The sfx command generates a runnable stand alone in memory decrunching file.
 Its first argument must always be the run address. It may be given as an
 address or the string sys or the string basic.
 
@@ -209,12 +207,12 @@ autodetected. Either from the runad vector for the Atari target or by scanning
 the area of the basic start for a sys basic command.
 
  If the run address is the string basic then the computer will run a basic
-program after decrunch. This is not supported yet for the Atari, Apple ][.
+program after decrunch. This is not supported yet for the Atari or Apple ][.
 The Oric target support basic start for the Oric 1 and Atmos computers but not
 for the Telestrat.
 
-This mode takes up to three optional addresses. They are in order: start of
-basic variables, start of basic and highest address used by basic.
+This run basic mode takes up to three optional addresses. They are in order:
+start of basic variables, start of basic and highest address used by basic.
 
 $ exomizer sfx basic[,<start vars>[,<start basic>[,<highest address>]]]
 
@@ -228,7 +226,7 @@ itself in memory when run. The output file format depends on the target
 used. For all Commodore machines the output is a runnable prg-file that starts
 with a basic line. For the Atari the target is a auto running xex-file. The
 atari target doesn't support decrunching into extended memory. For the Apple
-the target is a Applesoft basic file. For the Oric family the target is a Oric
+the target is an Applesoft basic file. For the Oric family the target is a Oric
 tap file.
 
  The sfx command has the following options:
@@ -287,11 +285,11 @@ The raw command can both crunch and decrunch both forward and backward. It also
 handles generic files without any of the above mentioned restrictions. There's
 no hardcoded limit in file size but it gets increasingly slow with larger files
 so there's a practical limit of about 1MB. The output file format of this
-command is a generic file.
+command is a plain file.
 
 It is possible to give an optional offset and length for the infile like this:
-<infile>[,offset[,length]]. Negative offsets are allowed but will be calculated
-from the end of the file.
+<infile>[,offset[,length]]. Negative offsets are allowed. They will wrap around
+to the end of the file.
 
 To skip the first two bytes but read all the rest of a file do like this:
 $ exomizer raw <infile>,2 -o <outfile>
@@ -435,7 +433,7 @@ The following symbols control the memory config:
 The i_ram_enter symbol differs from the other two. It isn't used to set the
 memory config. It tells the exomizer of which memory config to expect when
 the decruncher is run. This information is used to minimize the decruncher
-size.<
+size.
 
 For the c64 and the c128 target the value of the above symbols will be stored
 into $ff00 (c128) or $01 (c64) to set the mem config. For the c16/+4 target the
