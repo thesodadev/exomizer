@@ -441,7 +441,7 @@ possible values are 0=ROM and 1=RAM. For the Atari the value will be stored in
 $d301. The Oric target supports 0=ROM and 1=RAM where 1 will enable decrunching
 into the top 16kB RAM supplied by the microdisc controller.
 
-Default is $37 for the c64, $00 for the c128, 0 for the c16/+4 and Oric and $fd
+Default is $37 for the c64, $00 for the c128, 0 for the c16/+4 and Oric and $ff
 for the Atari.
 
 The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
