@@ -130,4 +130,7 @@ do { \
     } \
 } while(0)
 
+
+void hex_dump(int level, unsigned char *p, int len);
+
 #endif

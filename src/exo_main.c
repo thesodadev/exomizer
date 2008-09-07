@@ -37,6 +37,7 @@
 #include "getflag.h"
 #include "membuf_io.h"
 #include "exo_helper.h"
+#include "exo_util.h"
 #include "parse.h"
 #include "named_buffer.h"
 #include "desfx.h"
@@ -44,170 +45,6 @@
 extern struct membuf sfxdecr[];
 
 #define DEFAULT_OUTFILE "a.out"
-
-static int find_sys(const unsigned char *buf, int target)
-{
-    int outstart = -1;
-    int state = 1;
-    int i = 0;
-    /* skip link and line number */
-    buf += 4;
-    /* exit loop at line end */
-    while(i < 1000 && buf[i] != '\0')
-    {
-        unsigned char *sys_end;
-        int c = buf[i];
-        switch(state)
-        {
-            /* look for and consume sys token */
-        case 1:
-            if((target == -1 &&
-                (c == 0x9e /* cbm */ ||
-                 c == 0x8c /* apple 2*/ ||
-                 c == 0xbf /* oric 1*/)) ||
-               c == target)
-            {
-                state = 2;
-            }
-            break;
-            /* skip spaces and left parenthesis, if any */
-        case 2:
-            if(strchr(" (", c) != NULL) break;
-            state = 3;
-            /* convert string number to int */
-        case 3:
-            outstart = strtol((char*)(buf + i), (void*)&sys_end, 10);
-            if((buf + i) == sys_end)
-            {
-                /* we got nothing */
-                outstart = -1;
-            }
-            state = 4;
-            break;
-        case 4:
-            break;
-        }
-        ++i;
-    }
-
-    LOG(LOG_DEBUG, ("state when leaving: %d.\n", state));
-    return outstart;
-}
-
-static int get_byte(FILE *in)
-{
-    int byte = fgetc(in);
-    if(byte == EOF)
-    {
-        LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
-        fclose(in);
-        exit(-1);
-    }
-    return byte;
-}
-
-static int get_le_word(FILE *in)
-{
-    int word = get_byte(in);
-    word |= get_byte(in) << 8;
-    return word;
-}
-
-static int get_be_word(FILE *in)
-{
-    int word = get_byte(in) << 8;
-    word |= get_byte(in);
-    return word;
-}
-
-static
-FILE *
-open_file(char *name, int *load_addr)
-{
-    FILE * in;
-    int is_plain = 0;
-    int is_relocated = 0;
-    int load;
-
-    do
-    {
-        char *load_str;
-        char *at_str;
-
-        in = fopen(name, "rb");
-        if (in != NULL)
-        {
-            /* We have succeded in opening the file.
-             * There's no address suffix. */
-            break;
-        }
-
-        /* hmm, let's see if the user is trying to relocate it */
-        load_str = strrchr(name, ',');
-        at_str = strrchr(name, '@');
-        if(at_str != NULL && (load_str == NULL || at_str > load_str))
-        {
-            is_plain = 1;
-            load_str = at_str;
-        }
-
-        if (load_str == NULL)
-        {
-            /* nope, */
-            break;
-        }
-
-        *load_str = '\0';
-        ++load_str;
-        is_relocated = 1;
-
-        /* relocation was requested */
-        if (str_to_int(load_str, &load) != 0)
-        {
-            /* we fail */
-            LOG(LOG_FATAL,
-                (" can't parse load address from \"%s\"\n", load_str));
-            exit(-1);
-        }
-
-        in = fopen(name, "rb");
-
-    } while (0);
-    if (in == NULL)
-    {
-        LOG(LOG_FATAL,
-            (" can't open file \"%s\" for input\n", name));
-        exit(-1);
-    }
-
-    if(!is_plain)
-    {
-        /* read the prg load address */
-        int prg_load = get_le_word(in);
-        if(!is_relocated)
-        {
-            load = prg_load;
-            /* unrelocated prg loading to $ffff is xex */
-            if(prg_load == 0xffff)
-            {
-                /* differentiate this from relocated $ffff files so it is
-                 * possible to override the xex auto-detection. */
-                load = -1;
-            }
-            /* unrelocated prg loading to $1616 is Oric tap */
-            else if(prg_load == 0x1616)
-            {
-                load = -2;
-            }
-        }
-    }
-
-    if(load_addr != NULL)
-    {
-        *load_addr = load;
-    }
-    return in;
-}
 
 static void load_plain_file(const char *name, struct membuf *mb)
 {
@@ -309,200 +146,6 @@ static void load_plain_file(const char *name, struct membuf *mb)
     fclose(in);
 }
 
-struct load_info
-{
-    int basic_txt_start; /* in */
-    int basic_var_start; /* out */
-    int run; /* out */
-    int start; /* out */
-    int end; /* out */
-};
-
-static void load_xex(unsigned char mem[65536], FILE *in,
-                     struct load_info *info)
-{
-    int run = -1;
-    int jsr = -1;
-    int min = 65536, max = 0;
-
-    goto initial_state;
-    for(;;)
-    {
-        int start, end, len;
-
-        start = fgetc(in);
-        if(start == EOF) break;
-        ungetc(start, in);
-
-        start = get_le_word(in);
-        if(start == 0xffff)
-        {
-            /* allowed optional header */
-        initial_state:
-            start = get_le_word(in);
-        }
-        end = get_le_word(in);
-        if(start > 0xffff || end > 0xffff || end < start)
-        {
-            LOG(LOG_ERROR, ("Error: corrupt data in xex-file."));
-            fclose(in);
-            exit(-1);
-        }
-        if(start == 0x2e2 && end == 0x2e3)
-        {
-            /* init vector */
-            jsr = get_le_word(in);
-            LOG(LOG_VERBOSE, ("Found xex initad $%04X.\n", jsr));
-            continue;
-        }
-        if(start == 0x2e0 && end == 0x2e1)
-        {
-            /* run vector */
-            run = get_le_word(in);
-            LOG(LOG_VERBOSE, ("Found xex runad $%04X.\n", run));
-            continue;
-        }
-        ++end;
-        jsr = -1;
-        if(start < min) min = start;
-        if(end > max) max = end;
-
-        len = fread(mem + start, 1, end - start, in);
-        if(len != end - start)
-        {
-            LOG(LOG_ERROR, ("Error: unexpected end of xex-file.\n"));
-            fclose(in);
-            exit(-1);
-        }
-        LOG(LOG_VERBOSE, (" xex chunk loading from $%04X to $%04X\n",
-                          start, end));
-    }
-
-    if(run == -1 && jsr != -1) run = jsr;
-
-    info->start = min;
-    info->end = max;
-    info->basic_var_start = -1;
-    info->run = -1;
-    if(run != -1)
-    {
-        info->run = run;
-    }
-}
-
-static void load_oric_tap(unsigned char mem[65536], FILE *in,
-                          struct load_info *info)
-{
-    int c;
-    int autostart;
-    int start, end, len;
-
-    /* read oric tap header */
-
-    /* next byte must be 0x16 as we have already read two and must
-     * have at least three */
-    if(get_byte(in) != 0x16)
-    {
-        LOG(LOG_ERROR, ("Error: fewer than three lead-in bytes ($16) "
-                        "in Oric tap-file header.\n"));
-        fclose(in);
-        exit(-1);
-    }
-    /* optionally more 0x16 bytes */
-    while((c = get_byte(in)) == 0x16);
-    /* next byte must be 0x24 */
-    if(c != 0x24)
-    {
-        LOG(LOG_ERROR, ("Error: bad sync byte after lead-in in Oric tap-file "
-                        "header, got $%02X but expected $24\n", c));
-        fclose(in);
-        exit(-1);
-    }
-
-    /* now we are in sync, lets be lenient */
-    get_byte(in); /* should be 0x0 */
-    get_byte(in); /* should be 0x0 */
-    get_byte(in); /* should be 0x0 or 0x80 */
-    autostart = (get_byte(in) != 0);  /* should be 0x0, 0x80 or 0xc7 */
-    end = get_be_word(in) + 1; /* the header end address is inclusive */
-    start = get_be_word(in);
-    get_byte(in); /* should be 0x0 */
-    /* read optional file name */
-    while(get_byte(in) != 0x0);
-
-    /* read the data */
-    len = fread(mem + start, 1, end - start, in);
-    if(len != end - start)
-    {
-        LOG(LOG_BRIEF, ("Warning: Oric tap-file contains %d byte(s) data "
-                        "less than expected.\n", end - start - len));
-        end = start + len;
-    }
-    LOG(LOG_VERBOSE, (" Oric tap-file loading from $%04X to $%04X\n",
-                      start, end));
-
-    /* fill in the fields */
-    info->start = start;
-    info->end = end;
-    info->run = -1;
-    info->basic_var_start = -1;
-    if(autostart)
-    {
-        info->run = start;
-    }
-    if(info->basic_txt_start >= start &&
-       info->basic_txt_start < end)
-    {
-        info->basic_var_start = end - 1;
-    }
-}
-
-static void load_prg(unsigned char mem[65536], FILE *in,
-                     struct load_info *info)
-{
-    int len;
-    len = fread(mem + info->start, 1, 65536 - info->start, in);
-
-    info->end = info->start + len;
-    info->basic_var_start = -1;
-    info->run = -1;
-    if(info->basic_txt_start >= info->start &&
-       info->basic_txt_start < info->end)
-    {
-        info->basic_var_start = info->end;
-    }
-}
-
-static void load_located(char *filename, unsigned char mem[65536],
-                         struct load_info *info)
-{
-    int load;
-    FILE *in;
-
-    in = open_file(filename, &load);
-    if(load == -1)
-    {
-        /* file is an xex file */
-        load_xex(mem, in, info);
-    }
-    else if(load == -2)
-    {
-        /* file is an oric tap file */
-        load_oric_tap(mem, in, info);
-    }
-    else
-    {
-        /* file is a located plain file or a prg file */
-        info->start = load;
-        load_prg(mem, in, info);
-    }
-    fclose(in);
-
-    LOG(LOG_NORMAL,
-        (" filename: \"%s\", loading from $%04X to $%04X\n",
-         filename, info->start, info->end));
-}
-
 static
 int
 do_load(char *file_name, struct membuf *mem)
@@ -530,8 +173,8 @@ do_load(char *file_name, struct membuf *mem)
 struct target_info
 {
     int id;
-    int basic_txt_start;
     int sys_token;
+    int basic_txt_start;
     const char *model;
 };
 
@@ -1424,8 +1067,9 @@ void sfx(const char *appl, int argc, char *argv[])
                      targetp->model));
     if(sys_addr == -1)
     {
-        LOG(LOG_ERROR, ("\nError: cant find sys address at basic "
-                        "text start ($%04X).\n", basic_txt_start));
+        LOG(LOG_ERROR, ("\nError: can't find sys address (token $%02X)"
+                        " at basic text start ($%04X).\n",
+                        targetp->sys_token, basic_txt_start));
         exit(-1);
     }
     if(sys_addr != -2)

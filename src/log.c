@@ -214,3 +214,24 @@ void log_log(struct log_ctx *ctx,       /* IN */
     va_start(argp, printf_str);
     log_vlog(ctx, level, context, f, printf_str, argp);
 }
+
+void hex_dump(int level, unsigned char *p, int len)
+{
+    int i = 0;
+    for(;;)
+    {
+        LOG(level, ("%02x", p[i]));
+        if(++i % 8 == 0 || i == len)
+        {
+            LOG(level, ("\n"));
+        }
+        else
+        {
+            LOG(level, (" "));
+        }
+        if(i == len)
+        {
+            break;
+        }
+    }
+}

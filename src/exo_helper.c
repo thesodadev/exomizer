@@ -33,57 +33,13 @@
 #include "optimal.h"
 #include "exodec.h"
 #include "exo_helper.h"
+#include "exo_util.h"
 #include "getflag.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
 static struct crunch_options default_options[1] = { CRUNCH_OPTIONS_DEFAULT };
-
-/* returns 0 if ok, 1 otherwise */
-int
-str_to_int(const char *str, int *value)
-{
-    int status = 0;
-    do {
-        char *str_end;
-        long lval;
-
-        /* base 0 is auto detect */
-        int base = 0;
-
-        if (*str == '\0')
-        {
-            /* no string to parse */
-            status = 1;
-            break;
-        }
-
-        if (*str == '$')
-        {
-            /* a $ prefix specifies base 16 */
-            ++str;
-            base = 16;
-        }
-
-        lval = strtol(str, &str_end, base);
-
-        if(*str_end != '\0')
-        {
-            /* there is garbage in the string */
-            status = 1;
-            break;
-        }
-
-        if(value != NULL)
-        {
-            /* all is well, set the out parameter */
-            *value = (int)lval;
-        }
-    } while(0);
-
-    return status;
-}
 
 int do_output(match_ctx ctx,
               search_nodep snp,
@@ -379,30 +335,6 @@ void decrunch_backwards(int level,
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     reverse_buffer((char*)membuf_get(outbuf) + outpos,
                    membuf_memlen(outbuf) - outpos);
-}
-
-const char *fixup_appl(char *appl)
-{
-    char *applp;
-
-    /* strip pathprefix from appl */
-    applp = strrchr(appl, '\\');
-    if (applp != NULL)
-    {
-        appl = applp + 1;
-    }
-    applp = strrchr(appl, '/');
-    if (applp != NULL)
-    {
-        appl = applp + 1;
-    }
-    /* strip possible exe suffix */
-    applp = appl + strlen(appl) - 4;
-    if(strcmp(applp, ".exe") == 0 || strcmp(applp, ".EXE") == 0)
-    {
-        *applp = '\0';
-    }
-    return appl;
 }
 
 void print_license(void)

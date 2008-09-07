@@ -1,5 +1,10 @@
 syntax: glob
 *~
 *.o
+*.os
+*.exo
 *.exe
-src/exodecr.o
+test*.prg
+src/sfxdecr
+src/sfxdecr.c
+deps

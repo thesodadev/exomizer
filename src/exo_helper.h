@@ -31,8 +31,6 @@
 #include "log.h"
 #include "membuf.h"
 
-int str_to_int(const char *str, int *value);
-
 #define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 1}
 
 struct common_flags
@@ -62,8 +60,6 @@ void handle_base_flags(int flag_char, /* IN */
                        print_usage_f *print_usage, /* IN */
                        const char *appl, /* IN */
                        const char **default_outfilep); /* OUT */
-
-const char *fixup_appl(char *appl);
 
 struct crunch_options
 {

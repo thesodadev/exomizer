@@ -182,6 +182,7 @@ bits_done:
 literal_start:
 	ldx #$10    ; these 16 bits
 	jsr get_bits; tell the length of the sequence
+	ldx zp_bits_hi
 literal_start1: ; if literal byte, a = 1, zp_bits_hi = 0
 	sta zp_len_lo
 	.byte $2c   ; skip next instruction

@@ -1,5 +1,18 @@
-+ Add an experimental desfx command that should be able to decrunch sfx
-  crunched files.
++ Refactored some functions from exo_main.c and exo_helper.c into a new file,
+  exo_util.c so the testprogram could use them too.
++ Fixed a bug in exo_main where the sys/call basic token was mixed up with
+  the basic_txt_start. This confused thes sfx sys sub-command.
++ Fixed a bug in krilldecr.s. The handling of literal sequences longer than
+  256 bytes was broken.
++ Added a testprogram to test that the decrunchers in the exodecrs folder works.
+  This feature uses the 6502 emulation core to run test programs. It tests
+  literal sequences longer than 256 bytes and run lengths longer than 256
+  bytes for all four decruncher variants, backward, forward, streaming and
+   chunk streaming.
++ Added a z80 decruncher contributed by Metalbrain.
++ Added an experimental desfx command that should be able to decrunch sfx
+  crunched files. Uses the 6502 emulation core to run the sfx-decrunchers.
++ Added a 6502 emulator core.
 + Fix rare situation when sfxdecr.s failed to assemble.
 + Improve the help text when no sub-command is given.
 + Improve the handling of ROM/RAM-banking and NMIs for the atari target in the
