@@ -35,6 +35,7 @@
 #include "membuf.h"
 #include "membuf_io.h"
 #include "exo_helper.h"
+#include "exo_util.h"
 
 static
 void print_usage(const char *appl, enum log_level level,

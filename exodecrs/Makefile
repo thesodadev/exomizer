@@ -44,8 +44,9 @@ $(NAME2): $(MAKEFILE) testrun $(SOURCES2)
 	ca65 $< -o $@
 
 clean:
-	$(RM) $(SOURCES) $(SOURCESF) $(SOURCES1) $(SOURCES2) $(NAME) $(NAMEF) \
-	$(NAME1) $(NAME2) testrun data.exo dataf.exo streamdata.exo
+	$(RM) $(TEST_OBJS) $(SOURCES) $(SOURCESF) $(SOURCES1) $(SOURCES2) \
+	$(NAME) $(NAMEF) $(NAME1) $(NAME2) testrun data.exo dataf.exo \
+	streamdata.exo
 
 data.os: data.exo
 dataf.os: dataf.exo

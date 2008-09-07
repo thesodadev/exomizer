@@ -4,7 +4,12 @@ syntax: glob
 *.os
 *.exo
 *.exe
-test*.prg
+*.prg
+exodecrs/testrun
 src/sfxdecr
 src/sfxdecr.c
-deps
+src/b2membuf
+src/exobasic
+src/exomizer
+src/exoraw
+src/deps

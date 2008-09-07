@@ -112,7 +112,7 @@ open_file(char *name, int *load_addr)
     FILE * in;
     int is_plain = 0;
     int is_relocated = 0;
-    int load;
+    int load = -3;
 
     do
     {
