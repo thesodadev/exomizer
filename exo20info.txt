@@ -39,6 +39,10 @@ o  New raw mode that features:
       pull decruncher and one low-level backwards push decruncher, perfect to
       base an assembler port on.
 
+o  Contributed decruncher source
+   1) forward 6502 decuncher by Krill (exodecrs/krilldecr.s)
+   2) z80 decrunchers by Metalbrain.  (rawdecrs/z80/*)
+
 FEATURES PLANNED FOR NEXT STABLE RELEASE:
 
 o  Sfx decruncher in exomizer:
@@ -176,7 +180,7 @@ monitors or by assembler directives like incbin.
         means that in this mode the read and write pointers move forward in
         memory while decrunching. The exodecrunch.s does not support forward
         decrunching. For this feature to work You'll have to use Krill's
-        modified decruncher.
+        contributed decruncher.
 
 -------------------------------------------------------------------------------
 -- The level sub command ------------------------------------------------------
@@ -346,6 +350,7 @@ Krill / Plush
 Contributed code
 ----------------
 Krill / Plush
+Metalbrain
 
 Bug reports
 -----------

@@ -1,3 +1,5 @@
+2008-09-08
+Release of 2.0beta7 source code, Win32 and DOS binaries.
 + Refactored some functions from exo_main.c and exo_helper.c into a new file,
   exo_util.c so the testprogram could use them too.
 + Fixed a bug in exo_main where the sys/call basic token was mixed up with
