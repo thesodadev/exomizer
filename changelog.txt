@@ -1,3 +1,12 @@
+
++ Add desfx -e flag to override the automatic entry point detection, feature
+  suggestion with patch by iAN CooG/HokutoForce. (Patch reworked somewhat,
+  error handling added)
++ Fix desfx handling of files that decrunch to and including 0xffff, Bug report
+  with patch by iAN CooG/HokutoForce. (Patch reworked somewhat, end addresses
+  are exclusive everywhere else)
++ Fix argument handling of desfx, Bug report + patch by iAN CooG/HokutoForce.
+
 2008-09-08
 Release of 2.0beta7 source code, Win32 and DOS binaries.
 + Refactored some functions from exo_main.c and exo_helper.c into a new file,
@@ -6,11 +15,11 @@ Release of 2.0beta7 source code, Win32 and DOS binaries.
   the basic_txt_start. This confused thes sfx sys sub-command.
 + Fixed a bug in krilldecr.s. The handling of literal sequences longer than
   256 bytes was broken.
-+ Added a testprogram to test that the decrunchers in the exodecrs folder works.
-  This feature uses the 6502 emulation core to run test programs. It tests
-  literal sequences longer than 256 bytes and run lengths longer than 256
++ Added a testprogram to test that the decrunchers in the exodecrs folder
+  works. This feature uses the 6502 emulation core to run test programs. It
+  tests literal sequences longer than 256 bytes and run lengths longer than 256
   bytes for all four decruncher variants, backward, forward, streaming and
-   chunk streaming.
+  chunk streaming.
 + Added a z80 decruncher contributed by Metalbrain.
 + Added an experimental desfx command that should be able to decrunch sfx
   crunched files. Uses the 6502 emulation core to run the sfx-decrunchers.

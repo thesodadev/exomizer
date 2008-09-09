@@ -204,7 +204,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         run = info->run;
         if(run != -1 && runp != NULL)
         {
-            LOG(LOG_DEBUG, ("Propagating found run address %04X.\n",
+            LOG(LOG_DEBUG, ("Propagating found run address $%04X.\n",
                             info->run));
             *runp = info->run;
         }
@@ -393,6 +393,10 @@ void print_desfx_usage(const char *appl, enum log_level level,
         ("usage: %s desfx [option]... infile\n"
          "  The desfx command decrunches files that previously been crunched using the\n"
          "  sfx command.\n", appl));
+    LOG(level,
+        ("  -e <address>  overrides the automatic entry point detection, using \"load\" as\n"
+         "                <address> sets it to the load address of the infile\n"));
+
     print_base_flags(level, default_outfile);
 }
 
@@ -1292,6 +1296,7 @@ void raw(const char *appl, int argc, char *argv[])
 static
 void desfx(const char *appl, int argc, char *argv[])
 {
+    char flags_arr[32];
     struct load_info info[1];
     struct membuf mem[1];
     const char *outfile = DEFAULT_OUTFILE;
@@ -1300,13 +1305,33 @@ void desfx(const char *appl, int argc, char *argv[])
     u8 *p;
     u16 start;
     u16 end;
-    u16 entry;
+    int cookedend;
+    int entry = -1;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    while ((c = getflag(argc, argv, BASE_FLAGS)) != -1)
+    sprintf(flags_arr, "e:%s", BASE_FLAGS);
+    while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
-        handle_base_flags(c, flagarg, print_desfx_usage, appl, &outfile);
+        switch (c)
+        {
+        case 'e':
+            if(strcmp(flagarg,"load") == 0)
+            {
+                entry = -2;
+            }
+            else if(str_to_int(flagarg, &entry) != 0 ||
+                    entry < 0 || entry >= 65536)
+            {
+                LOG(LOG_ERROR,("Error: invalid address for -e option, "
+                               "must be in the range of [0 - 0xffff]\n"));
+                print_desfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+                exit(-1);
+            }
+            break;
+        default:
+            handle_base_flags(c, flagarg, print_desfx_usage, appl, &outfile);
+        }
     }
 
     infilev = argv + flagind;
@@ -1326,27 +1351,41 @@ void desfx(const char *appl, int argc, char *argv[])
 
     /* load file, don't care about tracking basic*/
     info->basic_txt_start = -1;
-    load_located(argv[1], p, info);
+    load_located(infilev[0], p, info);
 
-    /* no start address from load*/
-    if(info->run == -1)
+    if(entry == -1)
+    {
+        /* use detected address */
+        entry = info->run;
+    }
+    else if(entry == -2)
+    {
+        /* use load address */
+        entry = info->start;
+    }
+
+    /* no start address from load */
+    if(entry == -1)
     {
         /* look for sys line */
-        info->run = find_sys(p + info->start, -1);
+        entry = find_sys(p + info->start, -1);
     }
-    if(info->run == -1)
+    if(entry == -1)
     {
         LOG(LOG_ERROR, ("Error, can't find entry point.\n"));
         exit(-1);
     }
 
-    LOG(LOG_NORMAL, (" crunched file entry point $%04X\n", info->run));
-    entry = decrunch_sfx(p, info->run, &start, &end);
+    LOG(LOG_NORMAL, (" crunched file entry point $%04X\n", entry));
+    entry = decrunch_sfx(p, entry, &start, &end);
 
-    LOG(LOG_NORMAL, (" decrunched entry point $%04X, from %04X to $%04X\n",
-                     entry, start, end));
+    /* change 0x0 into 0x10000 */
+    cookedend = ((end - 1) & 0xffff) + 1;
 
-    membuf_truncate(mem, end);
+    LOG(LOG_NORMAL, (" decrunched entry point $%04X, from $%04X to $%04X\n",
+                     entry, start, cookedend));
+
+    membuf_truncate(mem, cookedend);
     membuf_trim(mem, start);
     membuf_insert(mem, 0, NULL, 2);
 
@@ -1409,7 +1448,7 @@ main(int argc, char *argv[])
     {
         /* unknown command */
         LOG(LOG_ERROR,
-            ("Error: unrecognised command \"%s\".\n"));
+            ("Error: unrecognised command \"%s\".\n", argv[0]));
         print_command_usage(appl, LOG_ERROR);
         exit(-1);
     }

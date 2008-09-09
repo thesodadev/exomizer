@@ -1075,24 +1075,28 @@ void next_inst(struct cpu_ctx *r)
     LOG(LOG_DUMP, ("%02x %02x %02x %02x: ", r->a, r->x, r->y, r->sp));
     mode = info->mode->f(r, arg);
 
-    /* is this an absolute sta, stx or sty to the IO-area? */
-    if((op_code == 0x8d || op_code == 0x8e || op_code == 0x8c) &&
-       arg->ea.value >= 0xd000 && arg->ea.value < 0xe000)
-    {
-        /* ignore it, its probably an effect */
-        LOG(LOG_DUMP, ("lda/sta to IO: op $%02x %s\n",
-                       op_code, info->op->fmt));
-        return;
-    }
-
     if(IS_LOGGABLE(LOG_DUMP))
     {
-        LOG(LOG_DUMP, ("%04x %s", oldpc, info->op->fmt));
+        int i;
+        int pc = oldpc;
+        LOG(LOG_DUMP, ("%04x", pc));
+        for(i = 0; i < 3; ++i)
+        {
+            if(pc < r->pc)
+            {
+                LOG(LOG_DUMP, (" %02x", r->mem[pc]));
+                ++pc;
+            }
+            else
+            {
+                LOG(LOG_DUMP, ("   ", r->mem[pc]));
+            }
+        }
+        LOG(LOG_DUMP, (" %s", info->op->fmt));
 
         if(info->mode->fmt != NULL)
         {
             int value = 0;
-            int pc = r->pc;
             while(--pc > oldpc)
             {
                 value <<= 8;
