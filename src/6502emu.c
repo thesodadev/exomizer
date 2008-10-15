@@ -1,3 +1,29 @@
+/*
+ * Copyright (c) 2007 - 2008 Magnus Lind.
+ *
+ * This software is provided 'as-is', without any express or implied warranty.
+ * In no event will the authors be held liable for any damages arising from
+ * the use of this software.
+ *
+ * Permission is granted to anyone to use this software, alter it and re-
+ * distribute it freely for any non-commercial, non-profit purpose subject to
+ * the following restrictions:
+ *
+ *   1. The origin of this software must not be misrepresented; you must not
+ *   claim that you wrote the original software. If you use this software in a
+ *   product, an acknowledgment in the product documentation would be
+ *   appreciated but is not required.
+ *
+ *   2. Altered source versions must be plainly marked as such, and must not
+ *   be misrepresented as being the original software.
+ *
+ *   3. This notice may not be removed or altered from any distribution.
+ *
+ *   4. The names of this software and/or it's copyright holders may not be
+ *   used to endorse or promote products derived from this software without
+ *   specific prior written permission.
+ *
+ */
 
 #include "6502emu.h"
 #include "log.h"
@@ -121,9 +147,11 @@ static int mode_absy(struct cpu_ctx *r, union inst_arg *arg)
 static int mode_ind(struct cpu_ctx *r, union inst_arg *arg)
 {
     u8 lsbLo = r->mem[r->pc + 1];
+    u8 lsbHi = r->mem[r->pc + 2];
     u8 msbLo = lsbLo + 1;
-    u16 base = r->mem[msbLo + (r->mem[r->pc + 2] << 8)] << 8;
-    u16 offset = r->mem[lsbLo];
+    u8 msbHi = lsbHi;
+    u16 base = r->mem[msbLo + (msbHi << 8)] << 8;
+    u16 offset = r->mem[lsbLo + (lsbHi << 8)];
     arg->ea.value = base + offset;
     r->pc += 3;
     return MODE_INDIRECT;
@@ -284,8 +312,7 @@ static void op_beq(struct cpu_ctx *r, int mode, union inst_arg *arg)
 static void op_bit(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     r->flags &= ~(FLAG_N | FLAG_V | FLAG_Z);
-    r->flags |= (r->mem[arg->ea.value] & 128) != 0 ? FLAG_N : 0;
-    r->flags |= (r->mem[arg->ea.value] & 64) != 0 ? FLAG_V : 0;
+    r->flags |= r->mem[arg->ea.value] & (FLAG_N | FLAG_V);
     r->flags |= (r->mem[arg->ea.value] & r->a) == 0 ? FLAG_Z : 0;
 }
 
@@ -859,7 +886,7 @@ static struct inst_info ops[256] = {
     NULL_OP,
     NULL_OP,
     NULL_OP,
-    {&op_eor_o, &mode_zp_o, 3},
+    {&op_eor_o, &mode_zp_o, 4},
     {&op_lsr_o, &mode_zp_o, 5},
     NULL_OP,
     {&op_pha_o, &mode_imp_o, 3},
