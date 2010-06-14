@@ -30,11 +30,24 @@
 
 #include "int.h"
 
+#define MEM_ACCESS_READ(THIS,ADDR) (THIS)->read((THIS),(ADDR))
+#define MEM_ACCESS_WRITE(THIS,ADDR,VALUE) (THIS)->write((THIS),(ADDR),(VALUE))
+
+struct mem_access
+{
+    void *ctx;
+    u8 (*read)(struct mem_access *this, u16 address);
+    void (*write)(struct mem_access *this, u16 address, u8 value);
+};
+
+u16 mem_access_read_u16le(struct mem_access *this, u16 address);
+
+
 struct cpu_ctx
 {
+    struct mem_access mem;
     u32 cycles;
     u16 pc;
-    u8 *mem;
     u8 sp;
     u8 flags;
     u8 a;

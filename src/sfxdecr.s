@@ -25,7 +25,7 @@
 ;
 ; -------------------------------------------------------------------
 ; -- r_start_addr, done /* required, -2=basic start */
-; -- r_target, done /* required, 20, 23, 52, 55, 4, 64 or 128 */
+; -- r_target, done /* required, 1, 20, 23, 52, 55, 4, 64, 128, $a2 or $a8 */
 ; -- i_literal_sequences_used, done /* defined if true, otherwise not */
 ; -- i_ram_enter, done /* undef=c_rom_config_value */
 ; -- i_irq_enter, done /* undef=on, 0=off, 1=on */
@@ -33,6 +33,9 @@
 ; -- i_irq_during, done /* undef=auto, 0=off, 1=on */
 ; -- i_ram_exit, done /* undef=auto
 ; -- i_irq_exit, done /* undef=auto, 0=off, 1=on */
+; -- i_nmi_during
+; -- i_nmi_enter
+; -- i_nmi_exit
 ; -- i_effect, done /* -1=none, 0(default)=lower right, 1-3=border */
 ; -- i_fast_effect, done /* defined if true, otherwise not */
 ; -- i_table_addr, done /* undef=$0334 or if(r_target == 128) $0b00 */
@@ -229,8 +232,16 @@
   .ERROR("Required symbol r_start_addr not defined.")
 .ENDIF
 
-.IF(r_start_addr == 0 && i_ram_exit != c_rom_config_value))
+.IF(r_start_addr == -2 && i_ram_exit != c_rom_config_value))
   .ERROR("Basic start and non-ROM configuration can't be combined.")
+.ENDIF
+
+.IF(.DEFINED(i_line_number) && .DEFINED(i_load_addr))
+  .ERROR("Basic line number and load address can't be combined.")
+.ENDIF
+
+.IF(!.DEFINED(i_line_number))
+  i_line_number = 20
 .ENDIF
 
 ; -------------------------------------------------------------------
@@ -387,6 +398,24 @@ exit_hook = 1
   .ENDIF
   .IF(r_start_addr == -2)
     .IF(r_target == $a2)
+      .IF(.DEFINED(i_basic_txt_start))
+	lda #i_basic_txt_start % 256
+	sta <$67
+	lda #i_basic_txt_start / 256
+	sta <$68
+      .ENDIF
+      .IF(.DEFINED(i_basic_var_start))
+	lda #i_basic_var_start % 256
+	sta <$69
+	lda #i_basic_var_start / 256
+	sta <$6a
+      .ENDIF
+      .IF(.DEFINED(i_basic_highest_addr))
+	lda #(i_basic_highest_addr - 1) % 256
+	sta <$73
+	lda #(i_basic_highest_addr - 1) / 256
+	sta <$74
+      .ENDIF
 	.ERROR("Apple target can't handle basic start.")
     .ELIF(r_target == $a8)
 	.ERROR("Atari target can't handle basic start.")
@@ -450,7 +479,7 @@ exit_hook = 1
     .ENDIF
     .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	jsr $c659		; init
-	jsr $c533		; regenerate line links and set $2d/$2e
+	jsr $c533		; regenerate line links
 	jmp $c7ae		; start
     .ELIF(r_target == 4)
 	jsr $8bbe		; init
@@ -459,12 +488,14 @@ exit_hook = 1
 	jmp $8bdc		; start
     .ELIF(r_target == 64)
 	jsr $a659		; init
-	jsr $a533		; regenerate line links and set $2d/$2e
+	jsr $a533		; regenerate line links
 	jmp $a7ae		; start
     .ELIF(r_target == 128)
 	jsr $5ab5		; init
 	jsr $4f4f		; regenerate line links and set $1210/$1211
 	jmp $4af6		; start
+    .ELIF(r_target == $a2)
+	jmp $d566		; start
     .ELIF(r_target == 1)
 	bit $fffc
 	bmi oric_ROM11
@@ -782,7 +813,7 @@ zp_hi_bits = $81
 	.BYTE(c_basic_start / 256, c_basic_start % 256)
 	.BYTE(0, 0)
         .ORG(c_basic_start)
-	.WORD(basic_end, 20)
+	.WORD(basic_end, i_line_number)
 	.BYTE($bf, o1_start / 1000 % 10 + 48, o1_start / 100 % 10 + 48)
 	.BYTE(o1_start / 10 % 10 + 48, o1_start % 10 + 48, 0)
 basic_end:
@@ -814,7 +845,7 @@ zp_hi_bits = $9f
   .ELSE
 	.WORD(c_basic_start)
 	.ORG(c_basic_start)
-	.WORD(basic_end, 20)
+	.WORD(basic_end, i_line_number)
 	.BYTE($9e, cbm_start / 1000 % 10 + 48, cbm_start / 100 % 10 + 48)
 	.BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48, 0)
 basic_end:
@@ -862,7 +893,7 @@ a2_load:
 	.WORD(a2_end - a2_load)
 	.ORG(c_basic_start)
 a2_load:
-	.WORD(basic_end, 20)
+	.WORD(basic_end, i_line_number)
 	.BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
 	.BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48, 0)
   .ENDIF

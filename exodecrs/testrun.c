@@ -31,10 +31,21 @@
 
 #include <stdlib.h>
 
+static void mem_access_write(struct mem_access *this, u16 address, u8 value)
+{
+    u8 *mem = this->ctx;
+    mem[address] = value;
+}
+
+static u8 mem_access_read(struct mem_access *this, u16 address)
+{
+    u8 *mem = this->ctx;
+    return mem[address];
+}
 
 int main(int argc, char *argv[])
 {
-    struct cpu_ctx r[1];
+    struct cpu_ctx r;
     struct load_info info[1];
     static unsigned char mem[65536];
     static unsigned char mem2[65536];
@@ -67,21 +78,23 @@ int main(int argc, char *argv[])
 
     LOG(LOG_DEBUG, ("run %04x\n", info->run));
 
-    r->cycles = 0;
-    r->mem = mem;
-    r->pc = info->run;
-    r->sp = '\xff';
-    r->flags = 0;
+    r.cycles = 0;
+    r.mem.ctx = mem;
+    r.mem.read = mem_access_read;
+    r.mem.write = mem_access_write;
+    r.pc = info->run;
+    r.sp = '\xff';
+    r.flags = 0;
 
     /* setting up decrunch */
-    while(r->sp >= 0x10)
+    while(r.sp >= 0x10)
     {
         /* redirect chrout to a safe rts */
-        if(r->pc == 0xffd2)
+        if(r.pc == 0xffd2)
         {
-            r->pc = 0x02a7;
+            r.pc = 0x02a7;
         }
-        next_inst(r);
+        next_inst(&r);
     }
 
     load_located(argv[2], mem2, info);

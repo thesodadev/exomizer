@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "log.h"
 
 #ifdef WIN32
@@ -217,21 +218,28 @@ void log_log(struct log_ctx *ctx,       /* IN */
 
 void hex_dump(int level, unsigned char *p, int len)
 {
-    int i = 0;
-    for(;;)
+    int i;
+    int j;
+    for(i = 0; i < len;)
     {
-        LOG(level, ("%02x", p[i]));
-        if(++i % 8 == 0 || i == len)
+        LOG(level, ("%02x", p[i++]));
+        if(i == len || (i & 15) == 0)
         {
-            LOG(level, ("\n"));
+            LOG(level, ("\t\""));
+            for(j = (i - 1) & ~15; j < i; ++j)
+            {
+                unsigned char c = p[j];
+                if(!isprint(c))
+                {
+                    c = '.';
+                }
+                LOG(level, ("%c", c));
+            }
+            LOG(level, ("\"\n"));
         }
         else
         {
-            LOG(level, (" "));
-        }
-        if(i == len)
-        {
-            break;
+            LOG(level, (","));
         }
     }
 }

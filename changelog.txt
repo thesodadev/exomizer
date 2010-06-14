@@ -1,4 +1,6 @@
-
++ Add i_line_number symbol to be able to change the default line number of the
+  basic line of the sfx decruncher. Feature suggested by Chicken
++ 6502 emulator core now features memory read/write callbacks
 + Add desfx -e flag to override the automatic entry point detection, feature
   suggestion with patch by iAN CooG/HokutoForce. (Patch reworked somewhat,
   error handling added)

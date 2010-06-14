@@ -78,6 +78,14 @@ struct inst_info
     u8 cycles;
 };
 
+u16 mem_access_read_u16le(struct mem_access *this, u16 address)
+{
+    u16 value;
+    value = MEM_ACCESS_READ(this, address);
+    value |= MEM_ACCESS_READ(this, address + 1) << 8;
+    return value;
+}
+
 #define MODE_IMMEDIATE 0
 #define MODE_ZERO_PAGE 1
 #define MODE_ZERO_PAGE_X 2
@@ -94,42 +102,42 @@ struct inst_info
 
 static int mode_imm(struct cpu_ctx *r, union inst_arg *arg)
 {
-    arg->imm.value = r->mem[r->pc + 1];
+    arg->imm.value = MEM_ACCESS_READ(&r->mem, r->pc + 1);
     r->pc += 2;
     return MODE_IMMEDIATE;
 }
 static int mode_zp(struct cpu_ctx *r, union inst_arg *arg)
 {
-    arg->ea.value = r->mem[r->pc + 1];
+    arg->ea.value = MEM_ACCESS_READ(&r->mem, r->pc + 1);
     r->pc += 2;
     return MODE_ZERO_PAGE;
 }
 static int mode_zpx(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u8 lsbLo = r->mem[r->pc + 1] + r->x;
+    u8 lsbLo = MEM_ACCESS_READ(&r->mem, r->pc + 1) + r->x;
     arg->ea.value = lsbLo;
     r->pc += 2;
     return MODE_ZERO_PAGE_X;
 }
 static int mode_zpy(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u8 lsbLo = r->mem[r->pc + 1] + r->y;
+    u8 lsbLo = MEM_ACCESS_READ(&r->mem, r->pc + 1) + r->y;
     arg->ea.value = lsbLo;
     r->pc += 2;
     return MODE_ZERO_PAGE_Y;
 }
 static int mode_abs(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u16 offset = r->mem[r->pc + 1];
-    u16 base = r->mem[r->pc + 2] << 8;
+    u16 offset = MEM_ACCESS_READ(&r->mem, r->pc + 1);
+    u16 base = MEM_ACCESS_READ(&r->mem, r->pc + 2) << 8;
     arg->ea.value = base + offset;
     r->pc += 3;
     return MODE_ABSOLUTE;
 }
 static int mode_absx(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u16 offset = r->mem[r->pc + 1] + r->x;
-    u16 base = r->mem[r->pc + 2] << 8;
+    u16 offset = MEM_ACCESS_READ(&r->mem, r->pc + 1) + r->x;
+    u16 base = MEM_ACCESS_READ(&r->mem, r->pc + 2) << 8;
     arg->ea.value = base + offset;
     r->pc += 3;
     r->cycles += (offset > 255);
@@ -137,8 +145,8 @@ static int mode_absx(struct cpu_ctx *r, union inst_arg *arg)
 }
 static int mode_absy(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u16 offset = r->mem[r->pc + 1] + r->y;
-    u16 base = r->mem[r->pc + 2] << 8;
+    u16 offset = MEM_ACCESS_READ(&r->mem, r->pc + 1) + r->y;
+    u16 base = MEM_ACCESS_READ(&r->mem, r->pc + 2) << 8;
     arg->ea.value = base + offset;
     r->pc += 3;
     r->cycles += (offset > 255);
@@ -146,32 +154,32 @@ static int mode_absy(struct cpu_ctx *r, union inst_arg *arg)
 }
 static int mode_ind(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u8 lsbLo = r->mem[r->pc + 1];
-    u8 lsbHi = r->mem[r->pc + 2];
+    u8 lsbLo = MEM_ACCESS_READ(&r->mem, r->pc + 1);
+    u8 lsbHi = MEM_ACCESS_READ(&r->mem, r->pc + 2);
     u8 msbLo = lsbLo + 1;
     u8 msbHi = lsbHi;
-    u16 base = r->mem[msbLo + (msbHi << 8)] << 8;
-    u16 offset = r->mem[lsbLo + (lsbHi << 8)];
+    u16 base = MEM_ACCESS_READ(&r->mem, msbLo + (msbHi << 8)) << 8;
+    u16 offset = MEM_ACCESS_READ(&r->mem, lsbLo + (lsbHi << 8));
     arg->ea.value = base + offset;
     r->pc += 3;
     return MODE_INDIRECT;
 }
 static int mode_indx(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u8 lsbLo = r->mem[r->pc + 1] + r->x;
+    u8 lsbLo = MEM_ACCESS_READ(&r->mem, r->pc + 1) + r->x;
     u8 msbLo = lsbLo + 1;
-    u16 base = r->mem[msbLo] << 8;
-    u16 offset = r->mem[lsbLo];
+    u16 base = MEM_ACCESS_READ(&r->mem, msbLo) << 8;
+    u16 offset = MEM_ACCESS_READ(&r->mem, lsbLo);
     arg->ea.value = base + offset;
     r->pc += 2;
     return MODE_INDIRECT_X;
 }
 static int mode_indy(struct cpu_ctx *r, union inst_arg *arg)
 {
-    u8 lsbLo = r->mem[r->pc + 1];
+    u8 lsbLo = MEM_ACCESS_READ(&r->mem, r->pc + 1);
     u8 msbLo = lsbLo + 1;
-    u16 base = r->mem[msbLo] << 8;
-    u16 offset = r->mem[lsbLo] + r->y;
+    u16 base = MEM_ACCESS_READ(&r->mem, msbLo) << 8;
+    u16 offset = MEM_ACCESS_READ(&r->mem, lsbLo) + r->y;
     arg->ea.value = base + offset;
     r->pc += 2;
     r->cycles += (offset > 255);
@@ -179,7 +187,7 @@ static int mode_indy(struct cpu_ctx *r, union inst_arg *arg)
 }
 static int mode_rel(struct cpu_ctx *r, union inst_arg *arg)
 {
-    arg->rel.value = r->mem[r->pc + 1];
+    arg->rel.value = MEM_ACCESS_READ(&r->mem, r->pc + 1);
     r->pc += 2;
     return MODE_RELATIVE;
 }
@@ -225,19 +233,41 @@ static void update_overflow(struct cpu_ctx *r, signed short value)
     r->flags |= (value < -128 || value > 127) ? FLAG_V : 0;
 }
 
-static void op_adc(struct cpu_ctx *r, int mode, union inst_arg *arg)
+static u8 read_op_arg(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    u16 result;
     switch(mode)
     {
     case MODE_IMMEDIATE:
         value = arg->imm.value;
         break;
-    default:
-        value = r->mem[arg->ea.value];
+    case MODE_ACCUMULATOR:
+        value = r->a;
         break;
+    default:
+        value = MEM_ACCESS_READ(&r->mem, arg->ea.value);
     }
+    return value;
+}
+
+static void write_op_arg(struct cpu_ctx *r,
+                         int mode, union inst_arg *arg, u8 value)
+{
+    switch(mode)
+    {
+    case MODE_ACCUMULATOR:
+        r->a = value;
+        break;
+    default:
+        MEM_ACCESS_WRITE(&r->mem, arg->ea.value, value);
+    }
+}
+
+static void op_adc(struct cpu_ctx *r, int mode, union inst_arg *arg)
+{
+    u8 value;
+    u16 result;
+    value = read_op_arg(r, mode, arg);
     result = r->a + value + (r->flags & FLAG_C);
     update_carry(r, result & 256);
     update_overflow(r, (signed short)result);
@@ -248,34 +278,19 @@ static void op_adc(struct cpu_ctx *r, int mode, union inst_arg *arg)
 static void op_and(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     r->a &= value;
     update_flags_nz(r, r->a);
 }
 
 static void op_asl(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    u8 *valuep;
-    switch(mode)
-    {
-    case MODE_ACCUMULATOR:
-        valuep = &r->a;
-        break;
-    default:
-        valuep = &r->mem[arg->ea.value];
-        break;
-    }
-    update_carry(r, *valuep & 128);
-    *valuep <<= 1;
-    update_flags_nz(r, *valuep);
+    u8 value;
+    value = read_op_arg(r, mode, arg);
+    update_carry(r, value & 128);
+    value <<= 1;
+    write_op_arg(r, mode, arg, value);
+    update_flags_nz(r, value);
 }
 
 static void branch(struct cpu_ctx *r, union inst_arg *arg)
@@ -311,9 +326,10 @@ static void op_beq(struct cpu_ctx *r, int mode, union inst_arg *arg)
 
 static void op_bit(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
+    u8 value = MEM_ACCESS_READ(&r->mem, arg->ea.value);
     r->flags &= ~(FLAG_N | FLAG_V | FLAG_Z);
-    r->flags |= r->mem[arg->ea.value] & (FLAG_N | FLAG_V);
-    r->flags |= (r->mem[arg->ea.value] & r->a) == 0 ? FLAG_Z : 0;
+    r->flags |= value & (FLAG_N | FLAG_V);
+    r->flags |= (value & r->a) == 0 ? FLAG_Z : 0;
 }
 
 static void op_bmi(struct cpu_ctx *r, int mode, union inst_arg *arg)
@@ -342,9 +358,9 @@ static void op_bpl(struct cpu_ctx *r, int mode, union inst_arg *arg)
 
 static void op_brk(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[0x100 + r->sp--] = (r->pc + 1) >> 8;
-    r->mem[0x100 + r->sp--] = r->pc + 1;
-    r->mem[0x100 + r->sp--] = r->flags | 0x10;
+    MEM_ACCESS_WRITE(&r->mem, 0x100 + r->sp--, (r->pc + 1) >> 8);
+    MEM_ACCESS_WRITE(&r->mem, 0x100 + r->sp--, r->pc + 1);
+    MEM_ACCESS_WRITE(&r->mem, 0x100 + r->sp--, r->flags | 0x10);
 }
 
 static void op_bvc(struct cpu_ctx *r, int mode, union inst_arg *arg)
@@ -397,52 +413,29 @@ static u16 subtract(struct cpu_ctx *r,
 static void op_cmp(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     subtract(r, 1, r->a, value);
 }
 
 static void op_cpx(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     subtract(r, 1, r->x, value);
 }
 
 static void op_cpy(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     subtract(r, 1, r->y, value);
 }
 
 static void op_dec(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[arg->ea.value]--;
-    update_flags_nz(r, r->mem[arg->ea.value]);
+    u8 value = MEM_ACCESS_READ(&r->mem, arg->ea.value) - 1;
+    MEM_ACCESS_WRITE(&r->mem, arg->ea.value, value);
+    update_flags_nz(r, value);
 }
 
 static void op_dex(struct cpu_ctx *r, int mode, union inst_arg *arg)
@@ -460,23 +453,16 @@ static void op_dey(struct cpu_ctx *r, int mode, union inst_arg *arg)
 static void op_eor(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     r->a ^= value;
     update_flags_nz(r, r->a);
 }
 
 static void op_inc(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[arg->ea.value]++;
-    update_flags_nz(r, r->mem[arg->ea.value]);
+    u8 value = MEM_ACCESS_READ(&r->mem, arg->ea.value) + 1;
+    MEM_ACCESS_WRITE(&r->mem, arg->ea.value, value);
+    update_flags_nz(r, value);
 }
 
 static void op_inx(struct cpu_ctx *r, int mode, union inst_arg *arg)
@@ -499,23 +485,15 @@ static void op_jmp(struct cpu_ctx *r, int mode, union inst_arg *arg)
 static void op_jsr(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     r->pc--;
-    r->mem[0x100 + r->sp--] = r->pc >> 8;
-    r->mem[0x100 + r->sp--] = r->pc;
+    MEM_ACCESS_WRITE(&r->mem, 0x100 + r->sp--, r->pc >> 8);
+    MEM_ACCESS_WRITE(&r->mem, 0x100 + r->sp--, r->pc);
     r->pc = arg->ea.value;
 }
 
 static void op_lda(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     r->a = value;
     update_flags_nz(r, r->a);
 }
@@ -523,15 +501,7 @@ static void op_lda(struct cpu_ctx *r, int mode, union inst_arg *arg)
 static void op_ldx(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     r->x = value;
     update_flags_nz(r, r->x);
 }
@@ -539,34 +509,19 @@ static void op_ldx(struct cpu_ctx *r, int mode, union inst_arg *arg)
 static void op_ldy(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     r->y = value;
     update_flags_nz(r, r->y);
 }
 
 static void op_lsr(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    u8 *valuep;
-    switch(mode)
-    {
-    case MODE_ACCUMULATOR:
-        valuep = &r->a;
-        break;
-    default:
-        valuep = &r->mem[arg->ea.value];
-        break;
-    }
-    update_carry(r, *valuep & 1);
-    *valuep >>= 1;
-    update_flags_nz(r, *valuep);
+    u8 value;
+    value = read_op_arg(r, mode, arg);
+    update_carry(r, value & 1);
+    value >>= 1;
+    write_op_arg(r, mode, arg, value);
+    update_flags_nz(r, value);
 }
 
 static void op_nop(struct cpu_ctx *r, int mode, union inst_arg *arg)
@@ -576,91 +531,69 @@ static void op_nop(struct cpu_ctx *r, int mode, union inst_arg *arg)
 static void op_ora(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     r->a |= value;
     update_flags_nz(r, r->a);
 }
 
 static void op_pha(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[0x100 + r->sp--] = r->a;
+    MEM_ACCESS_WRITE(&r->mem, 0x100 + r->sp--, r->a);
 }
 
 static void op_php(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[0x100 + r->sp--] = r->flags & ~0x10;
+    MEM_ACCESS_WRITE(&r->mem, 0x100 + r->sp--, r->flags & ~0x10);
 }
 
 static void op_pla(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->a = r->mem[0x100 + ++r->sp];
+    r->a = MEM_ACCESS_READ(&r->mem, 0x100 + ++r->sp);
     update_flags_nz(r, r->a);
 }
 
 static void op_plp(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->flags = r->mem[0x100 + ++r->sp];
+    r->flags = MEM_ACCESS_READ(&r->mem, 0x100 + ++r->sp);
 }
 
 static void op_rol(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    u8 *valuep;
+    u8 value;
     u8 old_flags;
-    switch(mode)
-    {
-    case MODE_ACCUMULATOR:
-        valuep = &r->a;
-        break;
-    default:
-        valuep = &r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     old_flags = r->flags;
-    update_carry(r, *valuep & 128);
-    *valuep <<= 1;
-    *valuep |= (old_flags & FLAG_C) != 0 ? 1 : 0;
-    update_flags_nz(r, *valuep);
+    update_carry(r, value & 128);
+    value <<= 1;
+    value |= (old_flags & FLAG_C) != 0 ? 1 : 0;
+    write_op_arg(r, mode, arg, value);
+    update_flags_nz(r, value);
 }
 
 static void op_ror(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    u8 *valuep;
+    u8 value;
     u8 old_flags;
-    switch(mode)
-    {
-    case MODE_ACCUMULATOR:
-        valuep = &r->a;
-        break;
-    default:
-        valuep = &r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     old_flags = r->flags;
-    update_carry(r, *valuep & 1);
-    *valuep >>= 1;
-    *valuep |= (old_flags & FLAG_C) != 0 ? 128 : 0;
-    update_flags_nz(r, *valuep);
+    update_carry(r, value & 1);
+    value >>= 1;
+    value |= (old_flags & FLAG_C) != 0 ? 128 : 0;
+    write_op_arg(r, mode, arg, value);
+    update_flags_nz(r, value);
 }
 
 static void op_rti(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->flags = r->mem[0x100 + ++r->sp];
-    r->pc = r->mem[0x100 + ++r->sp];
-    r->pc |= r->mem[0x100 + ++r->sp] << 8;
+    r->flags = MEM_ACCESS_READ(&r->mem, 0x100 + ++r->sp);
+    r->pc = MEM_ACCESS_READ(&r->mem, 0x100 + ++r->sp);
+    r->pc |= MEM_ACCESS_READ(&r->mem, 0x100 + ++r->sp) << 8;
 }
 
 static void op_rts(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->pc = r->mem[0x100 + ++r->sp];
-    r->pc |= r->mem[0x100 + ++r->sp] << 8;
+    r->pc = MEM_ACCESS_READ(&r->mem, 0x100 + ++r->sp);
+    r->pc |= MEM_ACCESS_READ(&r->mem, 0x100 + ++r->sp) << 8;
     r->pc += 1;
 }
 
@@ -668,15 +601,7 @@ static void op_sbc(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
     u8 value;
     u16 result;
-    switch(mode)
-    {
-    case MODE_IMMEDIATE:
-        value = arg->imm.value;
-        break;
-    default:
-        value = r->mem[arg->ea.value];
-        break;
-    }
+    value = read_op_arg(r, mode, arg);
     result = subtract(r, r->flags & FLAG_C, r->a, value);
     update_overflow(r, result);
     r->a = result;
@@ -700,17 +625,17 @@ static void op_sei(struct cpu_ctx *r, int mode, union inst_arg *arg)
 
 static void op_sta(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[arg->ea.value] = r->a;
+    MEM_ACCESS_WRITE(&r->mem, arg->ea.value, r->a);
 }
 
 static void op_stx(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[arg->ea.value] = r->x;
+    MEM_ACCESS_WRITE(&r->mem, arg->ea.value, r->x);
 }
 
 static void op_sty(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    r->mem[arg->ea.value] = r->y;
+    MEM_ACCESS_WRITE(&r->mem, arg->ea.value, r->y);
 }
 
 static void op_tax(struct cpu_ctx *r, int mode, union inst_arg *arg)
@@ -1090,7 +1015,7 @@ void next_inst(struct cpu_ctx *r)
 {
     union inst_arg arg[1];
     int oldpc = r->pc;
-    int op_code = r->mem[r->pc];
+    int op_code = MEM_ACCESS_READ(&r->mem, r->pc);
     struct inst_info *info = ops + op_code;
     int mode;
     if(info->op == NULL)
@@ -1111,12 +1036,12 @@ void next_inst(struct cpu_ctx *r)
         {
             if(pc < r->pc)
             {
-                LOG(LOG_DUMP, (" %02x", r->mem[pc]));
+                LOG(LOG_DUMP, (" %02x", MEM_ACCESS_READ(&r->mem, pc)));
                 ++pc;
             }
             else
             {
-                LOG(LOG_DUMP, ("   ", r->mem[pc]));
+                LOG(LOG_DUMP, ("   ", MEM_ACCESS_READ(&r->mem, pc)));
             }
         }
         LOG(LOG_DUMP, (" %s", info->op->fmt));
@@ -1127,7 +1052,7 @@ void next_inst(struct cpu_ctx *r)
             while(--pc > oldpc)
             {
                 value <<= 8;
-                value |= r->mem[pc];
+                value |= MEM_ACCESS_READ(&r->mem, pc);
             }
             LOG(LOG_DUMP, (" "));
             if(mode == MODE_RELATIVE)

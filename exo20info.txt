@@ -99,14 +99,18 @@ data. They share the following option flags:
         xxxxxxxxxxxxxxxx,xxxx,xxxxxxxxxxxxxxxx,xxxxxxxxxxxxxxxx
         where each x must be a hexadecimal character, 0-9 or A-F.
         The Exomizer prints the encoding parameters used when writing the
-        output file in this format in order to allow for easy cut and paste.
+        output file in this format in order to allow for easy copy and paste.
+        Please note That this option sets the initial encoding parameters and
+        not the Encoding parameters used in the output file. To set the
+        encoding Parameters of the output file this option must be used in
+        combination with the -p 1 option.
 
 -m <offset>
-        Limits the maximum offset ued cu the cruncher to <offset>. The default
-        is an offseet of 65535 bytes. A smaller offsets increases the crunching
-        speed and reduces the crunch result. If a circular buffer decruncher is
-        used it is important that the maximum offset doesn't exceed the buffer
-        size.
+        Limits the maximum sequence offset used by the cruncher to <offset>.
+        The default is an offset of 65535 bytes. A smaller offset increases the
+        crunching speed and reduces the crunch result. If a circular buffer
+        decruncher is used it is important that the maximum offset doesn't
+        exceed the buffer size.
 
 -o <outfile>
         Sets outfile name.
@@ -172,9 +176,9 @@ monitors or by assembler directives like incbin.
 
 -l <address>|none
         Sets the load address of the output prg file to <address>. If the
-	string none is given the output will be a plain file. Defaults to the
-	address that gives the crunched data as much overlap with the
-	decrunched data as possible but still allow for in-place decrunching.
+        string none is given the output will be a plain file. Defaults to the
+        address that gives the crunched data as much overlap with the
+        decrunched data as possible but still allow for in-place decrunching.
         However, the file doesn't need to be decrunched from that address. Any
         address that doesn't cause data being decrunched to overwrite data yet
         to be decrunched will work.
@@ -273,14 +277,16 @@ tap file.
 
 -s<custom decruncher enter assembler fragment>
         Specifies an optional assembler fragment to be executed when the
-	decruncher starts decrunching. It must not change the Y-register. For
+        decruncher starts decrunching. It must not change the Y-register. For
         things like clearing the screen, changing background and/or border
         color, changing a c128 to 2MHz mode or enable 'Skip internal cycles'
-        and burst mode on a DTV2.
+        and burst mode on a DTV2. The fragment syntax is the same as for the -X
+        and -x options.
 -f<custom decruncher exit asembler fragment>
         Specifies an optional assembler fragment to be executed when the
         decruncher has finished decrunching. For things like restoring a c128
         to 1MHz or disabling 'Skip internal cycles' and burst mode on a DTV2.
+        The fragment syntax is the same as for the -X and -x options.
 
 -------------------------------------------------------------------------------
 -- The desfx sub command ------------------------------------------------------
@@ -294,7 +300,7 @@ embedded decrucher in order to get to the decrunched data.
 
 -e <address>|load
         Overrides the entry point of the decruncher with <address> or if the
-string load is given, the load address of the input file will be used.
+        string load is given, the load address of the input file will be used.
 
 -------------------------------------------------------------------------------
 -- The raw sub command --------------------------------------------------------
@@ -446,6 +452,11 @@ have any basic line. (The Atari target never has a basic line). The apple
 target file format will change from an Applesoft basic file to an Apple binary
 file.
 
+The following symbol controls the sfx basic line number:
+ i_line_number
+
+If unset it will default to 20. This symbol can't be combined with i_load_addr.
+
 The following symbols control the memory config:
  i_ram_enter      (defaults to standard ROM config)
  i_ram_during
@@ -469,6 +480,12 @@ The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_enter      (defaults to 1)
  i_irq_during
  i_irq_exit
+
+The following symbols control nmis, this is only imlemented for the Atari
+target where the value will be stored in $d40e
+ i_nmi_enter      (defaults to $40)
+ i_nmi_during
+ i_nmi_exit
 
 To locate the decrunch table elsewhere than the default tape buffer or $0600
 for The Atari target, use the symbol i_table_addr:
