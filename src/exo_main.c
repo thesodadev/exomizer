@@ -739,6 +739,7 @@ static
 void sfx(const char *appl, int argc, char *argv[])
 {
     int in_load;
+    int in_len;
     int basic_txt_start = -1;
     int basic_var_start = -1;
     int basic_highest_addr = -1;
@@ -964,7 +965,6 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     {
-        int in_len;
         int safety;
         int *basic_var_startp;
         int *sys_addrp;
@@ -1137,19 +1137,25 @@ void sfx(const char *appl, int argc, char *argv[])
         else
         {
             i32 v_safety_addr;
-            i32 v_highest_addr;
+            i32 transfer_len;
             i32 i_table_addr;
             i32 i_effect;
             i32 c_effect_color;
+            i32 cover_start = in_load;
 
             resolve_symbol("v_safety_addr", NULL, &v_safety_addr);
-            resolve_symbol("v_highest_addr", NULL, &v_highest_addr);
+            resolve_symbol("transfer_len", NULL, &transfer_len);
             resolve_symbol("i_table_addr", NULL, &i_table_addr);
             resolve_symbol("i_effect", NULL, &i_effect);
 
+            if(transfer_len != 0)
+            {
+                cover_start = v_safety_addr;
+            }
+
             LOG(LOG_NORMAL, ("Memory layout:\n"));
             LOG(LOG_NORMAL, (" Data covers $%04X to $%04X.\n",
-                             v_safety_addr, v_highest_addr));
+                             cover_start, in_load + in_len));
             LOG(LOG_NORMAL, (" Decrunch table is located at $%04X to $%04X.\n",
                              i_table_addr, i_table_addr + 156));
             if(i_effect == 0)
