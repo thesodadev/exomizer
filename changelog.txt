@@ -1,3 +1,6 @@
+2010-09-20
++ Fix bug in sfx decruncher setup where data was copied unnecessary. Triggered
+  by using -Di_load_addr, reported by nbla000
 + Add i_line_number symbol to be able to change the default line number of the
   basic line of the sfx decruncher. Feature suggested by Chicken
 + 6502 emulator core now features memory read/write callbacks

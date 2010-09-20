@@ -980,7 +980,7 @@ file2start:
   .INCLUDE("file2_start_hook")
 .ENDIF
 .IF(!.DEFINED(raw_transfer_len))
-  .IF(v_safety_addr > file2start)
+  .IF(v_safety_addr > file2start || v_highest_addr < file2start)
 raw_transfer_len = 0
 lowest_addr = file2start
   .ELSE
