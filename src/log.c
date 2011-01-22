@@ -132,7 +132,7 @@ void raw_log_formatter(FILE * out,      /* IN */
                        const char *context,     /* IN */
                        const char *log) /* IN */
 {
-    fprintf(out, log);
+    fprintf(out, "%s", log);
     fflush(out);
 }
 

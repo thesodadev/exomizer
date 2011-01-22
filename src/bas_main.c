@@ -88,7 +88,7 @@ open_file(const char *name, int *load_addr)
 {
     FILE * in;
     int relocated = 0;
-    int reloc;
+    int reloc = 0;
     int load;
 
     do {

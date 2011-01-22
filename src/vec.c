@@ -228,7 +228,7 @@ void vec_fprint(FILE *f, const struct vec *a, cb_fprint *fprint)
     vec_get_iterator(a, i);
     while((e = vec_iterator_next(i)) != NULL)
     {
-        fprintf(f, glue);
+        fprintf(f, "%s", glue);
         fprint(f, e);
         glue = ", ";
     }

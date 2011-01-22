@@ -303,6 +303,7 @@ renumber2_cb_line_mutate(const unsigned char *in, /* IN */
             /* hoaa, fixup reference */
             struct goto_target target_key[1];
             struct goto_target *target;
+            long old;
 
             LOG(LOG_DUMP, ("found fixup goto %u at %p\n",
                            rctx->fixup->old_line, in));
@@ -329,7 +330,7 @@ renumber2_cb_line_mutate(const unsigned char *in, /* IN */
             /* write new line number */
             i += sprintf((char*)mem + start + i, "%d", target->new_line);
             /* skip old in input */
-            strtol((char*)in, (void*)&in, 10);
+            old = strtol((char*)in, (void*)&in, 10);
 
             /* set where to next fixup */
             rctx->fixup = vec_iterator_next(rctx->i);
