@@ -1,4 +1,5 @@
-2010-09-20
+2011-01-22
+Release of 2.0 source code, Win32 and DOS binaries.
 + Fix bug in sfx decruncher setup where data was copied unnecessary. Triggered
   by using -Di_load_addr, reported by nbla000
 + Add i_line_number symbol to be able to change the default line number of the
