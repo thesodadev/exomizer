@@ -1,3 +1,7 @@
+2011-02-06
+Release of 2.0.1 source code, Win32 and DOS binaries.
++ Fix bug in log.c that caused the desfx command to loop if the log level was
+  lower than debug. Bug report by iAN CooG.
 2011-01-22
 Release of 2.0 source code, Win32 and DOS binaries.
 + Fix bug in sfx decruncher setup where data was copied unnecessary. Triggered

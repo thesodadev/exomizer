@@ -222,7 +222,8 @@ void hex_dump(int level, unsigned char *p, int len)
     int j;
     for(i = 0; i < len;)
     {
-        LOG(level, ("%02x", p[i++]));
+        LOG(level, ("%02x", p[i]));
+        ++i;
         if(i == len || (i & 15) == 0)
         {
             LOG(level, ("\t\""));
