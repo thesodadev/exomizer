@@ -232,7 +232,7 @@
   .ERROR("Required symbol r_start_addr not defined.")
 .ENDIF
 
-.IF(r_start_addr == -2 && i_ram_exit != c_rom_config_value))
+.IF(r_start_addr == -2 && i_ram_exit != c_rom_config_value)
   .ERROR("Basic start and non-ROM configuration can't be combined.")
 .ENDIF
 
