@@ -1158,7 +1158,7 @@ void sfx(const char *appl, int argc, char *argv[])
                              cover_start, in_load + in_len));
             LOG(LOG_NORMAL, (" Decrunch table is located at $%04X to $%04X.\n",
                              i_table_addr, i_table_addr + 156));
-            if(i_effect == 0)
+            if(i_effect == 0 && !resolve_symbol("i_effect_custom", NULL, NULL))
             {
                 resolve_symbol("c_effect_color", NULL, &c_effect_color);
                 LOG(LOG_NORMAL, (" Decrunch effect writes to $%04X.\n",
