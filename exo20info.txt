@@ -33,7 +33,7 @@ o  New raw mode that features:
    1) Crunches plain files instead of .prg files.
    2) Crunches forward or backwards instead of just backwards.
    3) Also decrunches.
-   4) Handles files larget than 64k. The Canterbury and Calgary corpora
+   4) Handles files larger than 64k. The Canterbury and Calgary corpora
       is now possible to crunch.
    5) Comes with two different C-source decrunchers, one thread safe forward
       pull decruncher and one low-level backwards push decruncher, perfect to
@@ -100,9 +100,9 @@ data. They share the following option flags:
         where each x must be a hexadecimal character, 0-9 or A-F.
         The Exomizer prints the encoding parameters used when writing the
         output file in this format in order to allow for easy copy and paste.
-        Please note That this option sets the initial encoding parameters and
-        not the Encoding parameters used in the output file. To set the
-        encoding Parameters of the output file this option must be used in
+        Please note that this option sets the initial encoding parameters and
+        not the encoding parameters used in the output file. To set the
+        encoding parameters of the output file this option must be used in
         combination with the -p 1 option.
 
 -m <offset>
@@ -118,7 +118,7 @@ data. They share the following option flags:
 -p <passes>
         Limits the maximum number of optimization passes the cruncher uses when
         calculating the encoding parameters. default is 65535. However the
-        cruncher will always stop when no further improvment to the crunch
+        cruncher will always stop when no further improvement to the crunch
         result is made.
 
 -q      Enables quiet mode which will disable display output.
@@ -129,7 +129,7 @@ data. They share the following option flags:
 --      Will make all arguments that follow be treated as non-options, even if
         they begins with a - character.
 
--?      Displays a help screen that briefly decribes the command line syntax
+-?      Displays a help screen that briefly describes the command line syntax
         and the valid options. Also for the sub command if one is given.
 
 -------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ data. They share the following option flags:
 -------------------------------------------------------------------------------
 
 The mem, level and sfx command all crunches files backwards. The files have to
-belocated in a 16-bit address space and are also limited in size to that 16bit
+be located in a 16-bit address space and are also limited in size to that 16bit
 address space. The file format of the input files are prg files, Atari xex
 files, Oric tap files or located plain files (plain files that are given an
 address to load to.)
@@ -149,13 +149,13 @@ $ exomizer mem <prg file> <xex file> <Oric tap file> -o <output prg file name>
 simply append a comma and the new load address:
 $ exomizer mem <prg file>,<new address> -o <output prg file name>
 
- Relocation does not work for xex or tap files. An relocated xex or tap file
+ Relocation does not work for xex or tap files. A relocated xex or tap file
 will simply be treated as if it was a relocated prg file.
 
  Plain located files are given using a similar syntax:
 $ exomizer mem <plain file>@<address> -o <output prg file name>
 
- When given multiple input files The sfx and mem commands loads all files to
+ When given multiple input files the sfx and mem commands loads all files to
 where they are located and then crunch the covered memory area. Any unused
 space between files will be zero-filled. The level command loads each input
 file separately, crunches it and then appends the crunched data to the output
@@ -169,7 +169,7 @@ autodetection relocate the prg files to the same address they normally load to.
 -- The mem sub command --------------------------------------------------------
 -------------------------------------------------------------------------------
  The mem command generated files that are used for decrunching from memory.
-Normally these files are linked into the progam images either by machine code
+Normally these files are linked into the program images either by machine code
 monitors or by assembler directives like incbin.
 
  The mem command writes its output in prg format. It has the following option:
@@ -182,7 +182,7 @@ monitors or by assembler directives like incbin.
         However, the file doesn't need to be decrunched from that address. Any
         address that doesn't cause data being decrunched to overwrite data yet
         to be decrunched will work.
--f      Crunch the file forward intead of backwards that is the default. This
+-f      Crunch the file forward instead of backwards that is the default. This
         means that in this mode the read and write pointers move forward in
         memory while decrunching. The exodecrunch.s does not support forward
         decrunching. For this feature to work You'll have to use Krill's
@@ -195,10 +195,10 @@ monitors or by assembler directives like incbin.
  The level command writes the files in its own format that is easy to read back
 and decrunch on the fly.
 
--f      Crunch the file forward intead of backwards that is the default. This
+-f      Crunch the file forward instead of backwards that is the default. This
         means that in this mode the write pointer move forward in memory while
         decrunching. The exodecrunch.s does not support forward decrunching.
-        For this feature to work You'll have to use Krill's modified
+        For this feature to work You'll have to use Krill's contributed
         decruncher.
 
 -------------------------------------------------------------------------------
@@ -242,12 +242,12 @@ tap file.
  The sfx command has the following options:
 
 -t<target>
-        Sets the decruncher target. The possible target are:
+        Sets the decruncher target. The possible targets are:
           1: Oric 1, Oric Atmos and Telestrat.
           4: Commodore c16/plus4.
          20: Commodore Vic20, unexpanded memory.
          23: Commodore Vic20, 3kB memory expansion.
-         52: Commodore Vic20, 32kB memory expasion.
+         52: Commodore Vic20, 32kB memory expansion.
          55: Commodore Vic20  32+3kB memory expansion.
          64: Commodore c64. (The default target)
         128: Commodore c128.
@@ -272,21 +272,22 @@ tap file.
 
 -D<symbol>=<value>
         Defines symbols for the sfx assembler. More advanced features of the
-        decruncher is ontrolled by defining symbole. More on this in the
+        decruncher is controlled by defining symbols. More on this in the
         decruncher symbol reference section below.
 
 -s<custom decruncher enter assembler fragment>
         Specifies an optional assembler fragment to be executed when the
-        decruncher starts decrunching. It must not change the Y-register. For
-        things like clearing the screen, changing background and/or border
-        color, changing a c128 to 2MHz mode or enable 'Skip internal cycles'
-        and burst mode on a DTV2. The fragment syntax is the same as for the -X
-        and -x options.
+        decruncher starts decrunching. It must not change the Y-register. This
+        assembler fragment is intended for things like clearing the screen,
+        changing background and/or border color, changing a c128 to 2MHz mode
+        or enable 'Skip internal cycles' and burst mode on a DTV2. The fragment
+        syntax is the same as for the -X and -x options.
 -f<custom decruncher exit asembler fragment>
         Specifies an optional assembler fragment to be executed when the
-        decruncher has finished decrunching. For things like restoring a c128
-        to 1MHz or disabling 'Skip internal cycles' and burst mode on a DTV2.
-        The fragment syntax is the same as for the -X and -x options.
+        decruncher has finished decrunching. This assembler fragment is
+        intended for things like restoring a c128 to 1MHz or disabling 'Skip
+        internal cycles' and burst mode on a DTV2. The fragment syntax is the
+        same as for the -X and -x options.
 
 -------------------------------------------------------------------------------
 -- The desfx sub command ------------------------------------------------------
@@ -481,7 +482,7 @@ The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_during
  i_irq_exit
 
-The following symbols control nmis, this is only imlemented for the Atari
+The following symbols control nmis, this is only implemented for the Atari
 target where the value will be stored in $d40e
  i_nmi_enter      (defaults to $40)
  i_nmi_during
