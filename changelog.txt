@@ -1,5 +1,6 @@
 2011-??-??
 Release of 2.0.2 source code, Win32 and DOS binaries.
++ Added 6809-decruncher contributed by Edouard Forler.
 + Fix language errors in the documentation. Thanks to Csabo/LOD.
 + Remove bogus printout about the default decrunch effect when using a custom
   decrunch effect. Bug reported by Csabo/LOD.

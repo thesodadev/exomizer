@@ -20,7 +20,7 @@ o  Totally rewitten handling of the sfx decruncher:
 o  Reads Atari xex-files and autodetects the RUNAD vector if the sys keyword is
    given to the sfx command.
 
-o  Can load plain files using the <filename>@<addr> syntax.
+o  Can load plain files using the <filename>@<address> syntax.
 
 o  Has a literal sequence escape mechanism that detects and handles sequences
    of uncrunchable data properly.
@@ -44,6 +44,7 @@ o  New desfx mode that features decrunching of sfx crunched files.
 o  Contributed decruncher source
    1) forward 6502 decuncher by Krill (exodecrs/krilldecr.s)
    2) z80 decrunchers by Metalbrain.  (rawdecrs/z80/*)
+   3) 6809 decruncher by Edouard Forler.  (rawdecrs/6809/*)
 
 FEATURES PLANNED FOR NEXT STABLE RELEASE:
 
