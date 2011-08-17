@@ -65,8 +65,7 @@ subroutine. Since the bits and bases are interleaved, the progression
 in the array is by 3. Using 3 ABX to add 3 times B to X is a nice way
 to do it, but ASLB is equivalent to *2 and is faster than ABX. 2*B+B
 is therefore better than B+B+B. Since the bits and bases are
-interleaved, we can again use the convenient ,X+ to auto-increment the
-position in the array in the same instruction as the load.
+interleaved, we can use a convenient 1,X to read the base.
 
 The non-litteral copy loop is similar to the litteral one, except that
 we use an offset which is hardcoded in the LDA. This offset was

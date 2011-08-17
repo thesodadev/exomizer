@@ -1,10 +1,11 @@
 ; Exomizer2 algorithm, backward with litterals for 6809
 ; by Fool-DupleX, PrehisTO and Sam from PULS (www.pulsdemos.com)
-;
+; edouard@forler.ch
 ; This routine decrunches data compressed with Exomizer2 in raw mode, backward
 ; with litterals.
 ; This routine was developed and tested on a Thomson MO5 in July 2011.
 
+; Please direct any questions about this decruncher to edouard@forler.ch
 
 ; The Exomizer2 decruncher starts here.
 ; call with a JSR exo2 or equivalent.
@@ -126,9 +127,9 @@ cook    leax    biba,pcr
         abx                             ; bits+base = 3 bytes
         aslb                            ; times 2
         abx
-        ldb     ,x+                     ; fetch bits[index]
+        ldb     ,x                      ; fetch bits[index]
         bsr     getbits                 ; readbits
-        addd    ,x                      ; add base[index]
+        addd    1,x                     ; add base[index]
         rts
 
 ; values used in the switch (index)
