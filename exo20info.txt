@@ -483,7 +483,7 @@ The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
  i_irq_during
  i_irq_exit
 
-The following symbols control nmis, this is only implemented for the Atari
+The following symbols control NMIs, this is only implemented for the Atari
 target where the value will be stored in $d40e
  i_nmi_enter      (defaults to $40)
  i_nmi_during
