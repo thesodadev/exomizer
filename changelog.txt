@@ -1,3 +1,4 @@
++ z80 decrunchers improved by Antonio Villena, now smaller and faster.
 2011-08-19
 Release of 2.0.2 source code, Win32 and DOS binaries.
 + Added 6809-decruncher contributed by Edouard Forler.

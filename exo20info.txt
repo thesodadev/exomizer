@@ -43,7 +43,7 @@ o  New desfx mode that features decrunching of sfx crunched files.
 
 o  Contributed decruncher source
    1) forward 6502 decuncher by Krill (exodecrs/krilldecr.s)
-   2) z80 decrunchers by Metalbrain.  (rawdecrs/z80/*)
+   2) z80 decrunchers by Metalbrain, Antonio Villena. (rawdecrs/z80/*)
    3) 6809 decruncher by Edouard Forler.  (rawdecrs/6809/*)
 
 FEATURES PLANNED FOR NEXT STABLE RELEASE:
@@ -351,11 +351,11 @@ exodecrs/
 
 rawdecrs/
          This directory contains two decrunches written in C. One backwards
-         decruncher with a call once and all data are decrunched interface.
-         And one forward streaming decruncher with a get_decrunched_byte
-         interface. Also incuded are example code using the decrunchers and
-         a Makefile that can be used for building them. An ANSI-C compiler are
-         necessary for this.
+        decruncher with a call once and all data are decrunched interface.
+        And one forward streaming decruncher with a get_decrunched_byte
+        interface. Also incuded are example code using the decrunchers and
+        a Makefile that can be used for building them. An ANSI-C compiler are
+        necessary for this.
 
 All of the included makefiles have only been tested with Gnu make.
 

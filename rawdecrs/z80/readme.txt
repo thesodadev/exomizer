@@ -1,5 +1,5 @@
 This directory contains z80-assembly decrunchers contributed by Metalbrain
-(metalbrain_coder@gmx.net).
+(metalbrain_coder@gmx.net) and improved by Antonio Villena.
 
 The decrunchers decrunches data crunched with the raw command. the
 deexo_b.asm and deexo_simple_b.asm decrunchers decrunches data crunched
