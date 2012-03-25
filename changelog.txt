@@ -1,4 +1,7 @@
+2012-03-25
+Release of 2.0.3 source code, Win32 and DOS binaries.
 + z80 decrunchers improved by Antonio Villena, now smaller and faster.
+
 2011-08-19
 Release of 2.0.2 source code, Win32 and DOS binaries.
 + Added 6809-decruncher contributed by Edouard Forler.
@@ -8,6 +11,7 @@ Release of 2.0.2 source code, Win32 and DOS binaries.
 + Fix bug that prevented the correct error message from showing when trying to
   combine a basic start and a non rom config for the sfx command.  Bug reported
   by iAN CooG.
+
 2011-02-06
 Release of 2.0.1 source code, Win32 and DOS binaries.
 + Fix bug in log.c that caused the desfx command to loop if the log level was
