@@ -942,7 +942,7 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     targetp = get_target_info(decr_target);
-    if(sys_addr == -2 && (targetp->id == 162 || targetp->id == 168))
+    if(sys_addr == -2 && targetp->id == 168)
     {
         /* basic start not implemented for Apple and Atari targets */
         LOG(LOG_ERROR, ("Start address \"basic\" is not supported for "

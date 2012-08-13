@@ -416,7 +416,6 @@ exit_hook = 1
 	lda #(i_basic_highest_addr - 1) / 256
 	sta <$74
       .ENDIF
-	.ERROR("Apple target can't handle basic start.")
     .ELIF(r_target == $a8)
 	.ERROR("Atari target can't handle basic start.")
     .ELIF(r_target == 1)
@@ -883,14 +882,13 @@ zp_src_addr = $ae
 zp_hi_bits = $9f
 
   .IF(.DEFINED(i_load_addr))
-	;; binary file
+	;; binary file, cc65 header
 	.WORD(i_load_addr)
 	.WORD(a2_end - a2_load)
 	.ORG(i_load_addr)
 a2_load:
   .ELSE
-	;; Applesoft basic file
-	.WORD(a2_end - a2_load)
+	;; Applesoft basic file, no header
 	.ORG(c_basic_start)
 a2_load:
 	.WORD(basic_end, i_line_number)
