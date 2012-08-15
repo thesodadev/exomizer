@@ -218,27 +218,43 @@ autodetected. Either from the runad vector for the Atari target or by scanning
 the area of the basic start for a sys basic command.
 
  If the run address is the string basic then the computer will run a basic
-program after decrunch. This is not supported yet for the Atari or Apple ][.
+program after decrunch. This is not yet implemented for the Atari target.
 The Oric target support basic start for the Oric 1 and Atmos computers but not
 for the Telestrat.
 
-This run basic mode takes up to three optional addresses. They are in order:
-start of basic variables, start of basic and highest address used by basic.
+ The run basic mode takes up to three optional addresses. They are in order:
+start of basic program, end of basic program  and highest address used by
+basic.
 
-$ exomizer sfx basic[,<start vars>[,<start basic>[,<highest address>]]]
+$ exomizer sfx basic[,<start>[,<end>[,<high>]]]
 
-Normally these addresses are autodetected and/or defaulted. However, they are
-useful if non standard settings are needed. Examples of such situations could
-be when a basic program needs to be run at a non standard address and/or some
-graphic needs to be protected from basic variables.
+ The start of basic, <start>, is the address where the basic program starts in
+memory. For many but not all targets it defaults to $0801.
+
+ The end of basic, <end>, is the address where the basic variables starts in
+memory. It defaults to the the address where the basic program ends.
+
+ The highest address used by basic, <high>, is the address where the basic
+variables end. Its default value depends on the target.
+
+ The basic interpreter will write all variables, strings and arrays between the
+<end> address and the <high> address.
+
+ Normally these addresses are autodetected and/or defaulted. However, if non
+standard settings are needed they can be changed. Examples of such situations
+could be when a basic program needs to be run at a non standard address and/or
+some graphic needs to be protected from basic variables.
 
  The output of the sfx command is a runnable program file that decrunches
-itself in memory when run. The output file format depends on the target
-used. For all Commodore machines the output is a runnable prg-file that starts
-with a basic line. For the Atari the target is a auto running xex-file. The
-atari target doesn't support decrunching into extended memory. For the Apple
-the target is an Applesoft basic file. For the Oric family the target is a Oric
-tap file.
+itself in memory when run. The output file format depends on the target used:
+
+ For all Commodore machines the output is a runnable prg-file that starts
+with a basic line. For the Atari target the output is a auto running xex-file.
+For the Apple target the output is an Applesoft basic file without headers. For
+the Oric family the output is a Oric tap file.
+
+ Please note that the sfx command doesn't support extended memory since it
+can't decrunch into banked memory.
 
  The sfx command has the following options:
 
@@ -429,7 +445,7 @@ Feedback/Suggestions
 -- Contact information --------------------------------------------------------
 -------------------------------------------------------------------------------
 
-Please don't hesitate to contact me if you have any feature/improvement
+ Please don't hesitate to contact me if you have any feature/improvement
 suggestions, bugs to report or perhaps just have something to say about the
 exomizer program.
 
@@ -445,14 +461,21 @@ the command line using the -D<symbol>=<value> flag:
 The following symbol controls the sfx load address:
  i_load_addr
 
-If it is unset then the sfx file will load to the default basic start address
+ If it is unset then the sfx file will load to the default basic start address
 of the target machine. For Atari the default load address is $2000. For the
 Oric the default load address is $0500.
 
-If it is set then the sfx file will load to the given address and it will not
-have any basic line. (The Atari target never has a basic line). The apple
-target file format will change from an Applesoft basic file to an Apple binary
-file.
+ If it is set then the sfx file will load to the given address and it will not
+have any basic line. (The Atari target never has a basic line). The run address
+is the same as the load address.
+
+ The Apple target file format will change from an Applesoft basic file without
+header to an Apple binary file with a four byte header where the first two
+bytes are 16-bit load address, little endian, and the next two are the length
+in bytes of the following data, little endian. This is the same 4 byte DOS 3.3
+header that cc65 generates. AppleCommander 1.3.5 or later can be used to put
+these binary files onto DOS 3.3 as well as ProDOS 8 disk images using the -cc65
+option.
 
 The following symbol controls the sfx basic line number:
  i_line_number

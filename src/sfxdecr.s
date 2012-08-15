@@ -901,11 +901,11 @@ a2_load:
 	.WORD(basic_end, i_line_number)
 	.BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
 	.BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48, 0)
-  .ENDIF
 basic_end:
     .IF(transfer_len % 256 != 0)
 	.BYTE(0,0)
     .ENDIF
+  .ENDIF
 ; -------------------------------------------------------------------
 a2_start:
     .IF(.DEFINED(i_a2_disable_dos))
