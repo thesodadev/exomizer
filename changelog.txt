@@ -1,3 +1,10 @@
+2012-08-16
+Release of 2.0.4 source code, Win32 and DOS binaries.
++ Bug in z80 decrunchers fixed by Metalbrain. Thanks goes to Hervé Monchatre
+  and Tim Riemann (Octoate) for reporting.
++ Implement sfx basic for the Apple II target.
++ Improve documentation slightly for the sfx and level commands.
+
 2012-03-25
 Release of 2.0.3 source code, Win32 and DOS binaries.
 + z80 decrunchers improved by Antonio Villena, now smaller and faster.

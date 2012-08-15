@@ -193,8 +193,9 @@ monitors or by assembler directives like incbin.
 -- The level sub command ------------------------------------------------------
 -------------------------------------------------------------------------------
 
- The level command writes the files in its own format that is easy to read back
-and decrunch on the fly.
+ The level command writes its output file so that the crunched bytes are
+returned in correct order for decrunching in the fly while streaming in the
+bytes from secondary storage.
 
 -f      Crunch the file forward instead of backwards that is the default. This
         means that in this mode the write pointer move forward in memory while
