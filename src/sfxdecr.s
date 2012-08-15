@@ -494,6 +494,13 @@ exit_hook = 1
 	jsr $4f4f		; regenerate line links and set $1210/$1211
 	jmp $4af6		; start
     .ELIF(r_target == $a2)
+	lda #a2relinked % 256	; set kbd vector
+	sta <$36
+	lda #a2relinked / 256
+	sta <$37
+	jmp $d4f2		; relink, exits by kbd vector
+a2relinked:
+	jsr $fe89		; reset kbd vector at $36/$37
 	jmp $d566		; start
     .ELIF(r_target == 1)
 	bit $fffc
