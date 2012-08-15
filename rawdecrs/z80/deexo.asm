@@ -50,7 +50,6 @@ exo_mainloop:	ld	c,1		;lenght=1
 exo_getindex:	inc	c
 		call	exo_getbit
 		jr	nc,exo_getindex
-		ld	a,c		;C=index
 		bit	4, c
       		jr	z, exo_continue
       		bit	0, c
