@@ -351,7 +351,7 @@ void print_license(void)
          "distribute it freely for any non-commercial, non-profit purpose subject to\n"
          "the following restrictions:\n\n"));
     LOG(LOG_BRIEF,
-        ("   1.  The origin of this software must not be misrepresented; you must not\n"
+        ("   1. The origin of this software must not be misrepresented; you must not\n"
          "   claim that you wrote the original software. If you use this software in a\n"
          "   product, an acknowledgment in the product documentation would be\n"
          "   appreciated but is not required.\n"

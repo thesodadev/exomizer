@@ -54,9 +54,8 @@ matchp match_new(match_ctx ctx, /* IN/OUT */
 
     if(len == 0)
     {
-        int a;
         LOG(LOG_ERROR, ("tried to allocate len0 match.\n"));
-        a = *(int*)0;
+        *(volatile int*)0;
     }
     if(len > 65535)
     {
