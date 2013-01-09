@@ -153,8 +153,11 @@ do_compress(match_ctx ctx, encode_match_data emd,
     int pass;
     float size;
     float old_size;
+    char prev_enc[100];
+    const char *curr_enc;
 
     pass = 1;
+    prev_enc[0] = '\0';
 
     LOG(LOG_NORMAL, (" pass %d: ", pass));
     if(exported_encoding != NULL)
@@ -212,6 +215,13 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
         matchp_snp_get_enum(snp, snpe);
         optimal_optimize(emd, matchp_snp_enum_get_next, snpe);
+
+        curr_enc = optimal_encoding_export(emd);
+        if (strcmp(curr_enc, prev_enc) == 0)
+        {
+            break;
+        }
+        strcpy(prev_enc, curr_enc);
     }
 
     return best_snp;
@@ -243,7 +253,8 @@ void crunch_backwards(struct membuf *inbuf,
          "\n-----------------------------\n"));
     LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", membuf_memlen(inbuf)));
 
-    match_ctx_init(ctx, inbuf, options->max_offset);
+    match_ctx_init(ctx, inbuf, options->max_len, options->max_offset,
+                   options->use_imprecise_rle);
 
     LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
 
@@ -383,8 +394,10 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
 {
     LOG(level,
         ("  -c            compatibility mode, disables the use of literal sequences\n"
+         "  -C            enable imprecise rle matching, trades result for speed\n"
          "  -e <encoding> uses the given encoding for crunching\n"
-         "  -m <offset>   limits the maximum offset size, default is 65535\n"
+         "  -m <offset>   sets the maximum sequence offset, default is 65535\n"
+         "  -n <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"));
     print_base_flags(level, default_outfile);
 }
@@ -434,6 +447,9 @@ void handle_crunch_flags(int flag_char, /* IN */
     case 'c':
         options->use_literal_sequences = 0;
         break;
+    case 'C':
+        options->use_imprecise_rle = 1;
+        break;
     case 'e':
         options->exported_encoding = flag_arg;
         break;
@@ -443,6 +459,17 @@ void handle_crunch_flags(int flag_char, /* IN */
         {
             LOG(LOG_ERROR,
                 ("Error: invalid offset for -m option, "
+                 "must be in the range of [0 - 65535]\n"));
+            print_usage(appl, LOG_NORMAL, flags->outfile);
+            exit(-1);
+        }
+        break;
+    case 'n':
+        if (str_to_int(flag_arg, &options->max_len) != 0 ||
+            options->max_len < 0 || options->max_len >= 65536)
+        {
+            LOG(LOG_ERROR,
+                ("Error: invalid offset for -n option, "
                  "must be in the range of [0 - 65535]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(-1);

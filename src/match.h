@@ -53,14 +53,17 @@ struct match_ctx {
     const unsigned char *buf;
     int len;
     int max_offset;
+    int max_len;
 };
 
 typedef struct match_ctx match_ctx[1];
 typedef struct match_ctx *match_ctxp;
 
-void match_ctx_init(match_ctx ctx,      /* IN/OUT */
+void match_ctx_init(match_ctx ctx,          /* IN/OUT */
                     struct membuf *inbuf,   /* IN */
-                    int max_offset);    /* IN */
+                    int max_len,            /* IN */
+                    int max_offset,         /* IN */
+                    int use_imprecise_rle); /* IN */
 
 void match_ctx_free(match_ctx ctx);     /* IN/OUT */
 

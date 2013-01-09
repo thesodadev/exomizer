@@ -31,7 +31,7 @@
 #include "log.h"
 #include "membuf.h"
 
-#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 1}
+#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 1, 0}
 
 struct common_flags
 {
@@ -39,7 +39,7 @@ struct common_flags
     const char *outfile;
 };
 
-#define CRUNCH_FLAGS "ce:m:p:o:qv"
+#define CRUNCH_FLAGS "cCe:m:n:p:o:qv"
 #define BASE_FLAGS "o:qv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
@@ -65,8 +65,10 @@ struct crunch_options
 {
     const char *exported_encoding;
     int max_passes;
+    int max_len;
     int max_offset;
     int use_literal_sequences;
+    int use_imprecise_rle;
 };
 
 struct crunch_info

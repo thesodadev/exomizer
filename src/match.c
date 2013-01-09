@@ -73,9 +73,11 @@ matchp match_new(match_ctx ctx, /* IN/OUT */
 }
 
 
-void match_ctx_init(match_ctx ctx,      /* IN/OUT */
-                    struct membuf *inbuf,   /* IN */
-                    int max_offset)
+void match_ctx_init(match_ctx ctx,         /* IN/OUT */
+                    struct membuf *inbuf,  /* IN */
+                    int max_len,           /* IN */
+                    int max_offset,        /* IN */
+                    int use_imprecise_rle) /* IN */
 {
     struct match_node *np;
     struct progress prog[1];
@@ -93,6 +95,7 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
     chunkpool_init(ctx->m_pool, sizeof(match));
 
     ctx->max_offset = max_offset;
+    ctx->max_len = max_len;
 
     ctx->buf = buf;
     ctx->len = buf_len;
@@ -148,6 +151,12 @@ void match_ctx_init(match_ctx ctx,      /* IN/OUT */
             if(!rle_map[rle_len] && ctx->rle_r[i] > 16)
             {
                 /* no previous lengths and not our primary length*/
+                continue;
+            }
+
+            if (use_imprecise_rle &&
+                ctx->rle_r[i] != 0 && ctx->rle[i] != 0)
+            {
                 continue;
             }
 
@@ -349,7 +358,8 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
          * the previuos one. let's compare further. */
         len = mp_len;
         pos = index - len;
-        while(pos >= 0 && buf[pos] == buf[pos + offset])
+        while(len <= ctx->max_len &&
+              pos >= 0 && buf[pos] == buf[pos + offset])
         {
             LOG(LOG_DUMP, ("2) compared sucesssfully [%d] %d %d\n",
                             index, pos, pos + offset));
@@ -360,6 +370,10 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
         {
             /* allocate match struct and add it to matches */
             mp = match_new(ctx, &matches, index - pos, offset);
+        }
+        if (len > ctx->max_len)
+        {
+            break;
         }
         if(pos < 0)
         {
