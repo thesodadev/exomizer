@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Magnus Lind.
+ * Copyright (c) 2005, 2013 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -352,7 +352,7 @@ void print_license(void)
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v2.0.4, Copyright (c) 2002-2012 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v2.0.5beta1, Copyright (c) 2002-2013 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"

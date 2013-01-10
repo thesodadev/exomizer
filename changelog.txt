@@ -1,3 +1,10 @@
+2013-01-11
+Release of 2.0.5beta1 source code, Win32 and DOS binaries.
++ Add -C and -n <len> flags that trades crunch result for speed. It is now
+  possible to really speed up crunching, even for "worst case"-type files.
++ Now skips the DAG traversing of the final pass if the encoding hasn't changed
+  since the previous pass.
+
 2012-08-16
 Release of 2.0.4 source code, Win32 and DOS binaries.
 + Bug in z80 decrunchers fixed by Metalbrain. Thanks goes to Hervé Monchatre

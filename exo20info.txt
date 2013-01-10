@@ -94,6 +94,9 @@ data. They share the following option flags:
         literal sequence escape mechanism. It will make the output files
         compatible with Exomizer v1.x.
 
+-C      This flag enables imprecise rle matching. It increases crunching speed
+        but reduces the crunch result.
+
 -e <encoding parameters>
         Uses the given encoding parameters for crunching instead of trying to
         calculate an optimal set. The encoding must be in the following format:
@@ -108,10 +111,15 @@ data. They share the following option flags:
 
 -m <offset>
         Limits the maximum sequence offset used by the cruncher to <offset>.
-        The default is an offset of 65535 bytes. A smaller offset increases the
-        crunching speed and reduces the crunch result. If a circular buffer
-        decruncher is used it is important that the maximum offset doesn't
-        exceed the buffer size.
+        The default limit is an offset of 65535 bytes. A smaller offset
+        increases the crunching speed but reduces the crunch result. If a
+        circular buffer decruncher is used it is important that the maximum
+        offset doesn't exceed the buffer size.
+
+-n <length>
+        Limits the maximum sequence lenght used by the cruncher to <length>.
+        The default limit is an length of 65535 bytes. A smaller length
+        increases the crunching speed but reduces the crunch result.
 
 -o <outfile>
         Sets outfile name.
