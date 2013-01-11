@@ -117,7 +117,7 @@ data. They share the following option flags:
         offset doesn't exceed the buffer size.
 
 -M <length>
-        Limits the maximum sequence lenght used by the cruncher to <length>.
+        Limits the maximum sequence length used by the cruncher to <length>.
         The default limit is an length of 65535 bytes. A smaller length
         increases the crunching speed but reduces the crunch result.
 
