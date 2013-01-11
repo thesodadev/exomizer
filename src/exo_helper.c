@@ -352,7 +352,7 @@ void print_license(void)
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v2.0.5beta1, Copyright (c) 2002-2013 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v2.0.5beta2, Copyright (c) 2002-2013 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -397,7 +397,7 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
          "  -C            enable imprecise rle matching, trades result for speed\n"
          "  -e <encoding> uses the given encoding for crunching\n"
          "  -m <offset>   sets the maximum sequence offset, default is 65535\n"
-         "  -n <length>   sets the maximum sequence length, default is 65535\n"
+         "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"));
     print_base_flags(level, default_outfile);
 }
@@ -464,7 +464,7 @@ void handle_crunch_flags(int flag_char, /* IN */
             exit(-1);
         }
         break;
-    case 'n':
+    case 'M':
         if (str_to_int(flag_arg, &options->max_len) != 0 ||
             options->max_len < 0 || options->max_len >= 65536)
         {

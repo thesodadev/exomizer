@@ -39,7 +39,7 @@ struct common_flags
     const char *outfile;
 };
 
-#define CRUNCH_FLAGS "cCe:m:n:p:o:qv"
+#define CRUNCH_FLAGS "cCe:m:M:p:o:qv"
 #define BASE_FLAGS "o:qv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);

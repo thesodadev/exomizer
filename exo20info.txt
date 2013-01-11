@@ -116,7 +116,7 @@ data. They share the following option flags:
         circular buffer decruncher is used it is important that the maximum
         offset doesn't exceed the buffer size.
 
--n <length>
+-M <length>
         Limits the maximum sequence lenght used by the cruncher to <length>.
         The default limit is an length of 65535 bytes. A smaller length
         increases the crunching speed but reduces the crunch result.
