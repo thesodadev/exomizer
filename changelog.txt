@@ -1,10 +1,6 @@
-2013-01-11
-Release of 2.0.5beta2 source code, Win32 and DOS binaries.
-+ Rename -n <len> flag to -M <len> since it collides with the sfx flag -n.
-
-2013-01-10
-Release of 2.0.5beta1 source code, Win32 and DOS binaries.
-+ Add -C and -n <len> flags that trades crunch result for speed. It is now
+2013-01-12
+Release of 2.0.5 source code, Win32 and DOS binaries.
++ Add -C and -M <length> flags that trades crunch result for speed. It is now
   possible to really speed up crunching, even for "worst case"-type files.
 + Now skips the DAG traversing of the final pass if the encoding hasn't changed
   since the previous pass.
