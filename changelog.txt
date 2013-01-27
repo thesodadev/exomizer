@@ -1,3 +1,7 @@
+2013-01-27
+Release of 2.0.6 source code, Win32 and DOS binaries.
++ New improvements to the z80 decrunchers, again smaller and faster.
+
 2013-01-12
 Release of 2.0.5 source code, Win32 and DOS binaries.
 + Add -C and -M <length> flags that trades crunch result for speed. It is now

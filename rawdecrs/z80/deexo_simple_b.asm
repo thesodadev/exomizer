@@ -1,112 +1,105 @@
-;Exomizer 2 Z80 decoder - backwards
-; by Metalbrain
+;Exomizer 2 Z80 decoder
+; by Metalbrain 
 ;
-; optimized by Antonio Villena
+; optimized by Antonio Villena and Urusergi (152 bytes)
 ;
 ; compression algorithm by Magnus Lind
+
+;input:         hl=compressed data start
+;               de=uncompressed destination start
 ;
 ;simple version:
 ;		no literal sequences (compress with -c option)
 ;		you MUST define exo_mapbasebits aligned to a 256 boundary
+;
+;ATTENTION!
+;A huge speed boost (around 14%) can be gained at the cost of only 5 bytes.
+;If you want this, replace all instances of "call exo_getbit" with "srl a" followed by
+;"call z,exo_getbit", and remove the first two instructions in exo_getbit routine.
 
-;input: 	hl=compressed data start
-;		de=uncompressed destination start
+deexo:          ld      iy, exo_mapbasebits+112
+                ld      a, (hl)
+                dec     hl
+                ld      b, 52
+                push    de
+                cp      a
+exo_initbits:   ld      c, 16
+                jr      nz, exo_get4bits
+                ld      ixl, c
+                ld      de, 1           ;DE=b2
+exo_get4bits:   call    exo_getbit      ;get one bit
+                rl      c
+                jr      nc, exo_get4bits
+                ld      (iy-112), c     ;bits[i]=b1
+                push    hl
+                ld      hl, 1
+                defb    210             ;3 bytes nop (JP NC)
+exo_setbit:     add     hl, hl
+                dec     c
+                jr      nz, exo_setbit
+                ld      (iy-60), e
+                ld      (iy-8), d       ;base[i]=b2
+                add     hl, de
+                ex      de, hl
+                inc     iyl
+                pop     hl
+                dec     ixl
+                djnz    exo_initbits
+                pop     de
+                db      218             ;3 bytes nop (JP C) --> jr exo_mainloop
+exo_literal:    ldd
+exo_mainloop:   call    exo_getbit      ;get one bit
+                jr      c, exo_literal  ;literal?
+                ld      c, 112-1
+exo_getindex:   call    exo_getbit      ;get one bit
+                inc     c
+                jr      nc,exo_getindex
+                ret     m
+                push    de
+                ld      iyl, c
+                call    exo_getpair
+                push    de
+                dec     d
+                jp      p, exo_dontgo
+                dec     e
+                ld      bc, 512+160     ;2 bits, 48 offset
+                jr      z, exo_goforit
+                dec     e               ;2?
+exo_dontgo:     ld      bc, 1024+144    ;4 bits, 32 offset
+                jr      z, exo_goforit
+                ld      c, 128          ;16 offset
+exo_goforit:    call    exo_getbits     ;get B bits in DE
+                ld      iyl, c
+                add     iy ,de
+                call    exo_getpair
+                pop     bc
+                ex      (sp), hl
+                ex      de, hl
+                add     hl, de
+                lddr
+                pop     hl
+                jr      exo_mainloop    ;Next!
 
-deexo:		ld	iy,exo_mapbasebits
-		ld	a,(hl)
-		dec	hl
-		ld	b,52
-		push	de
-exo_initbits:	ex	af,af'
-		ld	a,b
-		sub	4
-		and	15
-		jr	nz,exo_node1
-		ld	de,1		;DE=b2
-exo_node1:	ld	c,16
-		ex	af,af'
-exo_get4bits:	call	exo_getbit
-		rl	c
-		jr	nc,exo_get4bits
-		ld	(iy+0),c	;bits[i]=b1
-		push	hl
-		ld	hl,1
-		defb	210		;3 bytes nop (JP NC)
-exo_setbit:	add	hl,hl
-		dec	c
-		jr	nz,exo_setbit
-		ld	(iy+52),e
-		ld	(iy+104),d	;base[i]=b2
-		add	hl,de
-		ex	de,hl
-		inc	iy
-		pop	hl
-		djnz	exo_initbits
-		pop	de
-      		db	218		;3 bytes nop (JP C) --> jr exo_mainloop
-exo_literalcopy:ldd
-exo_mainloop:	call	exo_getbit	;literal?
-		jr	c,exo_literalcopy
-		ld	c,255
-exo_getindex:	inc	c
-		call	exo_getbit
-		jr	nc,exo_getindex
-		bit	4, c
-		ret	nz
-		push	de
-		call	exo_getpair
-		push	bc
-		pop	ix
-		ld	de,512+48	;2 bits, 48 offset
-		inc	b
-		djnz	exo_dontgo
-		dec	c
-		jr	z, exo_goforit
-		dec	c		;2?
-exo_dontgo:	ld	de,1024+32	;4 bits, 32 offset
-		jr	z,exo_goforit
-		ld	e,16		;16 offset
-exo_goforit:	call	exo_getbits
-		ex	af, af'
-		ld	a,e
-		add	a,c
-		ld	c,a
-		ex	af, af'
-		call	exo_getpair	;bc=offset
-		pop	de		;de=destination
-		push	hl		
-		ld	h,d
-		ld	l,e
-		add	hl,bc		;hl=origin
-		push	ix
-		pop	bc		;bc=lenght
-		lddr
-		pop	hl		;Keep HL, DE is updated
-		jr	exo_mainloop	;Next!
+exo_getpair:    ld      b, (iy-112)
+                call    exo_getbits
+                ex      de, hl
+                ld      c, (iy-60)
+                ld      b, (iy-8)
+                add     hl, bc          ;Always clear C flag
+                ex      de, hl
+                ret
 
-exo_getpair:	ld	iyl,c
-		ld	d,(iy+0)
-		call	exo_getbits
-		push	hl
-		ld	l,(iy+52)
-		ld	h,(iy+104)
-		add	hl, bc		;Always clear C flag
-      		ld	b, h
-      		ld	c, l
-		pop	hl
-		ret
+exo_getbits:    ld      de, 0
+exo_gbcont:     dec     b
+                ret     m
+                call    exo_getbit
+                rl      e
+                rl      d
+                jr      exo_gbcont
 
-exo_getbits:	ld	bc,0		;get D bits in BC
-exo_gettingbits:dec	d
-		ret	m
-		call	exo_getbit
-		rl	c
-		rl	b
-		jr	exo_gettingbits
-
-exo_getbit:	srl	a		;get one bit
-		ret	nz
-		ld	a,(hl)
-		dec	hl
-		rra
-		ret
+exo_getbit:     srl     a
+                ret     nz
+                ld      a, (hl)
+                dec     hl
+                rra
+                ret
