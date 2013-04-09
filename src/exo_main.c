@@ -1101,6 +1101,10 @@ void sfx(const char *appl, int argc, char *argv[])
         /*initial_symbol_dump( LOG_NORMAL, "r_start_addr");*/
         set_initial_symbol("r_target", decr_target);
         /*initial_symbol_dump( LOG_NORMAL, "r_target");*/
+        set_initial_symbol("r_in_load", in_load);
+        /*initial_symbol_dump( LOG_NORMAL, "r_in_addr");*/
+        set_initial_symbol("r_in_len", in_len);
+        /*initial_symbol_dump( LOG_NORMAL, "r_in_len");*/
 
         if(sys_addr == -2)
         {
@@ -1146,7 +1150,7 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("v_safety_addr", NULL, &v_safety_addr);
             resolve_symbol("transfer_len", NULL, &transfer_len);
             resolve_symbol("i_table_addr", NULL, &i_table_addr);
-            resolve_symbol("i_effect", NULL, &i_effect);
+            resolve_symbol("i_effect2", NULL, &i_effect);
 
             if(transfer_len != 0)
             {

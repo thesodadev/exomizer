@@ -26,6 +26,8 @@
 ; -------------------------------------------------------------------
 ; -- r_start_addr, done /* required, -2=basic start */
 ; -- r_target, done /* required, 1, 20, 23, 52, 55, 4, 64, 128, $a2 or $a8 */
+; -- r_in_load, done /* required, load address of decrunched data area */
+; -- r_in_len, done /* required, length of decrunched data area */
 ; -- i_literal_sequences_used, done /* defined if true, otherwise not */
 ; -- i_ram_enter, done /* undef=c_rom_config_value */
 ; -- i_irq_enter, done /* undef=on, 0=off, 1=on */
@@ -192,6 +194,18 @@
   .ERROR("Symbol r_target_addr has an invalid value.")
 .ENDIF
 
+.IF(i_effect == 0 &&
+    (r_in_load < c_effect_color + 1 &&
+     r_in_load + r_in_len > c_effect_color ||
+     v_safety_addr < c_effect_color + 1 &&
+     v_safety_addr + transfer_len > c_effect_color))
+	;; disable default effect if the address is in the
+	;; data area
+  i_effect2 = -1
+.ELSE
+  i_effect2 = i_effect
+.ENDIF
+
 .IF(!.DEFINED(i_ram_enter))
   i_ram_enter = c_rom_config_value
 .ENDIF
@@ -277,7 +291,7 @@ v_safety_addr = .INCWORD("crunched_data", 0)
 ; -------------------------------------------------------------------
 v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
 
-; .IF(i_effect == 0 &&
+; .IF(i_effect2 == 0 &&
 ;     .DEFINED(c_effect_color) &&
 ; 	    c_effect_color < v_safety_addr &&
 ; 	    c_effect_color > i_table_addr + 156)
@@ -293,7 +307,7 @@ v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
 ; -------------------------------------------------------------------
 ; -- file2_start_hook and stage2_exit_hook --------------------------
 ; -------------------------------------------------------------------
-.IF(i_effect == 0 && .DEFINED(c_effect_char))
+.IF(i_effect2 == 0 && .DEFINED(c_effect_char))
 file2_start_hook = 1
   .MACRO("file2_start_hook")
     .IF(v_safety_addr < file2start && ; if we are transferring anyhow
@@ -332,7 +346,15 @@ stage2_exit_hook = 1
 .ENDIF
 
 .IF(!.DEFINED(i_irq_during))
-  .IF(i_irq_enter==i_irq_exit && i_ram_during==i_ram_enter && r_target!=1)
+  .IF((r_target == 4 || r_target == 16) &&
+      (r_in_load < $0800 && r_in_load + r_in_len > $07f6 ||
+       v_safety_addr < $0800 && v_safety_addr + transfer_len > $07f6))
+	;; default irq on plus4/c16 modifies memory $07f6-$0800
+    i_irq_during = 0
+    .IF(!.DEFINED(i_irq_exit))
+      i_irq_exit = 0
+    .ENDIF
+  .ELIF(i_irq_enter==i_irq_exit && i_ram_during==i_ram_enter && r_target!=1)
     i_irq_during = i_irq_enter
   .ELSE
     i_irq_during = 0
@@ -529,9 +551,9 @@ oric_ROM11:
     .INCLUDE("d2io")
     .INCLUDE("effect_custom")
     .INCLUDE("io2d")
-  .ELIF(i_effect != -1)
+  .ELIF(i_effect2 != -1)
     .INCLUDE("d2io")
-    .IF(i_effect == 0)
+    .IF(i_effect2 == 0)
       .IF(r_target == 4)
 	lda <$fd,x
 	sta c_effect_color
@@ -543,7 +565,7 @@ oric_ROM11:
       .ELSE
 	stx c_effect_color
       .ENDIF
-    .ELIF(i_effect == 1)
+    .ELIF(i_effect2 == 1)
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	and #$07
 	ora #$18
@@ -551,7 +573,7 @@ oric_ROM11:
 	ora #$30
       .ENDIF
 	sta c_border_color
-    .ELIF(i_effect == 2)
+    .ELIF(i_effect2 == 2)
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	txa
 	and #$07
@@ -563,7 +585,7 @@ oric_ROM11:
       .ELSE
 	stx c_border_color
       .ENDIF
-    .ELIF(i_effect == 3)
+    .ELIF(i_effect2 == 3)
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	tya
 	and #$07
@@ -681,24 +703,24 @@ oric_ROM11:
       .IF(i_irq_during == 1)
 	sei
       .ENDIF
-      .IF(i_effect == 1)
+      .IF(i_effect2 == 1)
 	pha
       .ENDIF
 	lda #c_rom_config_value
 	sta $ff00
-      .IF(i_effect == 1)
+      .IF(i_effect2 == 1)
 	pla
       .ENDIF
     .ENDIF
   .ENDMACRO
   .MACRO("io2d")
     .IF(i_ram_during == $3f)
-      .IF(i_effect == 1)
+      .IF(i_effect2 == 1)
 	pha
       .ENDIF
 	lda #i_ram_during
 	sta $ff00
-      .IF(i_effect == 1)
+      .IF(i_effect2 == 1)
 	pla
       .ENDIF
       .IF(i_irq_during == 1)
