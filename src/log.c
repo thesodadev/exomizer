@@ -55,7 +55,7 @@ struct log_ctx {
 };
 
 struct log_ctx *G_log_ctx = NULL;
-enum log_level G_log_level = 0;
+enum log_level G_log_level = LOG_MIN;
 enum log_level G_log_log_level = 0;
 
 struct log_ctx *log_new(void)

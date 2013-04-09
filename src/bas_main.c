@@ -117,7 +117,7 @@ open_file(const char *name, int *load_addr)
         if (read_int_sequence(load_str, 1, &reloc) < 0)
         {
             /* we fail */
-            LOG(LOG_FATAL,
+            LOG(LOG_ERROR,
                 (" can't parse load address from \"%s\"\n", load_str));
             exit(-1);
         }
@@ -127,7 +127,7 @@ open_file(const char *name, int *load_addr)
     } while (0);
     if (in == NULL)
     {
-        LOG(LOG_FATAL,
+        LOG(LOG_ERROR,
             (" can't open file \"%s\" for input\n", name));
         exit(-1);
     }
@@ -381,7 +381,7 @@ int main(int argc, char *argv[])
         {
             int flags;
 
-            LOG(LOG_NORMAL, (" - adding trampoline",
+            LOG(LOG_NORMAL, (" - adding trampoline @ %04X",
                              ctx->start));
             flags = 0;
             flags |= patch_links ? TRAMPOLINE_FLAG_REGEN: 0;

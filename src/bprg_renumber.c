@@ -246,7 +246,7 @@ renumber1_cb_line_mutate(const unsigned char *in, /* IN */
     }
 
     LOG(LOG_DUMP, ("renumbering line %d to %d (target %p)\n",
-                   target_key->old_line, line, target));
+                   target_key->old_line, line, (void*)target));
 
     if(target != NULL || rctx->mode == 0)
     {

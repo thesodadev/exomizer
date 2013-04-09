@@ -46,7 +46,7 @@ bprg_init(struct bprg_ctx *ctx, const char *prg_name)
     in = open_file(prg_name, &load);
     if (in == NULL)
     {
-        LOG(LOG_FATAL,
+        LOG(LOG_ERROR,
             (" can't open file \"%s\" for input\n", prg_name));
         exit(1);
     }

@@ -1041,7 +1041,7 @@ void next_inst(struct cpu_ctx *r)
             }
             else
             {
-                LOG(LOG_DUMP, ("   ", MEM_ACCESS_READ(&r->mem, pc)));
+                LOG(LOG_DUMP, ("   "));
             }
         }
         LOG(LOG_DUMP, (" %s", info->op->fmt));

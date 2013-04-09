@@ -761,7 +761,7 @@ void output_atoms(struct membuf *out, struct vec *atoms)
             if(!is_valid_u8(value))
             {
                 LOG(LOG_ERROR, ("value %d out of range for op $%02X @%p\n",
-                                value, atom->u.op.code, atom));
+                                value, atom->u.op.code, (void*)atom));
                 exit(1);
             }
             LOG(LOG_DEBUG, ("output: $%02X $%02X\n",
@@ -775,7 +775,7 @@ void output_atoms(struct membuf *out, struct vec *atoms)
             if(!is_valid_i8(value))
             {
                 LOG(LOG_ERROR, ("value %d out of range for op $%02X @%p\n",
-                                value, atom->u.op.code, atom));
+                                value, atom->u.op.code, (void*)atom));
                 exit(1);
             }
             LOG(LOG_DEBUG, ("output: $%02X $%02X\n",
@@ -789,7 +789,7 @@ void output_atoms(struct membuf *out, struct vec *atoms)
             if(!is_valid_ui8(value))
             {
                 LOG(LOG_ERROR, ("value %d out of range for op $%02X @%p\n",
-                                value, atom->u.op.code, atom));
+                                value, atom->u.op.code, (void*)atom));
                 exit(1);
             }
             LOG(LOG_DEBUG, ("output: $%02X $%02X\n",
@@ -803,7 +803,7 @@ void output_atoms(struct membuf *out, struct vec *atoms)
             if(!is_valid_u16(value))
             {
                 LOG(LOG_ERROR, ("value %d out of range for op $%02X @%p\n",
-                                value, atom->u.op.code, atom));
+                                value, atom->u.op.code, (void*)atom));
                 exit(1);
             }
             value2 = value / 256;
@@ -898,7 +898,7 @@ void output_atoms(struct membuf *out, struct vec *atoms)
             break;
         default:
             LOG(LOG_ERROR, ("invalid atom_type %d @%p\n",
-                            atom->type, atom));
+                            atom->type, (void*)atom));
             exit(1);
         }
     }

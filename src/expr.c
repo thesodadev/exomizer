@@ -48,21 +48,22 @@ void expr_dump(int level, struct expr *e)
     switch(e->expr_op)
     {
     case SYMBOL:
-        LOG(level, ("expr %p symref %s\n", e, e->type.symref));
+        LOG(level, ("expr %p symref %s\n", (void*)e, e->type.symref));
         break;
     case NUMBER:
-        LOG(level, ("expr %p number %d\n", e, e->type.number));
+        LOG(level, ("expr %p number %d\n", (void*)e, e->type.number));
         break;
     case vNEG:
         LOG(level, ("expr %p unary op %d, referring to %p\n",
-                    e, e->expr_op, e->type.arg1));
+                    (void*)e, e->expr_op, (void*)e->type.arg1));
     case LNOT:
         LOG(level, ("expr %p unary op %d, referring to %p\n",
-                    e, e->expr_op, e->type.arg1));
+                    (void*)e, e->expr_op, (void*)e->type.arg1));
         break;
     default:
         LOG(level, ("expr %p binary op %d, arg1 %p, arg2 %p\n",
-                    e, e->expr_op, e->type.arg1, e->expr_arg2));
+                    (void*)e, e->expr_op, (void*)e->type.arg1,
+                    (void*)e->expr_arg2));
 
     }
 }
