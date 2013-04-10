@@ -9,8 +9,8 @@
 ;               de=uncompressed destination start
 ;
 ;simple version:
-;		no literal sequences (compress with -c option)
-;		you MUST define exo_mapbasebits aligned to a 256 boundary
+;               no literal sequences (compress with -c option)
+;               you MUST define exo_mapbasebits aligned to a 256 boundary
 ;
 ;ATTENTION!
 ;A huge speed boost (around 14%) can be gained at the cost of only 5 bytes.
@@ -46,11 +46,11 @@ exo_setbit:     add     hl, hl
                 dec     ixl
                 djnz    exo_initbits
                 pop     de
-                db      218             ;3 bytes nop (JP C) --> jr exo_mainloop
+                defb    218             ;3 bytes nop (JP C) --> jr exo_mainloop
 exo_literal:    ldd
 exo_mainloop:   call    exo_getbit      ;get one bit
                 jr      c, exo_literal  ;literal?
-                ld      c, 112-1
+                ld      c, 111
 exo_getindex:   call    exo_getbit      ;get one bit
                 inc     c
                 jr      nc,exo_getindex
@@ -59,8 +59,8 @@ exo_getindex:   call    exo_getbit      ;get one bit
                 ld      iyl, c
                 call    exo_getpair
                 push    de
-                dec     d
-                jp      p, exo_dontgo
+                rlc     d
+                jr      nz, exo_dontgo
                 dec     e
                 ld      bc, 512+160     ;2 bits, 48 offset
                 jr      z, exo_goforit
@@ -70,7 +70,7 @@ exo_dontgo:     ld      bc, 1024+144    ;4 bits, 32 offset
                 ld      c, 128          ;16 offset
 exo_goforit:    call    exo_getbits     ;get B bits in DE
                 ld      iyl, c
-                add     iy ,de
+                add     iy, de
                 call    exo_getpair
                 pop     bc
                 ex      (sp), hl
@@ -103,3 +103,5 @@ exo_getbit:     srl     a
                 dec     hl
                 rra
                 ret
+
+exo_mapbasebits:defs    156             ;tables for bits, baseL, baseH
