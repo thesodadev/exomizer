@@ -175,6 +175,7 @@ struct target_info
     int id;
     int sys_token;
     int basic_txt_start;
+    int end_of_ram;
     const char *model;
 };
 
@@ -290,7 +291,6 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     membuf_truncate(mem, max_end);
     membuf_trim(mem, min_start);
 
-    LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ", min_start, max_end));
     return min_start;
 }
 
@@ -365,9 +365,9 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "  The sys start argument will auto detect the start address by searching the\n"
          "  basic start for a sys command.\n"
          "  the <jmpaddress> start argument will jmp to the given address.\n"
-         "  -t<target>    sets the decruncher target, must be one of 1, 4, 20, 23, 52,\n", appl));
+         "  -t<target>    sets the decruncher target, must be one of 1, 20, 23, 52, 55\n", appl));
     LOG(level,
-        ("                55, 64, 128, 162 or 168, default is 64\n"
+        ("                16, 4, 64, 128, 162 or 168, default is 64\n"
          "  -X<custom slow effect assembler fragment>\n"
          "  -x[1-3]|<custom fast effect assembler fragment>\n"
          "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
@@ -572,6 +572,9 @@ void mem(const char *appl, int argc, char *argv[])
         in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL);
         in_len = membuf_memlen(in);
 
+        LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ",
+                         in_load, in_load + in_len));
+
         /* make room for load addr */
         if(prepend_load_addr)
         {
@@ -644,17 +647,18 @@ get_target_info(int target)
 {
     static const struct target_info targets[] =
         {
-            {1,   0xbf, 0x0501, "Oric"},
-            {20,  0x9e, 0x1001, "Vic20"},
-            {23,  0x9e, 0x0401, "Vic20+3kB"},
-            {52,  0x9e, 0x1201, "Vic20+32kB"},
-            {55,  0x9e, 0x1201, "Vic20+3kB+32kB"},
-            {4,   0x9e, 0x1001, "C16/plus4"},
-            {64,  0x9e, 0x0801, "C64"},
-            {128, 0x9e, 0x1c01, "C128"},
-            {162, 0x8c, 0x0801, "Apple ][+"},
-            {168, -1,   0x2000, "Atari 400/800 XL/XE"},
-            {0,   -1,   -1,     NULL}
+            {1,   0xbf, 0x0501, 0x10000, "Oric"},
+            {20,  0x9e, 0x1001, 0x2000,  "Vic20"},
+            {23,  0x9e, 0x0401, 0x2000,  "Vic20+3kB"},
+            {52,  0x9e, 0x1201, 0x8000,  "Vic20+32kB"},
+            {55,  0x9e, 0x1201, 0x8000,  "Vic20+3kB+32kB"},
+            {16,  0x9e, 0x1001, 0x4000,  "C16"},
+            {4,   0x9e, 0x1001, 0xfd00,  "plus4"},
+            {64,  0x9e, 0x0801, 0x10000, "C64"},
+            {128, 0x9e, 0x1c01, 0xff00,  "C128"},
+            {162, 0x8c, 0x0801, 0xc000,  "Apple ][+"},
+            {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE"},
+            {0,   -1,   -1,     -1,  NULL}
         };
     const struct target_info *targetp;
     for(targetp = targets; targetp->id != 0; ++targetp)
@@ -862,7 +866,7 @@ void sfx(const char *appl, int argc, char *argv[])
             {
                 LOG(LOG_ERROR,
                     ("error: invalid value, %d, for -t option, must be one of "
-                     "1, 4, 20, 23, 52, 55, 64, 128, 162 or 168.\n",
+                     "1, 20, 23, 52, 55, 16, 4, 64, 128, 162 or 168.\n",
                      decr_target));
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(-1);
@@ -990,6 +994,19 @@ void sfx(const char *appl, int argc, char *argv[])
                            basic_start, targetp->sys_token,
                            basic_var_startp, sys_addrp);
         in_len = membuf_memlen(in);
+
+        if(in_load + in_len > targetp->end_of_ram)
+        {
+            LOG(LOG_ERROR, ("Error:\n The memory of the %s target ends at "
+                            "$%04X and can't hold the uncrunched data\n "
+                            "that covers $%04X to $%04X.\n",
+                            targetp->model, targetp->end_of_ram,
+                            in_load, in_load + in_len));
+            exit(-1);
+        }
+
+        LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ",
+                         in_load, in_load + in_len));
 
         if(decr_target == 20 || decr_target == 52)
         {

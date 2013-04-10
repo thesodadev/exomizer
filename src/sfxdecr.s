@@ -75,7 +75,6 @@
 
 .IF(r_target == 1)
   c_basic_start    = $0501
-  c_end_of_mem_ram = $10000
   c_end_of_mem_rom = $c000
   c_effect_char    = $bfdf
   c_effect_color   = $bfdf
@@ -87,7 +86,6 @@
   c_default_table = $b800
 .ELIF(r_target == 20)
   c_basic_start    = $1001
-  c_end_of_mem_ram = $2000
   c_end_of_mem_rom = $2000
   c_effect_char    = $1ff9
   c_effect_color   = $97f9
@@ -99,7 +97,6 @@
   c_default_table = $0334
 .ELIF(r_target == 23)
   c_basic_start    = $0401
-  c_end_of_mem_ram = $2000
   c_end_of_mem_rom = $2000
   c_effect_char    = $1ff9
   c_effect_color   = $97f9
@@ -111,7 +108,6 @@
   c_default_table = $0334
 .ELIF(r_target == 52)
   c_basic_start    = $1201
-  c_end_of_mem_ram = $8000
   c_end_of_mem_rom = $8000
   c_effect_char    = $11f9
   c_effect_color   = $95f9
@@ -123,7 +119,6 @@
   c_default_table = $0334
 .ELIF(r_target == 55)
   c_basic_start    = $1201
-  c_end_of_mem_ram = $8000
   c_end_of_mem_rom = $8000
   c_effect_char    = $11f9
   c_effect_color   = $95f9
@@ -133,9 +128,19 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0334
+.ELIF(r_target == 16)
+  c_basic_start    = $1001
+  c_end_of_mem_rom = $8000
+  c_effect_char    = $0fe7
+  c_effect_color   = $0be7
+  c_border_color   = $ff19
+  c_rom_config_value = 0
+  c_ram_config_value = 1
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
+  c_default_table = $0334
 .ELIF(r_target == 4)
   c_basic_start    = $1001
-  c_end_of_mem_ram = $fd00
   c_end_of_mem_rom = $8000
   c_effect_char    = $0fe7
   c_effect_color   = $0be7
@@ -147,7 +152,6 @@
   c_default_table = $0334
 .ELIF(r_target == 64)
   c_basic_start    = $0801
-  c_end_of_mem_ram = $10000
   c_end_of_mem_rom = $a000
   c_effect_char    = $07e7
   c_effect_color   = $dbe7
@@ -159,7 +163,6 @@
   c_default_table = $0334
 .ELIF(r_target == 128)
   c_basic_start    = $1c01
-  c_end_of_mem_ram = $ff00
   c_end_of_mem_rom = $4000
   c_effect_char    = $07e7
   c_effect_color   = $dbe7
@@ -171,7 +174,6 @@
   c_default_table = $0b00
 .ELIF(r_target == $a2)
   c_basic_start    = $0801
-  c_end_of_mem_ram = $c000
   c_end_of_mem_rom = $9600
   c_effect_color   = $07f7
   c_border_color   = $07f7
@@ -181,7 +183,6 @@
   c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == $a8)
-  c_end_of_mem_ram = $d000
   c_end_of_mem_rom = $a000
   c_effect_color   = $d017
   c_border_color   = $d01a
@@ -238,10 +239,6 @@
   i_table_addr = c_default_table
 .ENDIF
 
-.IF(i_table_addr < $0200 || i_table_addr > 65536 - 156)
-  .ERROR("Symbol i_table_addr must not be < $0200 or > $FF64.")
-.ENDIF
-
 .IF(!.DEFINED(r_start_addr))
   .ERROR("Required symbol r_start_addr not defined.")
 .ENDIF
@@ -261,7 +258,7 @@
 ; -------------------------------------------------------------------
 ; -- validate some input parameters ---------------------------------
 ; -------------------------------------------------------------------
-.IF(r_target == 1 || r_target == 4)
+.IF(r_target == 1 || r_target == 16 || r_target == 4)
   .IF(i_ram_exit != 0 && i_ram_exit != 1)
     .ERROR("Symbol i_ram_exit must have a value [0-1].")
   .ENDIF
@@ -346,7 +343,7 @@ stage2_exit_hook = 1
 .ENDIF
 
 .IF(!.DEFINED(i_irq_during))
-  .IF((r_target == 4 || r_target == 16) &&
+  .IF((r_target == 16 || r_target == 4) &&
       (r_in_load < $0800 && r_in_load + r_in_len > $07f6 ||
        v_safety_addr < $0800 && v_safety_addr + transfer_len > $07f6))
 	;; default irq on plus4/c16 modifies memory $07f6-$0800
@@ -361,7 +358,7 @@ stage2_exit_hook = 1
   .ENDIF
 .ENDIF
 
-.IF(r_target == 4)
+.IF(r_target == 16 || r_target == 4)
   .IF(i_ram_during != 0 && i_ram_during != 1)
     .ERROR("Symbol i_ram_during must have a value [0-1].")
   .ENDIF
@@ -502,7 +499,7 @@ exit_hook = 1
 	jsr $c659		; init
 	jsr $c533		; regenerate line links
 	jmp $c7ae		; start
-    .ELIF(r_target == 4)
+    .ELIF(r_target == 16 || r_target == 4)
 	jsr $8bbe		; init
 	jsr $8818		; regenerate line links and set $2d/$2e
 	jsr $f3b5		; regen color table at $0113
@@ -554,7 +551,7 @@ oric_ROM11:
   .ELIF(i_effect2 != -1)
     .INCLUDE("d2io")
     .IF(i_effect2 == 0)
-      .IF(r_target == 4)
+      .IF(r_target == 16 || r_target == 4)
 	lda <$fd,x
 	sta c_effect_color
       .ELIF(r_target == 1)
@@ -569,7 +566,7 @@ oric_ROM11:
       .IF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
 	and #$07
 	ora #$18
-      .ELIF(r_target == 4)
+      .ELIF(r_target == 16 || r_target == 4)
 	ora #$30
       .ENDIF
 	sta c_border_color
@@ -579,7 +576,7 @@ oric_ROM11:
 	and #$07
 	ora #$18
 	sta c_border_color
-      .ELIF(r_target == 4)
+      .ELIF(r_target == 16 || r_target == 4)
 	lda <$fd,x
 	sta c_border_color
       .ELSE
@@ -591,7 +588,7 @@ oric_ROM11:
 	and #$07
 	ora #$18
 	sta c_border_color
-      .ELIF(r_target == 4)
+      .ELIF(r_target == 16 || r_target == 4)
 	sty c_border_color
       .ELSE
 	sty c_border_color
@@ -734,7 +731,7 @@ oric_ROM11:
   .ENDMACRO
   .MACRO("d2r_nmi")
   .ENDMACRO
-.ELIF(r_target == 4)
+.ELIF(r_target == 16 || r_target == 4)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for c16/+4 ---------------------------
 ; -------------------------------------------------------------------
@@ -862,7 +859,7 @@ o1_start:
 ; -- Commodore file header stuff ------------------------------------
 ; -------------------------------------------------------------------
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
-    r_target == 4 || r_target == 64 || r_target == 128)
+    r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128)
 zp_lo_len = $a7
 zp_src_addr = $ae
 zp_hi_bits = $9f
@@ -878,7 +875,8 @@ zp_hi_bits = $9f
 	.BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48, 0)
 basic_end:
 trqwrk ?= 2
-    .IF(r_target == 4 || r_target == 128 || (transfer_len - trqwrk) % 256 != 0)
+    .IF(r_target == 16 || r_target == 4 ||
+        r_target == 128 || (transfer_len - trqwrk) % 256 != 0)
 	.BYTE(0,0)
 trqwrk = 2
     .ELSE
@@ -1337,7 +1335,7 @@ file1end:
 ; -------------------------------------------------------------------
 o1_end:
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
-    r_target == 4 || r_target == 64 || r_target == 128)
+    r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128)
 ; -------------------------------------------------------------------
 ; -- Start of Commodore file footer stuff ---------------------------
 ; -------------------------------------------------------------------
