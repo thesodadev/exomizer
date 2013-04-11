@@ -1,3 +1,15 @@
+2013-04-11
+Release of 2.0.7 source code, Win32 and DOS binaries.
++ Bugfixed z80 decrunchers from Metalbrain.
++ Bugfixed sfx c16/plus4 target where the default irq could corrupt memory
+  while decrunching data that covers $07f6-$0800, reported by Luca/FIRE.
++ Bugfixed sfx c16/plus4 target where the default decrunch effect could corrupt
+  memory while decrunching data that covers $0be7, reported by Luca/FIRE.
++ Added feature to sfx-mode that complains if the data it too big to fit in the
+  available memory of the selected target, suggested by Luca/FIRE.
++ Added c16 target, -t 4, like -t4 but with smaller memory, suggested by
+  Luca/FIRE.
+
 2013-01-27
 Release of 2.0.6 source code, Win32 and DOS binaries.
 + New improvements to the z80 decrunchers, again smaller and faster.

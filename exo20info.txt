@@ -270,11 +270,12 @@ can't decrunch into banked memory.
 -t<target>
         Sets the decruncher target. The possible targets are:
           1: Oric 1, Oric Atmos and Telestrat.
-          4: Commodore c16/plus4.
          20: Commodore Vic20, unexpanded memory.
          23: Commodore Vic20, 3kB memory expansion.
          52: Commodore Vic20, 32kB memory expansion.
          55: Commodore Vic20  32+3kB memory expansion.
+         16: Commodore c16
+          4: Commodore plus4.
          64: Commodore c64. (The default target)
         128: Commodore c128.
         162: Apple ][+ and //e
