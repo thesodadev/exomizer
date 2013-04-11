@@ -195,6 +195,9 @@
   .ERROR("Symbol r_target_addr has an invalid value.")
 .ENDIF
 
+v_safety_addr = .INCWORD("crunched_data", 0)
+transfer_len ?= 0
+
 .IF(i_effect == 0 &&
     (r_in_load < c_effect_color + 1 &&
      r_in_load + r_in_len > c_effect_color ||
@@ -280,8 +283,6 @@
     .ERROR("Symbol i_ram_enter must be undefined or be within [0-$3f].")
   .ENDIF
 .ENDIF
-
-v_safety_addr = .INCWORD("crunched_data", 0)
 
 ; -------------------------------------------------------------------
 ; -- convert $0 to $10000 but leave $1 - $ffff ----------------------
@@ -822,8 +823,6 @@ oric_ROM11:
 ; -------------------------------------------------------------------
 ; -- Start of file header stuff -------------------------------------
 ; -------------------------------------------------------------------
-transfer_len ?= 0
-
 .IF(r_target == 1)
 ; -------------------------------------------------------------------
 ; -- Oric-1 file header stuff ---------------------------------------
