@@ -1,5 +1,10 @@
-2013-04-11
+2013-04-14
 Release of 2.0.7 source code, Win32 and DOS binaries.
++ Bugfixed commodore sfx targets to automatically disable irq when decrunching
+  over system areas. This together with moving the table to zero-page,
+  -Di_table_addr=0x2, allows decrunching $0200-<end of mem> without corruption
+  for all commodore targets except for the vic20-configs without a 3kB memory
+  expansion since they have a memory hole at $0400-$1000.
 + Bugfixed z80 decrunchers from Metalbrain.
 + Bugfixed sfx c16/plus4 target where the default irq could corrupt memory
   while decrunching data that covers $07f6-$0800, reported by Luca/FIRE.
