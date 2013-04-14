@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 - 2007 Magnus Lind.
+; Copyright (c) 2002 - 2013 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -198,13 +198,13 @@
 v_safety_addr = .INCWORD("crunched_data", 0)
 transfer_len ?= 0
 
-.IF(i_effect == 0 &&
+.IF(i_effect == 0 && (r_target == 16 || r_target == 4 || r_target == $a2) &&
     (r_in_load < c_effect_color + 1 &&
      r_in_load + r_in_len > c_effect_color ||
      v_safety_addr < c_effect_color + 1 &&
      v_safety_addr + transfer_len > c_effect_color))
 	;; disable default effect if the address is in the
-	;; data area
+	;; data area for the c64/plus4 and Apple targets.
   i_effect2 = -1
 .ELSE
   i_effect2 = i_effect
@@ -220,6 +220,25 @@ transfer_len ?= 0
 
 .IF(!.DEFINED(i_irq_enter))
   i_irq_enter = 1
+.ENDIF
+
+.IF(!.DEFINED(i_irq_during))
+  .IF((r_target == 16 || r_target == 4) &&
+      (r_in_load < $0800 || v_safety_addr < $0800))
+	;; must disable irq on plus4/c16 to access mem < $0800
+    i_irq_during = 0
+    .IF(!.DEFINED(i_irq_exit))
+      i_irq_exit = 0
+    .ENDIF
+  .ELIF((r_target == 20 || r_target == 23 || r_target == 52 ||
+         r_target == 55 || r_target == 64 || r_target == 128) &&
+      (r_in_load < c_default_table || v_safety_addr < c_default_table))
+	;; must disable irq on vic20,c64,c128 to access mem < c_default_table
+    i_irq_during = 0
+    .IF(!.DEFINED(i_irq_exit))
+      i_irq_exit = 0
+    .ENDIF
+  .ENDIF
 .ENDIF
 
 .IF(!.DEFINED(i_ram_exit))
@@ -342,17 +361,8 @@ stage2_exit_hook = 1
     i_nmi_during = i_nmi_enter
   .ENDIF
 .ENDIF
-
 .IF(!.DEFINED(i_irq_during))
-  .IF((r_target == 16 || r_target == 4) &&
-      (r_in_load < $0800 && r_in_load + r_in_len > $07f6 ||
-       v_safety_addr < $0800 && v_safety_addr + transfer_len > $07f6))
-	;; default irq on plus4/c16 modifies memory $07f6-$0800
-    i_irq_during = 0
-    .IF(!.DEFINED(i_irq_exit))
-      i_irq_exit = 0
-    .ENDIF
-  .ELIF(i_irq_enter==i_irq_exit && i_ram_during==i_ram_enter && r_target!=1)
+  .IF(i_irq_enter==i_irq_exit && i_ram_during==i_ram_enter && r_target!=1)
     i_irq_during = i_irq_enter
   .ELSE
     i_irq_during = 0
