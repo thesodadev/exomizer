@@ -1,3 +1,5 @@
++ Enforce match max_len everwhere, bug reported by Zik / Futurs.
+
 2013-04-14
 Release of 2.0.7 source code, Win32 and DOS binaries.
 + Bugfixed commodore sfx targets to automatically disable irq when decrunching

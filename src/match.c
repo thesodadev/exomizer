@@ -57,9 +57,9 @@ matchp match_new(match_ctx ctx, /* IN/OUT */
         LOG(LOG_ERROR, ("tried to allocate len0 match.\n"));
         *(volatile int*)0;
     }
-    if(len > 65535)
+    if(len > ctx->max_len)
     {
-        len = 65535;
+        len = ctx->max_len;
     }
 
     m->len = len;
@@ -106,7 +106,7 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
         if (buf[i] == val)
         {
             int len = ctx->rle[i - 1] + 1;
-            if(len > 65535)
+            if(len > ctx->max_len)
             {
                 len = 0;
             }
