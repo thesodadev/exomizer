@@ -2,7 +2,7 @@
 #define EXO_HELPER_ALREADY_INCLUDED
 
 /*
- * Copyright (c) 2005, 2013 Magnus Lind.
+ * Copyright (c) 2005, 2013, 2015 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -31,7 +31,7 @@
 #include "log.h"
 #include "membuf.h"
 
-#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 1, 0}
+#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 1, 0, 1}
 
 struct common_flags
 {
@@ -39,7 +39,7 @@ struct common_flags
     const char *outfile;
 };
 
-#define CRUNCH_FLAGS "cCe:m:M:p:o:qv"
+#define CRUNCH_FLAGS "cCe:Em:M:p:o:qv"
 #define BASE_FLAGS "o:qv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
@@ -69,6 +69,7 @@ struct crunch_options
     int max_offset;
     int use_literal_sequences;
     int use_imprecise_rle;
+    int output_header;
 };
 
 struct crunch_info

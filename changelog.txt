@@ -1,3 +1,5 @@
++ Add -E flag to not write the encoding to the outfile.
++ Remove max nr of chunks limit from the chunkpool allocator.
 + Enforce match max_len everwhere, bug reported by Zik / Futurs.
 
 2013-04-14

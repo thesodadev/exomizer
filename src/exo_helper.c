@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2013 Magnus Lind.
+ * Copyright (c) 2005, 2013, 2015 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -46,7 +46,8 @@ int do_output(match_ctx ctx,
               encode_match_data emd,
               encode_match_f * f,
               struct membuf *outbuf,
-              int *literal_sequences_used)
+              int *literal_sequences_used,
+              int output_header)
 {
     int pos;
     int pos_diff;
@@ -124,10 +125,12 @@ int do_output(match_ctx ctx,
     }
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    /* output header here */
-    optimal_out(out, emd);
-    LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-
+    if (output_header)
+    {
+        /* output header here */
+        optimal_out(out, emd);
+        LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+    }
     output_bits_flush(out);
 
     emd->out = old;
@@ -272,7 +275,8 @@ void crunch_backwards(struct membuf *inbuf,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
     LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
-    safety = do_output(ctx, snp, emd, optimal_encode, outbuf, &copy_used);
+    safety = do_output(ctx, snp, emd, optimal_encode, outbuf,
+                       &copy_used, options->output_header);
     LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n",
                      membuf_memlen(outbuf) - outlen));
 
@@ -352,7 +356,7 @@ void print_license(void)
 {
     LOG(LOG_BRIEF,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v2.0.7, Copyright (c) 2002-2013 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v2.0.8beta1, Copyright (c) 2002-2015 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_BRIEF,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -396,6 +400,7 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
         ("  -c            compatibility mode, disables the use of literal sequences\n"
          "  -C            enable imprecise rle matching, trades result for speed\n"
          "  -e <encoding> uses the given encoding for crunching\n"
+         "  -E            don't write the encoding to the outfile\n"
          "  -m <offset>   sets the maximum sequence offset, default is 65535\n"
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"));
@@ -452,6 +457,9 @@ void handle_crunch_flags(int flag_char, /* IN */
         break;
     case 'e':
         options->exported_encoding = flag_arg;
+        break;
+    case 'E':
+        options->output_header = 0;
         break;
     case 'm':
         if (str_to_int(flag_arg, &options->max_offset) != 0 ||
