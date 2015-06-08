@@ -2,7 +2,7 @@
 #define ALREADY_INCLUDED_CHUNKPOOL
 
 /*
- * Copyright (c) 2003 -2005 Magnus Lind.
+ * Copyright (c) 2003 - 2005, 2015 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -29,8 +29,6 @@
  */
 
 #include "callback.h"
-
-#define CHUNKPOOL_CHUNKS_MAX    64
 
 struct chunkpool {
     int chunk_size;

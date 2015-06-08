@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003 - 2005 Magnus Lind.
+ * Copyright (c) 2003 - 2005, 2015 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -75,15 +75,6 @@ chunkpool_malloc(struct chunkpool *ctx)
     if(ctx->chunk_pos == ctx->chunk_max)
     {
 	void *m;
-	if(ctx->chunk == CHUNKPOOL_CHUNKS_MAX - 1)
-	{
-	    LOG(LOG_ERROR, ("out of chunks in file %s, line %d\n",
-			    __FILE__, __LINE__));
-	    LOG(LOG_BRIEF, ("chunk_size %d\n", ctx->chunk_size));
-	    LOG(LOG_BRIEF, ("chunk_max %d\n", ctx->chunk_max));
-	    LOG(LOG_BRIEF, ("chunk %d\n", ctx->chunk));
-	    exit(-1);
-	}
 	m = malloc(ctx->chunk_max);
         LOG(LOG_DEBUG, ("allocating new chunk %p\n", m));
 	if (m == NULL)
