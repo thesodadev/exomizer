@@ -10,7 +10,8 @@ LDFLAGS = -s
 
 SHARED_OBJS = getflag.o log.o membuf.o
 RAW_OBJS = match.o search.o exo_raw.o optimal.o output.o membuf_io.o \
-           chunkpool.o radix.o exo_helper.o exodec.o progress.o exo_util.o
+           chunkpool.o radix.o exo_helper.o exodec.o progress.o exo_util.o \
+           vec.o
 EXO_OBJS = match.o search.o exo_main.o optimal.o output.o membuf_io.o \
            chunkpool.o radix.o exo_helper.o exodec.o progress.o asm.tab.o \
            lex.yy.o parse.o expr.o pc.o vec.o named_buffer.o map.o desfx.o \

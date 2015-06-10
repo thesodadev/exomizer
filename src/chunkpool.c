@@ -31,35 +31,50 @@
 #include <string.h>
 
 void
-chunkpool_init(struct chunkpool *ctx, int size)
+chunkpool_init(struct chunkpool *ctx, int item_size)
 {
-    ctx->chunk_size = size;
-    ctx->chunk = -1;
-    ctx->chunk_max = (0x1fffff / size) * size;
-    ctx->chunk_pos = ctx->chunk_max;
+    ctx->item_size = item_size;
+    ctx->item_end = (0x1fffff / item_size) * item_size;
+    ctx->item_pos = ctx->item_end;
+    ctx->current_chunk = NULL;
+    vec_init(&ctx->used_chunks, sizeof(void*));
+}
+
+void chunk_free(void *chunks, int item_pos, int item_size, cb_free *f)
+{
+    if (f != NULL)
+    {
+        do
+        {
+            item_pos -= item_size;
+            f(chunks + item_pos);
+        }
+        while(item_pos > 0);
+    }
 }
 
 void
 chunkpool_free2(struct chunkpool *ctx, cb_free *f)
 {
-    while(ctx->chunk >= 0)
+    void **chunkp;
+    struct vec_iterator i;
+    if (ctx->current_chunk != NULL)
     {
-        if(f != NULL)
-        {
-            do
-            {
-                ctx->chunk_pos -= ctx->chunk_size;
-                f((char*)ctx->chunks[ctx->chunk] + ctx->chunk_pos);
-            }
-            while(ctx->chunk_pos > 0);
-            ctx->chunk_pos = ctx->chunk_max;
-        }
-	free(ctx->chunks[ctx->chunk]);
-	ctx->chunk -= 1;
+        chunk_free(ctx->current_chunk, ctx->item_pos, ctx->item_size, f);
+        free(ctx->current_chunk);
     }
-    ctx->chunk_size = -1;
-    ctx->chunk_max = -1;
-    ctx->chunk_pos = -1;
+    vec_get_iterator(&ctx->used_chunks, &i);
+    while ((chunkp = vec_iterator_next(&i)) != NULL)
+    {
+        chunk_free(*chunkp, ctx->item_end, ctx->item_size, f);
+        free(*chunkp);
+    }
+
+    ctx->item_size = -1;
+    ctx->item_end = -1;
+    ctx->item_pos = -1;
+    ctx->current_chunk = NULL;
+    vec_free(&ctx->used_chunks, NULL);
 }
 
 void
@@ -72,10 +87,10 @@ void *
 chunkpool_malloc(struct chunkpool *ctx)
 {
     void *p;
-    if(ctx->chunk_pos == ctx->chunk_max)
+    if(ctx->item_pos == ctx->item_end)
     {
 	void *m;
-	m = malloc(ctx->chunk_max);
+	m = malloc(ctx->item_end);
         LOG(LOG_DEBUG, ("allocating new chunk %p\n", m));
 	if (m == NULL)
 	{
@@ -83,12 +98,12 @@ chunkpool_malloc(struct chunkpool *ctx)
 			    __FILE__, __LINE__));
 	    exit(-1);
 	}
-	ctx->chunk += 1;
-	ctx->chunks[ctx->chunk] = m;
-	ctx->chunk_pos = 0;
+	vec_push(&ctx->used_chunks, &ctx->current_chunk);
+        ctx->current_chunk = m;
+	ctx->item_pos = 0;
     }
-    p = (char*)ctx->chunks[ctx->chunk] + ctx->chunk_pos;
-    ctx->chunk_pos += ctx->chunk_size;
+    p = ctx->current_chunk + ctx->item_pos;
+    ctx->item_pos += ctx->item_size;
     return p;
 }
 
@@ -96,6 +111,6 @@ void *
 chunkpool_calloc(struct chunkpool *ctx)
 {
     void *p = chunkpool_malloc(ctx);
-    memset(p, 0, ctx->chunk_size);
+    memset(p, 0, ctx->item_size);
     return p;
 }

@@ -29,17 +29,18 @@
  */
 
 #include "callback.h"
+#include "vec.h"
 
 struct chunkpool {
-    int chunk_size;
-    int chunk;
-    int chunk_pos;
-    int chunk_max;
-    void *chunks[64];
+    int item_size;
+    int item_pos;
+    int item_end;
+    void *current_chunk;
+    struct vec used_chunks;
 };
 
 void
-chunkpool_init(struct chunkpool *ctx, int size);
+chunkpool_init(struct chunkpool *ctx, int item_size);
 
 void
 chunkpool_free(struct chunkpool *ctx);
