@@ -77,7 +77,7 @@ struct vec strdupped[1];
 \.defined	return DEFINED;
 \.org		return ORG;
 \.error		return ERROR;
-\.echo		return ECHO;
+\.echo		return ECHO1;
 \.incbin	return INCBIN;
 \.inclen	return INCLEN;
 \.incword	return INCWORD;
