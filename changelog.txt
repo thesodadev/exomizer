@@ -1,3 +1,5 @@
+2015-09-20
+Release of 2.0.8 source code, Win32 and DOS binaries.
 + Fix bug reported and analyzed by Adrien Destugues. The ECHO token in asm.y
   collides with the flex ECHO macro. The cause is that Bison 2.3a and newer
   stopped to generate defines for the declared tokens. To resolve this the ECHO
