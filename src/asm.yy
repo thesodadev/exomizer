@@ -275,3 +275,11 @@ void scanner_free(void)
 {
     vec_free(strdupped, strdupped_free);
 }
+
+
+void silence_warnings_about_unused_functions(void)
+{
+    yyunput(0, NULL);
+    input();
+    yy_top_state();
+}

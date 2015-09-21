@@ -676,7 +676,7 @@ int resolve_symbol(const char *symbol, int *has_valuep, i32 *valuep)
     int found = 0;
     int has_value = 0;
     i32 value = 0;
-    struct expr *e;
+    struct expr *e = NULL;
     const char *p;
 
     p = find_symref(symbol, &e);

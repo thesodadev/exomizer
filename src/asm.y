@@ -35,6 +35,11 @@
 #define YYERROR_VERBOSE
 
 static struct vec asm_atoms[1];
+
+/* prototypes to silence compiler warnings */
+int yylex(void);
+void yyerror(const char *s);
+
 %}
 
 %expect 5
@@ -184,9 +189,9 @@ stmt:	SYMBOL COLON { new_label($1); } |
         INCLUDE LPAREN STRING RPAREN { asm_include($3); } |
         MACRO LPAREN STRING RPAREN { push_macro_state($3); } |
         atom { vec_push(asm_atoms, &$1); } |
-        MACRO_STRING { macro_append($1) };
+        MACRO_STRING { macro_append($1); };
 
-atom:	op { $$ = $1} |
+atom:	op { $$ = $1; } |
         RES LPAREN expr COMMA expr RPAREN { $$ = new_res($3, $5); } |
         WORD LPAREN exprs RPAREN { $$ = exprs_to_word_exprs($3); } |
         BYTE LPAREN exprs RPAREN { $$ = exprs_to_byte_exprs($3); } |
@@ -404,11 +409,9 @@ lexpr:  DEFINED LPAREN SYMBOL RPAREN        { $$ = new_is_defined($3); };
 
 %%
 
-int
-yyerror (char *s)
+void yyerror (const char *s)
 {
     fprintf (stderr, "line %d, %s\n", num_lines, s);
-    return 0;
 }
 
 void asm_set_source(struct membuf *buffer);

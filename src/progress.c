@@ -61,7 +61,7 @@ void progress_bump(struct progress p[1], int pos)
     {
         if(p->last == -1)
         {
-            LOG(LOG_NORMAL, ("  % *s]\r [", BAR_LENGTH, ""));
+            LOG(LOG_NORMAL, ("  %*s]\r [", BAR_LENGTH, ""));
         }
         else
         {

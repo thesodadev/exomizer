@@ -2717,3 +2717,11 @@ void scanner_free(void)
     vec_free(strdupped, strdupped_free);
 }
 
+
+void silence_warnings(void)
+{
+    yyunput(0, NULL);
+    input();
+    yy_top_state();
+}
+
