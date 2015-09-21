@@ -40,14 +40,14 @@ chunkpool_init(struct chunkpool *ctx, int item_size)
     vec_init(&ctx->used_chunks, sizeof(void*));
 }
 
-void chunk_free(void *chunks, int item_pos, int item_size, cb_free *f)
+static void chunk_free(void *chunks, int item_pos, int item_size, cb_free *f)
 {
-    if (f != NULL)
+    if (chunks != NULL && f != NULL)
     {
         do
         {
             item_pos -= item_size;
-            f(chunks + item_pos);
+            f((char*)chunks + item_pos);
         }
         while(item_pos > 0);
     }
@@ -102,7 +102,7 @@ chunkpool_malloc(struct chunkpool *ctx)
         ctx->current_chunk = m;
 	ctx->item_pos = 0;
     }
-    p = ctx->current_chunk + ctx->item_pos;
+    p = (char*)ctx->current_chunk + ctx->item_pos;
     ctx->item_pos += ctx->item_size;
     return p;
 }

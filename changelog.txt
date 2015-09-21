@@ -1,3 +1,8 @@
+
++ sfx decruncher source echoed to stdout, reported by iAn CooG, fix provided by
+  soci.
++ NULL pointer dereference crash, reported by Flavio, fix proveded by soci.
+
 2015-09-20
 Release of 2.0.8 source code, Win32 and DOS binaries.
 + Fix bug reported and analyzed by Adrien Destugues. The ECHO token in asm.y

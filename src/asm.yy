@@ -175,7 +175,7 @@ y		return Y;
 
 \r\n|\n		++num_lines;
 
-[ \t]|;	/* eat whitespace */
+[ \t]		/* eat whitespace */
 
 .		printf("unknown character found %s\n", yytext);
 
@@ -195,19 +195,23 @@ y		return Y;
 <SKIP_ALL>\r\n|\n	++num_lines;
 <SKIP_ALL>.
 
-<QUOTED_STRING>\r\n|\n	{
-    ++num_lines;
-    yylval.str = strdupped_get(yytext);
-    return STRING;
-}
-
 <QUOTED_STRING>[^\"]*	{
-    yylval.str = strdupped_get(yytext);
+    /* multi-line string with correct line count */
+    char *p = strdupped_get(yytext);
+    yylval.str = p;
+    while (*p != '\0')
+    {
+        if (*p++ == '\n')
+        {
+            ++num_lines;
+        }
+    }
     return STRING;
 }
 <QUOTED_STRING>\"	BEGIN(INITIAL);
 
 <SKIP_LINE>\r\n|\n	{ ++num_lines; BEGIN(INITIAL); }
+<SKIP_LINE>.
 
 <<EOF>>	{
 	    if(--src_buffer_depth == 0)
