@@ -1,7 +1,8 @@
-
-+ sfx decruncher source echoed to stdout, reported by iAn CooG, fix provided by
-  soci.
-+ NULL pointer dereference crash, reported by Flavio, fix proveded by soci.
+2015-09-21
+Release of 2.0.9 source code, Win32 and DOS binaries.
++ Fix gcc-compiler warnings.
++ sfx decr src comments echoed to stdout, reported by iAN CooG, fix by soci.
++ NULL pointer dereference crash, reported by Flavio, fix by soci.
 
 2015-09-20
 Release of 2.0.8 source code, Win32 and DOS binaries.
