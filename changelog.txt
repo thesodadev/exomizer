@@ -1,3 +1,5 @@
++ Change -mtune flag to make exomizer build on more platforms "out of the box".
+
 2015-09-21
 Release of 2.0.9 source code, Win32 and DOS binaries.
 + Fix gcc-compiler warnings.
