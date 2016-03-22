@@ -1154,6 +1154,7 @@ void sfx(const char *appl, int argc, char *argv[])
         if(assemble(source, out) != 0)
         {
             LOG(LOG_ERROR, ("Parse failure.\n"));
+            exit(-1);
         }
         else
         {
