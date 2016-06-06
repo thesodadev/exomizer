@@ -30,13 +30,13 @@
 #include "stdlib.h"
 #include "string.h"
 
-int find_sys(const unsigned char *buf, int target)
+int find_sys(const unsigned char *buf, int sys_token, int *stub_lenp)
 {
     int outstart = -1;
     int state = 1;
-    int i = 0;
+
     /* skip link and line number */
-    buf += 4;
+    int i = 4;
     /* exit loop at line end */
     while(i < 1000 && buf[i] != '\0')
     {
@@ -46,11 +46,11 @@ int find_sys(const unsigned char *buf, int target)
         {
             /* look for and consume sys token */
         case 1:
-            if((target == -1 &&
+            if((sys_token == -1 &&
                 (c == 0x9e /* cbm */ ||
                  c == 0x8c /* apple 2*/ ||
                  c == 0xbf /* oric 1*/)) ||
-               c == target)
+               c == sys_token)
             {
                 state = 2;
             }
@@ -73,6 +73,11 @@ int find_sys(const unsigned char *buf, int target)
             break;
         }
         ++i;
+    }
+    if (stub_lenp != NULL)
+    {
+        /* skip zero byte + next zero link word */
+        *stub_lenp = i + 3;
     }
 
     LOG(LOG_DEBUG, ("state when leaving: %d.\n", state));

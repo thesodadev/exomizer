@@ -183,7 +183,7 @@ static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
          int basic_txt_start, int sys_token,
-         int *basic_var_startp, int *runp)
+         int *basic_var_startp, int *runp, int trim_sys)
 {
     int run = -1;
     int min_start = 65537;
@@ -224,8 +224,15 @@ do_loads(int filec, char *filev[], struct membuf *mem,
                 {
                     /* only if we didn't get run address from load_located
                      * (run is not -1 if we did) */
-                    run = find_sys(p + basic_txt_start, sys_token);
+                    int stub_len;
+                    run = find_sys(p + basic_txt_start, sys_token, &stub_len);
                     *runp = run;
+                    if (trim_sys &&
+                        basic_txt_start == info->start &&
+                        min_start >= info->start)
+                    {
+                        info->start += stub_len;
+                    }
                 }
             }
         }
@@ -359,24 +366,26 @@ void print_sfx_usage(const char *appl, enum log_level level,
 {
     /* done */
     LOG(level,
-        ("usage: %s sfx basic[,<start>[,<end>[,<high>]]]|sys[,<start>]|<jmpaddress> [option]... infile[,<address>]...\n"
+        ("usage: %s sfx basic[,<start>[,<end>[,<high>]]]|sys[trim][,<start>]|<jmpaddress> [option]... infile[,<address>]...\n"
          "  The sfx command generates outfiles that are intended to decrunch themselves.\n"
          "  The basic start argument will start a basic program.\n"
          "  The sys start argument will auto detect the start address by searching the\n"
          "  basic start for a sys command.\n"
-         "  the <jmpaddress> start argument will jmp to the given address.\n"
-         "  -t<target>    sets the decruncher target, must be one of 1, 20, 23, 52, 55\n", appl));
+         "  The systrim start argument works like the sys start argument but it will\n"
+         "  also remove the sys line from the target file.\n"
+         , appl));
     LOG(level,
-        ("                16, 4, 64, 128, 162 or 168, default is 64\n"
+        ("  the <jmpaddress> start argument will jmp to the given address.\n"
+         "  -t<target>    sets the decruncher target, must be one of 1, 20, 23, 52, 55\n""                16, 4, 64, 128, 162 or 168, default is 64\n"
          "  -X<custom slow effect assembler fragment>\n"
          "  -x[1-3]|<custom fast effect assembler fragment>\n"
          "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
          "                or carry) or 1 - 3 for different fast border flash effects\n"
-         "  -n            no effect, can't be combined with -X or -x\n"
-         "  -D<symbol>=<value>\n"
-         "                predefines symbols for the sfx assembler\n"));
+         "  -n            no effect, can't be combined with -X or -x\n"));
     LOG(level,
-        ("  -s<custom enter assembler fragment>\n"
+        ("  -D<symbol>=<value>\n"
+         "                predefines symbols for the sfx assembler\n"
+         "  -s<custom enter assembler fragment>\n"
          "  -f<custom exit assembler fragment>\n"));
     print_crunch_flags(level, default_outfile);
     LOG(level,
@@ -569,7 +578,7 @@ void mem(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
 
-        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL);
+        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0);
         in_len = membuf_memlen(in);
 
         LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ",
@@ -749,6 +758,7 @@ void sfx(const char *appl, int argc, char *argv[])
     int basic_highest_addr = -1;
     int decr_target = 64;
     int sys_addr = -1;
+    int trim_sys = 0;
     int no_effect = 0;
     char *fast = NULL;
     char *slow = NULL;
@@ -785,8 +795,12 @@ void sfx(const char *appl, int argc, char *argv[])
     do
     {
         char *p = strtok(argv[1], ",");
-        if (strcmp(p, "sys") == 0)
+        if (strcmp(p, "sys") == 0 || strcmp(p, "systrim") == 0)
         {
+            if (strcmp(p, "systrim") == 0)
+            {
+                trim_sys = 1;
+            }
             /* we should look for a basic sys command. */
             sys_addr = -1;
             p = strtok(NULL, ",");
@@ -992,7 +1006,7 @@ void sfx(const char *appl, int argc, char *argv[])
 
         in_load = do_loads(infilec, infilev, in,
                            basic_start, targetp->sys_token,
-                           basic_var_startp, sys_addrp);
+                           basic_var_startp, sys_addrp, trim_sys);
         in_len = membuf_memlen(in);
 
         if(in_load + in_len > targetp->end_of_ram)
@@ -1396,7 +1410,7 @@ void desfx(const char *appl, int argc, char *argv[])
     if(entry == -1)
     {
         /* look for sys line */
-        entry = find_sys(p + info->start, -1);
+        entry = find_sys(p + info->start, -1, NULL);
     }
     if(entry == -1)
     {
