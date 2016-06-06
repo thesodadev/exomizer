@@ -231,7 +231,18 @@ do_loads(int filec, char *filev[], struct membuf *mem,
                         basic_txt_start == info->start &&
                         min_start >= info->start)
                     {
-                        info->start += stub_len;
+                        if (run >= info->start &&
+                            run < info->start + stub_len)
+                        {
+                            /* the run address points into the sys stub,
+                               trim up to it but no further */
+                            info->start = run;
+                        }
+                        else
+                        {
+                            /* trim the sys stub*/
+                            info->start += stub_len;
+                        }
                     }
                 }
             }
