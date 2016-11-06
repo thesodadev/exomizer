@@ -1,3 +1,6 @@
++ More portable by not using negative exit codes.
++ Add new keyword systrim to the sfx command. It behaves like the sys keyword
+  but will also remove the sysline from the loaded infile.
 + Exit with an error if the parsing of the sfxdecr.s fails. This might happen
   with user provided assembly given by the options -x -X -s -f, reported by
   Stefan A. Haubenthal.
