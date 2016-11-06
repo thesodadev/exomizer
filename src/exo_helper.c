@@ -185,7 +185,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
         if (snp == NULL)
         {
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
-            exit(-1);
+            exit(1);
         }
 
         size = snp->total_score;
@@ -469,7 +469,7 @@ void handle_crunch_flags(int flag_char, /* IN */
                 ("Error: invalid offset for -m option, "
                  "must be in the range of [0 - 65535]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
-            exit(-1);
+            exit(1);
         }
         break;
     case 'M':
@@ -480,7 +480,7 @@ void handle_crunch_flags(int flag_char, /* IN */
                 ("Error: invalid offset for -n option, "
                  "must be in the range of [0 - 65535]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
-            exit(-1);
+            exit(1);
         }
         break;
     case 'p':
@@ -491,7 +491,7 @@ void handle_crunch_flags(int flag_char, /* IN */
                 ("Error: invalid value for -p option, "
                  "must be in the range of [1 - 65535]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
-            exit(-1);
+            exit(1);
         }
         break;
     default:

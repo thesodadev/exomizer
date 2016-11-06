@@ -91,7 +91,7 @@ static int get_byte(FILE *in)
     {
         LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
         fclose(in);
-        exit(-1);
+        exit(1);
     }
     return byte;
 }
@@ -157,7 +157,7 @@ open_file(char *name, int *load_addr)
             /* we fail */
             LOG(LOG_ERROR,
                 (" can't parse load address from \"%s\"\n", load_str));
-            exit(-1);
+            exit(1);
         }
 
         in = fopen(name, "rb");
@@ -167,7 +167,7 @@ open_file(char *name, int *load_addr)
     {
         LOG(LOG_ERROR,
             (" can't open file \"%s\" for input\n", name));
-        exit(-1);
+        exit(1);
     }
 
     if(!is_plain)
@@ -227,7 +227,7 @@ static void load_xex(unsigned char mem[65536], FILE *in,
         {
             LOG(LOG_ERROR, ("Error: corrupt data in xex-file."));
             fclose(in);
-            exit(-1);
+            exit(1);
         }
         if(start == 0x2e2 && end == 0x2e3)
         {
@@ -253,7 +253,7 @@ static void load_xex(unsigned char mem[65536], FILE *in,
         {
             LOG(LOG_ERROR, ("Error: unexpected end of xex-file.\n"));
             fclose(in);
-            exit(-1);
+            exit(1);
         }
         LOG(LOG_VERBOSE, (" xex chunk loading from $%04X to $%04X\n",
                           start, end));
@@ -287,7 +287,7 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
         LOG(LOG_ERROR, ("Error: fewer than three lead-in bytes ($16) "
                         "in Oric tap-file header.\n"));
         fclose(in);
-        exit(-1);
+        exit(1);
     }
     /* optionally more 0x16 bytes */
     while((c = get_byte(in)) == 0x16);
@@ -297,7 +297,7 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
         LOG(LOG_ERROR, ("Error: bad sync byte after lead-in in Oric tap-file "
                         "header, got $%02X but expected $24\n", c));
         fclose(in);
-        exit(-1);
+        exit(1);
     }
 
     /* now we are in sync, lets be lenient */

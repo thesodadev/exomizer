@@ -100,7 +100,7 @@ main(int argc, char *argv[])
     {
         LOG(LOG_ERROR, ("Error: exactly one input file must be given.\n"));
         print_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
-        exit(-1);
+        exit(1);
     }
 
     membuf_init(inbuf);

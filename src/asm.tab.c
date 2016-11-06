@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.2"
+#define YYBISON_VERSION "3.0.4"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -209,7 +209,7 @@ extern int yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
 #line 145 "asm.y" /* yacc.c:355  */
@@ -221,6 +221,8 @@ union YYSTYPE
 
 #line 223 "asm.tab.c" /* yacc.c:355  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -234,7 +236,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 238 "asm.tab.c" /* yacc.c:358  */
+#line 240 "asm.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -1604,1179 +1606,1179 @@ yyreduce:
         case 4:
 #line 181 "asm.y" /* yacc.c:1646  */
     { new_label((yyvsp[-1].str)); }
-#line 1608 "asm.tab.c" /* yacc.c:1646  */
+#line 1610 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 5:
 #line 182 "asm.y" /* yacc.c:1646  */
     { new_symbol_expr((yyvsp[-2].str), (yyvsp[0].expr)); }
-#line 1614 "asm.tab.c" /* yacc.c:1646  */
+#line 1616 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 6:
 #line 183 "asm.y" /* yacc.c:1646  */
     { new_symbol_expr_guess((yyvsp[-2].str), (yyvsp[0].expr)); }
-#line 1620 "asm.tab.c" /* yacc.c:1646  */
+#line 1622 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 7:
 #line 184 "asm.y" /* yacc.c:1646  */
     { push_if_state((yyvsp[-1].expr)); }
-#line 1626 "asm.tab.c" /* yacc.c:1646  */
+#line 1628 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 8:
 #line 185 "asm.y" /* yacc.c:1646  */
     { set_org((yyvsp[-1].expr)); }
-#line 1632 "asm.tab.c" /* yacc.c:1646  */
+#line 1634 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 9:
 #line 186 "asm.y" /* yacc.c:1646  */
     { asm_error((yyvsp[-1].str)); }
-#line 1638 "asm.tab.c" /* yacc.c:1646  */
+#line 1640 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 10:
 #line 187 "asm.y" /* yacc.c:1646  */
     { asm_echo((yyvsp[-1].str), NULL); }
-#line 1644 "asm.tab.c" /* yacc.c:1646  */
+#line 1646 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 11:
 #line 188 "asm.y" /* yacc.c:1646  */
     { asm_echo((yyvsp[-3].str), (yyvsp[-1].atom)); }
-#line 1650 "asm.tab.c" /* yacc.c:1646  */
+#line 1652 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 12:
 #line 189 "asm.y" /* yacc.c:1646  */
     { asm_include((yyvsp[-1].str)); }
-#line 1656 "asm.tab.c" /* yacc.c:1646  */
+#line 1658 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 13:
 #line 190 "asm.y" /* yacc.c:1646  */
     { push_macro_state((yyvsp[-1].str)); }
-#line 1662 "asm.tab.c" /* yacc.c:1646  */
+#line 1664 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 14:
 #line 191 "asm.y" /* yacc.c:1646  */
     { vec_push(asm_atoms, &(yyvsp[0].atom)); }
-#line 1668 "asm.tab.c" /* yacc.c:1646  */
+#line 1670 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 15:
 #line 192 "asm.y" /* yacc.c:1646  */
     { macro_append((yyvsp[0].str)); }
-#line 1674 "asm.tab.c" /* yacc.c:1646  */
+#line 1676 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 16:
 #line 194 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = (yyvsp[0].atom); }
-#line 1680 "asm.tab.c" /* yacc.c:1646  */
+#line 1682 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 17:
 #line 195 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_res((yyvsp[-3].expr), (yyvsp[-1].expr)); }
-#line 1686 "asm.tab.c" /* yacc.c:1646  */
+#line 1688 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 18:
 #line 196 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = exprs_to_word_exprs((yyvsp[-1].atom)); }
-#line 1692 "asm.tab.c" /* yacc.c:1646  */
+#line 1694 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 19:
 #line 197 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = exprs_to_byte_exprs((yyvsp[-1].atom)); }
-#line 1698 "asm.tab.c" /* yacc.c:1646  */
+#line 1700 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 20:
 #line 198 "asm.y" /* yacc.c:1646  */
     {
             (yyval.atom) = new_incbin((yyvsp[-1].str), NULL, NULL); }
-#line 1705 "asm.tab.c" /* yacc.c:1646  */
+#line 1707 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 21:
 #line 200 "asm.y" /* yacc.c:1646  */
     {
             (yyval.atom) = new_incbin((yyvsp[-3].str), (yyvsp[-1].expr), NULL); }
-#line 1712 "asm.tab.c" /* yacc.c:1646  */
+#line 1714 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 22:
 #line 202 "asm.y" /* yacc.c:1646  */
     {
             (yyval.atom) = new_incbin((yyvsp[-5].str), (yyvsp[-3].expr), (yyvsp[-1].expr)); }
-#line 1719 "asm.tab.c" /* yacc.c:1646  */
+#line 1721 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 23:
 #line 205 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = exprs_add((yyvsp[-2].atom), (yyvsp[0].expr)); }
-#line 1725 "asm.tab.c" /* yacc.c:1646  */
+#line 1727 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 24:
 #line 206 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_exprs((yyvsp[0].expr)); }
-#line 1731 "asm.tab.c" /* yacc.c:1646  */
+#line 1733 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 25:
 #line 208 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xA9, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 1737 "asm.tab.c" /* yacc.c:1646  */
+#line 1739 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 26:
 #line 209 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xA5, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1743 "asm.tab.c" /* yacc.c:1646  */
+#line 1745 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 27:
 #line 210 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xB5, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 1749 "asm.tab.c" /* yacc.c:1646  */
+#line 1751 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 28:
 #line 211 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xAD, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1755 "asm.tab.c" /* yacc.c:1646  */
+#line 1757 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 29:
 #line 212 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xBD, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1761 "asm.tab.c" /* yacc.c:1646  */
+#line 1763 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 30:
 #line 213 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xB9, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1767 "asm.tab.c" /* yacc.c:1646  */
+#line 1769 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 31:
 #line 214 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xA1, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 1773 "asm.tab.c" /* yacc.c:1646  */
+#line 1775 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 32:
 #line 215 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xB1, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 1779 "asm.tab.c" /* yacc.c:1646  */
+#line 1781 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 33:
 #line 217 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xA2, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 1785 "asm.tab.c" /* yacc.c:1646  */
+#line 1787 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 34:
 #line 218 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xA6, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1791 "asm.tab.c" /* yacc.c:1646  */
+#line 1793 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 35:
 #line 219 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xB6, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1797 "asm.tab.c" /* yacc.c:1646  */
+#line 1799 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 36:
 #line 220 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xAE, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1803 "asm.tab.c" /* yacc.c:1646  */
+#line 1805 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 37:
 #line 221 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xBE, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1809 "asm.tab.c" /* yacc.c:1646  */
+#line 1811 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 38:
 #line 223 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xA0, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 1815 "asm.tab.c" /* yacc.c:1646  */
+#line 1817 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 39:
 #line 224 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xA4, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1821 "asm.tab.c" /* yacc.c:1646  */
+#line 1823 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 40:
 #line 225 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xB4, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1827 "asm.tab.c" /* yacc.c:1646  */
+#line 1829 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 41:
 #line 226 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xAC, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1833 "asm.tab.c" /* yacc.c:1646  */
+#line 1835 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 42:
 #line 227 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xBC, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1839 "asm.tab.c" /* yacc.c:1646  */
+#line 1841 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 43:
 #line 229 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x85, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1845 "asm.tab.c" /* yacc.c:1646  */
+#line 1847 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 44:
 #line 230 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x95, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1851 "asm.tab.c" /* yacc.c:1646  */
+#line 1853 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 45:
 #line 231 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x8D, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1857 "asm.tab.c" /* yacc.c:1646  */
+#line 1859 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 46:
 #line 232 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x9D, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1863 "asm.tab.c" /* yacc.c:1646  */
+#line 1865 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 47:
 #line 233 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x99, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1869 "asm.tab.c" /* yacc.c:1646  */
+#line 1871 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 48:
 #line 234 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x81, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1875 "asm.tab.c" /* yacc.c:1646  */
+#line 1877 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 49:
 #line 235 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x91, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1881 "asm.tab.c" /* yacc.c:1646  */
+#line 1883 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 50:
 #line 237 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x86, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1887 "asm.tab.c" /* yacc.c:1646  */
+#line 1889 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 51:
 #line 238 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x96, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1893 "asm.tab.c" /* yacc.c:1646  */
+#line 1895 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 52:
 #line 239 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x8e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1899 "asm.tab.c" /* yacc.c:1646  */
+#line 1901 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 53:
 #line 241 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x84, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1905 "asm.tab.c" /* yacc.c:1646  */
+#line 1907 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 54:
 #line 242 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x94, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1911 "asm.tab.c" /* yacc.c:1646  */
+#line 1913 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 55:
 #line 243 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x8c, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1917 "asm.tab.c" /* yacc.c:1646  */
+#line 1919 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 56:
 #line 245 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x29, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 1923 "asm.tab.c" /* yacc.c:1646  */
+#line 1925 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 57:
 #line 246 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x25, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1929 "asm.tab.c" /* yacc.c:1646  */
+#line 1931 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 58:
 #line 247 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x35, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 1935 "asm.tab.c" /* yacc.c:1646  */
+#line 1937 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 59:
 #line 248 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x2d, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1941 "asm.tab.c" /* yacc.c:1646  */
+#line 1943 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 60:
 #line 249 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x3d, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1947 "asm.tab.c" /* yacc.c:1646  */
+#line 1949 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 61:
 #line 250 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x39, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1953 "asm.tab.c" /* yacc.c:1646  */
+#line 1955 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 62:
 #line 251 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x21, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 1959 "asm.tab.c" /* yacc.c:1646  */
+#line 1961 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 63:
 #line 252 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x31, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 1965 "asm.tab.c" /* yacc.c:1646  */
+#line 1967 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 64:
 #line 254 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x09, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 1971 "asm.tab.c" /* yacc.c:1646  */
+#line 1973 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 65:
 #line 255 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x05, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 1977 "asm.tab.c" /* yacc.c:1646  */
+#line 1979 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 66:
 #line 256 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x15, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 1983 "asm.tab.c" /* yacc.c:1646  */
+#line 1985 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 67:
 #line 257 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x0d, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1989 "asm.tab.c" /* yacc.c:1646  */
+#line 1991 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 68:
 #line 258 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x1d, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 1995 "asm.tab.c" /* yacc.c:1646  */
+#line 1997 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 69:
 #line 259 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x19, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2001 "asm.tab.c" /* yacc.c:1646  */
+#line 2003 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 70:
 #line 260 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x01, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2007 "asm.tab.c" /* yacc.c:1646  */
+#line 2009 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 71:
 #line 261 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x11, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2013 "asm.tab.c" /* yacc.c:1646  */
+#line 2015 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 72:
 #line 263 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x49, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 2019 "asm.tab.c" /* yacc.c:1646  */
+#line 2021 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 73:
 #line 264 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x45, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 2025 "asm.tab.c" /* yacc.c:1646  */
+#line 2027 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 74:
 #line 265 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x55, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2031 "asm.tab.c" /* yacc.c:1646  */
+#line 2033 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 75:
 #line 266 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x4d, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2037 "asm.tab.c" /* yacc.c:1646  */
+#line 2039 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 76:
 #line 267 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x5d, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2043 "asm.tab.c" /* yacc.c:1646  */
+#line 2045 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 77:
 #line 268 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x59, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2049 "asm.tab.c" /* yacc.c:1646  */
+#line 2051 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 78:
 #line 269 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x41, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2055 "asm.tab.c" /* yacc.c:1646  */
+#line 2057 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 79:
 #line 270 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x51, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2061 "asm.tab.c" /* yacc.c:1646  */
+#line 2063 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 80:
 #line 272 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x69, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 2067 "asm.tab.c" /* yacc.c:1646  */
+#line 2069 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 81:
 #line 273 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x65, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 2073 "asm.tab.c" /* yacc.c:1646  */
+#line 2075 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 82:
 #line 274 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x75, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2079 "asm.tab.c" /* yacc.c:1646  */
+#line 2081 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 83:
 #line 275 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x6D, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2085 "asm.tab.c" /* yacc.c:1646  */
+#line 2087 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 84:
 #line 276 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x7D, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2091 "asm.tab.c" /* yacc.c:1646  */
+#line 2093 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 85:
 #line 277 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x79, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2097 "asm.tab.c" /* yacc.c:1646  */
+#line 2099 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 86:
 #line 278 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x61, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2103 "asm.tab.c" /* yacc.c:1646  */
+#line 2105 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 87:
 #line 279 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x71, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2109 "asm.tab.c" /* yacc.c:1646  */
+#line 2111 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 88:
 #line 281 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xe9, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 2115 "asm.tab.c" /* yacc.c:1646  */
+#line 2117 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 89:
 #line 282 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xe5, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 2121 "asm.tab.c" /* yacc.c:1646  */
+#line 2123 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 90:
 #line 283 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xf5, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2127 "asm.tab.c" /* yacc.c:1646  */
+#line 2129 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 91:
 #line 284 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xeD, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2133 "asm.tab.c" /* yacc.c:1646  */
+#line 2135 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 92:
 #line 285 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xfD, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2139 "asm.tab.c" /* yacc.c:1646  */
+#line 2141 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 93:
 #line 286 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xf9, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2145 "asm.tab.c" /* yacc.c:1646  */
+#line 2147 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 94:
 #line 287 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xe1, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2151 "asm.tab.c" /* yacc.c:1646  */
+#line 2153 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 95:
 #line 288 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xf1, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2157 "asm.tab.c" /* yacc.c:1646  */
+#line 2159 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 96:
 #line 290 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xc9, ATOM_TYPE_OP_ARG_UI8, (yyvsp[0].expr)); }
-#line 2163 "asm.tab.c" /* yacc.c:1646  */
+#line 2165 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 97:
 #line 291 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xc5, ATOM_TYPE_OP_ARG_U8,  (yyvsp[0].expr)); }
-#line 2169 "asm.tab.c" /* yacc.c:1646  */
+#line 2171 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 98:
 #line 292 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xd5, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2175 "asm.tab.c" /* yacc.c:1646  */
+#line 2177 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 99:
 #line 293 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xcD, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2181 "asm.tab.c" /* yacc.c:1646  */
+#line 2183 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 100:
 #line 294 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xdD, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2187 "asm.tab.c" /* yacc.c:1646  */
+#line 2189 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 101:
 #line 295 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xd9, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2193 "asm.tab.c" /* yacc.c:1646  */
+#line 2195 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 102:
 #line 296 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xc1, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2199 "asm.tab.c" /* yacc.c:1646  */
+#line 2201 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 103:
 #line 297 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xd1, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2205 "asm.tab.c" /* yacc.c:1646  */
+#line 2207 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 104:
 #line 299 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xe0, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2211 "asm.tab.c" /* yacc.c:1646  */
+#line 2213 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 105:
 #line 300 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xe4, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2217 "asm.tab.c" /* yacc.c:1646  */
+#line 2219 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 106:
 #line 301 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xec, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2223 "asm.tab.c" /* yacc.c:1646  */
+#line 2225 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 107:
 #line 302 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xc0, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2229 "asm.tab.c" /* yacc.c:1646  */
+#line 2231 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 108:
 #line 303 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xc4, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2235 "asm.tab.c" /* yacc.c:1646  */
+#line 2237 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 109:
 #line 304 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xcc, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2241 "asm.tab.c" /* yacc.c:1646  */
+#line 2243 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 110:
 #line 306 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x9A); }
-#line 2247 "asm.tab.c" /* yacc.c:1646  */
+#line 2249 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 111:
 #line 307 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0xBA); }
-#line 2253 "asm.tab.c" /* yacc.c:1646  */
+#line 2255 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 112:
 #line 308 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x48); }
-#line 2259 "asm.tab.c" /* yacc.c:1646  */
+#line 2261 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 113:
 #line 309 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x68); }
-#line 2265 "asm.tab.c" /* yacc.c:1646  */
+#line 2267 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 114:
 #line 310 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x08); }
-#line 2271 "asm.tab.c" /* yacc.c:1646  */
+#line 2273 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 115:
 #line 311 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x28); }
-#line 2277 "asm.tab.c" /* yacc.c:1646  */
+#line 2279 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 116:
 #line 312 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x78); }
-#line 2283 "asm.tab.c" /* yacc.c:1646  */
+#line 2285 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 117:
 #line 313 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x58); }
-#line 2289 "asm.tab.c" /* yacc.c:1646  */
+#line 2291 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 118:
 #line 314 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0xea); }
-#line 2295 "asm.tab.c" /* yacc.c:1646  */
+#line 2297 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 119:
 #line 315 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x98); }
-#line 2301 "asm.tab.c" /* yacc.c:1646  */
+#line 2303 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 120:
 #line 316 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0xa8); }
-#line 2307 "asm.tab.c" /* yacc.c:1646  */
+#line 2309 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 121:
 #line 317 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x8a); }
-#line 2313 "asm.tab.c" /* yacc.c:1646  */
+#line 2315 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 122:
 #line 318 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0xaa); }
-#line 2319 "asm.tab.c" /* yacc.c:1646  */
+#line 2321 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 123:
 #line 319 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x18); }
-#line 2325 "asm.tab.c" /* yacc.c:1646  */
+#line 2327 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 124:
 #line 320 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x38); }
-#line 2331 "asm.tab.c" /* yacc.c:1646  */
+#line 2333 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 125:
 #line 321 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x60); }
-#line 2337 "asm.tab.c" /* yacc.c:1646  */
+#line 2339 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 126:
 #line 323 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x20, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2343 "asm.tab.c" /* yacc.c:1646  */
+#line 2345 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 127:
 #line 324 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x4c, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2349 "asm.tab.c" /* yacc.c:1646  */
+#line 2351 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 128:
 #line 325 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xf0, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2355 "asm.tab.c" /* yacc.c:1646  */
+#line 2357 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 129:
 #line 326 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xd0, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2361 "asm.tab.c" /* yacc.c:1646  */
+#line 2363 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 130:
 #line 327 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x90, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2367 "asm.tab.c" /* yacc.c:1646  */
+#line 2369 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 131:
 #line 328 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xb0, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2373 "asm.tab.c" /* yacc.c:1646  */
+#line 2375 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 132:
 #line 329 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x10, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2379 "asm.tab.c" /* yacc.c:1646  */
+#line 2381 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 133:
 #line 330 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x30, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2385 "asm.tab.c" /* yacc.c:1646  */
+#line 2387 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 134:
 #line 331 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x50, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2391 "asm.tab.c" /* yacc.c:1646  */
+#line 2393 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 135:
 #line 332 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x70, ATOM_TYPE_OP_ARG_I8,  (yyvsp[0].expr)); }
-#line 2397 "asm.tab.c" /* yacc.c:1646  */
+#line 2399 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 136:
 #line 334 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0xe8); }
-#line 2403 "asm.tab.c" /* yacc.c:1646  */
+#line 2405 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 137:
 #line 335 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0xca); }
-#line 2409 "asm.tab.c" /* yacc.c:1646  */
+#line 2411 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 138:
 #line 336 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0xc8); }
-#line 2415 "asm.tab.c" /* yacc.c:1646  */
+#line 2417 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 139:
 #line 337 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x88); }
-#line 2421 "asm.tab.c" /* yacc.c:1646  */
+#line 2423 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 140:
 #line 339 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xe6, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2427 "asm.tab.c" /* yacc.c:1646  */
+#line 2429 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 141:
 #line 340 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xf6, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2433 "asm.tab.c" /* yacc.c:1646  */
+#line 2435 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 142:
 #line 341 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xee, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2439 "asm.tab.c" /* yacc.c:1646  */
+#line 2441 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 143:
 #line 342 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xfe, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2445 "asm.tab.c" /* yacc.c:1646  */
+#line 2447 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 144:
 #line 344 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xc6, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2451 "asm.tab.c" /* yacc.c:1646  */
+#line 2453 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 145:
 #line 345 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xd6, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2457 "asm.tab.c" /* yacc.c:1646  */
+#line 2459 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 146:
 #line 346 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xce, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2463 "asm.tab.c" /* yacc.c:1646  */
+#line 2465 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 147:
 #line 347 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0xde, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2469 "asm.tab.c" /* yacc.c:1646  */
+#line 2471 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 148:
 #line 349 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x4a); }
-#line 2475 "asm.tab.c" /* yacc.c:1646  */
+#line 2477 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 149:
 #line 350 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x46, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2481 "asm.tab.c" /* yacc.c:1646  */
+#line 2483 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 150:
 #line 351 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x56, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2487 "asm.tab.c" /* yacc.c:1646  */
+#line 2489 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 151:
 #line 352 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x4e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2493 "asm.tab.c" /* yacc.c:1646  */
+#line 2495 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 152:
 #line 353 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x5e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2499 "asm.tab.c" /* yacc.c:1646  */
+#line 2501 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 153:
 #line 355 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x0a); }
-#line 2505 "asm.tab.c" /* yacc.c:1646  */
+#line 2507 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 154:
 #line 356 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x06, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2511 "asm.tab.c" /* yacc.c:1646  */
+#line 2513 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 155:
 #line 357 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x16, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2517 "asm.tab.c" /* yacc.c:1646  */
+#line 2519 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 156:
 #line 358 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x0e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2523 "asm.tab.c" /* yacc.c:1646  */
+#line 2525 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 157:
 #line 359 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x1e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2529 "asm.tab.c" /* yacc.c:1646  */
+#line 2531 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 158:
 #line 361 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x6a); }
-#line 2535 "asm.tab.c" /* yacc.c:1646  */
+#line 2537 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 159:
 #line 362 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x66, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2541 "asm.tab.c" /* yacc.c:1646  */
+#line 2543 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 160:
 #line 363 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x76, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2547 "asm.tab.c" /* yacc.c:1646  */
+#line 2549 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 161:
 #line 364 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x6e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2553 "asm.tab.c" /* yacc.c:1646  */
+#line 2555 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 162:
 #line 365 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x7e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2559 "asm.tab.c" /* yacc.c:1646  */
+#line 2561 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 163:
 #line 367 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op0(0x2a); }
-#line 2565 "asm.tab.c" /* yacc.c:1646  */
+#line 2567 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 164:
 #line 368 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x26, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2571 "asm.tab.c" /* yacc.c:1646  */
+#line 2573 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 165:
 #line 369 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x36, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2577 "asm.tab.c" /* yacc.c:1646  */
+#line 2579 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 166:
 #line 370 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x2e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2583 "asm.tab.c" /* yacc.c:1646  */
+#line 2585 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 167:
 #line 371 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x3e, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2589 "asm.tab.c" /* yacc.c:1646  */
+#line 2591 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 168:
 #line 373 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x24, ATOM_TYPE_OP_ARG_U8, (yyvsp[0].expr)); }
-#line 2595 "asm.tab.c" /* yacc.c:1646  */
+#line 2597 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 169:
 #line 374 "asm.y" /* yacc.c:1646  */
     { (yyval.atom) = new_op(0x2c, ATOM_TYPE_OP_ARG_U16, (yyvsp[0].expr)); }
-#line 2601 "asm.tab.c" /* yacc.c:1646  */
+#line 2603 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 170:
 #line 376 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[0].expr); }
-#line 2607 "asm.tab.c" /* yacc.c:1646  */
+#line 2609 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 171:
 #line 377 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[0].expr); }
-#line 2613 "asm.tab.c" /* yacc.c:1646  */
+#line 2615 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 172:
 #line 378 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-2].expr); }
-#line 2619 "asm.tab.c" /* yacc.c:1646  */
+#line 2621 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 173:
 #line 379 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-2].expr); }
-#line 2625 "asm.tab.c" /* yacc.c:1646  */
+#line 2627 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 174:
 #line 380 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[0].expr); }
-#line 2631 "asm.tab.c" /* yacc.c:1646  */
+#line 2633 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 175:
 #line 381 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-2].expr); }
-#line 2637 "asm.tab.c" /* yacc.c:1646  */
+#line 2639 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 176:
 #line 382 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-2].expr); }
-#line 2643 "asm.tab.c" /* yacc.c:1646  */
+#line 2645 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 177:
 #line 383 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-3].expr); }
-#line 2649 "asm.tab.c" /* yacc.c:1646  */
+#line 2651 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 178:
 #line 384 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-3].expr); }
-#line 2655 "asm.tab.c" /* yacc.c:1646  */
+#line 2657 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 179:
 #line 386 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(PLUS, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2661 "asm.tab.c" /* yacc.c:1646  */
+#line 2663 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 180:
 #line 387 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(MINUS, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2667 "asm.tab.c" /* yacc.c:1646  */
+#line 2669 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 181:
 #line 388 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(MULT, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2673 "asm.tab.c" /* yacc.c:1646  */
+#line 2675 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 182:
 #line 389 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(DIV, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2679 "asm.tab.c" /* yacc.c:1646  */
+#line 2681 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 183:
 #line 390 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(MOD, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2685 "asm.tab.c" /* yacc.c:1646  */
+#line 2687 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 184:
 #line 391 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op1(vNEG, (yyvsp[0].expr)); }
-#line 2691 "asm.tab.c" /* yacc.c:1646  */
+#line 2693 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 185:
 #line 392 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-1].expr); }
-#line 2697 "asm.tab.c" /* yacc.c:1646  */
+#line 2699 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 186:
 #line 393 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_inclen((yyvsp[-1].str)); }
-#line 2703 "asm.tab.c" /* yacc.c:1646  */
+#line 2705 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 187:
 #line 394 "asm.y" /* yacc.c:1646  */
     {
             (yyval.expr) = new_expr_incword((yyvsp[-3].str), (yyvsp[-1].expr)); }
-#line 2710 "asm.tab.c" /* yacc.c:1646  */
+#line 2712 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 188:
 #line 396 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_number((yyvsp[0].num)); }
-#line 2716 "asm.tab.c" /* yacc.c:1646  */
+#line 2718 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 189:
 #line 397 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_symref((yyvsp[0].str)); }
-#line 2722 "asm.tab.c" /* yacc.c:1646  */
+#line 2724 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 190:
 #line 399 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(LOR, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2728 "asm.tab.c" /* yacc.c:1646  */
+#line 2730 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 191:
 #line 400 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(LAND, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2734 "asm.tab.c" /* yacc.c:1646  */
+#line 2736 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 192:
 #line 401 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op1(LNOT, (yyvsp[0].expr)); }
-#line 2740 "asm.tab.c" /* yacc.c:1646  */
+#line 2742 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 193:
 #line 402 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-1].expr); }
-#line 2746 "asm.tab.c" /* yacc.c:1646  */
+#line 2748 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 194:
 #line 403 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(LT, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2752 "asm.tab.c" /* yacc.c:1646  */
+#line 2754 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 195:
 #line 404 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(GT, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2758 "asm.tab.c" /* yacc.c:1646  */
+#line 2760 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 196:
 #line 405 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(EQ, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2764 "asm.tab.c" /* yacc.c:1646  */
+#line 2766 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 197:
 #line 406 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_expr_op2(NEQ, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2770 "asm.tab.c" /* yacc.c:1646  */
+#line 2772 "asm.tab.c" /* yacc.c:1646  */
     break;
 
   case 198:
 #line 408 "asm.y" /* yacc.c:1646  */
     { (yyval.expr) = new_is_defined((yyvsp[-1].str)); }
-#line 2776 "asm.tab.c" /* yacc.c:1646  */
+#line 2778 "asm.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 2780 "asm.tab.c" /* yacc.c:1646  */
+#line 2782 "asm.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires

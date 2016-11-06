@@ -119,7 +119,7 @@ open_file(const char *name, int *load_addr)
             /* we fail */
             LOG(LOG_ERROR,
                 (" can't parse load address from \"%s\"\n", load_str));
-            exit(-1);
+            exit(1);
         }
 
         in = fopen(name, "rb");
@@ -129,7 +129,7 @@ open_file(const char *name, int *load_addr)
     {
         LOG(LOG_ERROR,
             (" can't open file \"%s\" for input\n", name));
-        exit(-1);
+        exit(1);
     }
 
     /* set the load address */
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
                     ("error: invalid number for -n option, "
                      "must be in the range of [0 - 63999]\n"));
                 print_usage(argv[0], LOG_ERROR);
-                exit(-1);
+                exit(1);
             }
             LOG(LOG_DEBUG, ("option -n: nice renumber, "
                             "start with %d, increment %d\n",

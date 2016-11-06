@@ -38,7 +38,7 @@ get_byte(struct dec_ctx *ctx)
     if(ctx->inpos == ctx->inend)
     {
         LOG(LOG_ERROR, ("unexpected end of input data\n"));
-        exit(-1);
+        exit(1);
     }
     c = ctx->inbuf[ctx->inpos++];
 
