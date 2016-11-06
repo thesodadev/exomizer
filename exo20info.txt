@@ -217,7 +217,7 @@ bytes from secondary storage.
 
  The sfx command generates a runnable stand alone in memory decrunching file.
 Its first argument must always be the run address. It may be given as an
-address or the string sys or the string basic.
+address or the string sys, the string systrim or the string basic.
 
  If the run address is an actual address then it will be used as the target
 address of a jmp instruction executed after the decrunching.
@@ -225,6 +225,14 @@ address of a jmp instruction executed after the decrunching.
  If the run address is the string sys then the run address will be
 autodetected. Either from the runad vector for the Atari target or by scanning
 the area of the basic start for a sys basic command.
+
+ The keyword systrim behaves just like keyword sys but it also excludes the
+memory area that contains the the sys basic line from being included in the
+crunched file. This is very handy for the unexpanded VIC-20 target which
+normally can't decrunch sfx-ed programs residing at the basic start since it
+has a memory hole that will overlap with the crunched data. By using systrim,
+the start of decrunched data will be moved a few bytes and by that also move
+the crunched data out of the memory hole.
 
  If the run address is the string basic then the computer will run a basic
 program after decrunch. This is not yet implemented for the Atari target.
