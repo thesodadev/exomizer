@@ -55,7 +55,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
     int len = ctx->len + 1;
 
-    progress_init(prog, "finding.cheapest.path.",len, 0);
+    progress_init(prog, "finding.shortest.path.",len, 0);
 
     membuf_atleast(backing, len * sizeof(search_node));
     snp_arr = membuf_get(backing);

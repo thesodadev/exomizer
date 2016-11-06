@@ -1183,33 +1183,60 @@ void sfx(const char *appl, int argc, char *argv[])
         }
         else
         {
-            i32 v_safety_addr;
-            i32 transfer_len;
+            i32 lowest_addr;
+            i32 max_transfer_len;
             i32 i_table_addr;
             i32 i_effect;
+            i32 i_ram_enter, i_ram_during, i_ram_exit;
+            i32 i_irq_enter, i_irq_during, i_irq_exit;
+            i32 i_nmi_enter, i_nmi_during, i_nmi_exit;
             i32 c_effect_color;
-            i32 cover_start = in_load;
 
-            resolve_symbol("v_safety_addr", NULL, &v_safety_addr);
-            resolve_symbol("transfer_len", NULL, &transfer_len);
+            resolve_symbol("lowest_addr", NULL, &lowest_addr);
+            resolve_symbol("max_transfer_len", NULL, &max_transfer_len);
             resolve_symbol("i_table_addr", NULL, &i_table_addr);
             resolve_symbol("i_effect2", NULL, &i_effect);
+            resolve_symbol("i_irq_enter", NULL, &i_irq_enter);
+            resolve_symbol("i_irq_during", NULL, &i_irq_during);
+            resolve_symbol("i_irq_exit", NULL, &i_irq_exit);
 
-            if(transfer_len != 0)
-            {
-                cover_start = v_safety_addr;
-            }
-
-            LOG(LOG_NORMAL, ("Memory layout:\n"));
-            LOG(LOG_NORMAL, (" Data covers $%04X to $%04X.\n",
-                             cover_start, in_load + in_len));
-            LOG(LOG_NORMAL, (" Decrunch table is located at $%04X to $%04X.\n",
+            LOG(LOG_NORMAL, ("Memory layout:   |Start |End   |\n"));
+            const unsigned char *out_data = membuf_get(out);
+            int out_load = out_data[0] | out_data[1] << 8;
+            LOG(LOG_NORMAL, (" Generated file  | $%04X| $%04X|\n",
+                             out_load, out_load + membuf_memlen(out) - 2));
+            LOG(LOG_NORMAL, (" Crunched data   | $%04X| $%04X|\n",
+                                 lowest_addr, lowest_addr + max_transfer_len));
+            LOG(LOG_NORMAL, (" Decrunched data | $%04X| $%04X|\n",
+                 in_load, in_load + in_len));
+            LOG(LOG_NORMAL, (" Decrunch table  | $%04X| $%04X|\n",
                              i_table_addr, i_table_addr + 156));
+            LOG(LOG_NORMAL, (" Decruncher      | $00FC| $01SP|\n"));
             if(i_effect == 0 && !resolve_symbol("i_effect_custom", NULL, NULL))
             {
                 resolve_symbol("c_effect_color", NULL, &c_effect_color);
                 LOG(LOG_NORMAL, (" Decrunch effect writes to $%04X.\n",
                                  c_effect_color));
+            }
+            LOG(LOG_NORMAL, ("Decruncher:  |Enter |During|Exit  |\n"));
+            if (decr_target == 1 || decr_target == 64 || decr_target == 128 ||
+                decr_target == 4 || decr_target == 16 || decr_target == 168)
+            {
+                resolve_symbol("i_ram_enter", NULL, &i_ram_enter);
+                resolve_symbol("i_ram_during", NULL, &i_ram_during);
+                resolve_symbol("i_ram_exit", NULL, &i_ram_exit);
+                LOG(LOG_NORMAL, (" RAM config  |   $%02X|   $%02X|   $%02X|\n",
+                     i_ram_enter, i_ram_during, i_ram_exit));
+            }
+            LOG(LOG_NORMAL, (" IRQ enabled |   %3d|   %3d|   %3d|\n",
+                 i_irq_enter, i_irq_during, i_irq_exit));
+            if (decr_target == 168)
+            {
+                resolve_symbol("i_nmi_enter", NULL, &i_nmi_enter);
+                resolve_symbol("i_nmi_during", NULL, &i_nmi_during);
+                resolve_symbol("i_nmi_exit", NULL, &i_nmi_exit);
+                LOG(LOG_NORMAL, (" NMI enabled |   $%02X|   $%02X|   $%02X|\n",
+                     i_nmi_enter, i_nmi_during, i_nmi_exit));
             }
         }
 

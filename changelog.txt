@@ -1,3 +1,6 @@
++ Improve sfx memory layout dump, suggested by Steffen Görzig.
++ sfx -Di_decr_table=2 should disable i_irq_during, reported by Steffen Görzig.
++ Updated z80 decrunchers, now with License information.
 + More portable by not using negative exit codes.
 + Add new keyword systrim to the sfx command. It behaves like the sys keyword
   but will also remove the sysline from the loaded infile.
