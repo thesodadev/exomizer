@@ -2,7 +2,7 @@
 # Makefile for exomizer
 #
 WFLAGS = -Wall -Wstrict-prototypes
-CFLAGS = $(WFLAGS) -O3 -ffast-math -mtune=generic -fomit-frame-pointer -fgcse -pedantic
+CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer -fgcse -pedantic
 LDFLAGS = -s
 
 #CFLAGS = -g -mtune=i686 $(WFLAGS)
