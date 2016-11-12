@@ -1191,6 +1191,8 @@ void sfx(const char *appl, int argc, char *argv[])
             i32 i_irq_enter, i_irq_during, i_irq_exit;
             i32 i_nmi_enter, i_nmi_during, i_nmi_exit;
             i32 c_effect_color;
+            const unsigned char *out_data = membuf_get(out);
+            int out_load = out_data[0] | out_data[1] << 8;
 
             resolve_symbol("lowest_addr", NULL, &lowest_addr);
             resolve_symbol("max_transfer_len", NULL, &max_transfer_len);
@@ -1201,8 +1203,6 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("i_irq_exit", NULL, &i_irq_exit);
 
             LOG(LOG_NORMAL, ("Memory layout:   |Start |End   |\n"));
-            const unsigned char *out_data = membuf_get(out);
-            int out_load = out_data[0] | out_data[1] << 8;
             LOG(LOG_NORMAL, (" Generated file  | $%04X| $%04X|\n",
                              out_load, out_load + membuf_memlen(out) - 2));
             LOG(LOG_NORMAL, (" Crunched data   | $%04X| $%04X|\n",
