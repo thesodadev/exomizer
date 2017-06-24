@@ -1,3 +1,6 @@
+2017-06-24
++ Display progress indication only on ttys.
++ Make it possible to add offset and length to plain file loading.
 + Improve sfx memory layout dump, suggested by Steffen Görzig.
 + sfx -Di_decr_table=2 should disable i_irq_during, reported by Steffen Görzig.
 + Updated z80 decrunchers, now with License information.
