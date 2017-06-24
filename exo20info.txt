@@ -145,24 +145,37 @@ data. They share the following option flags:
 -- Information relevant for the mem, sfx and level sub commands ---------------
 -------------------------------------------------------------------------------
 
-The mem, level and sfx command all crunches files backwards. The files have to
-be located in a 16-bit address space and are also limited in size to that 16bit
-address space. The file format of the input files are prg files, Atari xex
+The mem, level and sfx command all crunches files backwards. The files are
+loaded into a 16-bit address space and are also limited in size to that 16-bit
+address space. The format of the input files can be prg files, Atari xex
 files, Oric tap files or located plain files (plain files that are given an
 address to load to.)
 
- The syntax for loading a prg, xex or Oric tap file is simply the filename:
-$ exomizer mem <prg file> <xex file> <Oric tap file> -o <output prg file name>
+ To load a prg file to the address contained in its prg-header you simply add
+the file name to the command line. However it is also possible to give an
+optional offset to start from in the file and a lenght using the full prg file
+loading syntax:
 
- If you want to load a prg file to a different address than it contains you can
-simply append a comma and the new load address:
-$ exomizer mem <prg file>,<new address> -o <output prg file name>
+<file name>[,<new load address>[,<offset>[,<length>]]]
+
+Examples:
+* To load a prg file to the address contained in its prg header
+  $ exomizer mem test.prg -o <output prg file name>
+* To load a prg file to 0x3456
+  $ exomizer mem test.prg,0x3456 -o <output prg file name>
+* To load a prg file to 0x400 and skip the 16 first bytes:
+  $ exomizer mem test.prg,0x400,16 -o <output prg file name>
+* To load the last 254 bytes of a file to 0x3450.
+  $ exomizer mem test.prg,0x3450,-0xfe -o <output prg file name>
+* To skip 123 bytes and then load 254 bytes of a file to 0x3450.
+  $ exomizer mem test.prg,0x3450,123,254 -o <output prg file name>
 
  Relocation does not work for xex or tap files. A relocated xex or tap file
 will simply be treated as if it was a relocated prg file.
 
- Plain located files are given using a similar syntax:
-$ exomizer mem <plain file>@<address> -o <output prg file name>
+ Plain files are loaded using a similar syntax:
+<file name>@<new load address>[,<offset>[,<length>]]
+Here too, you can give an optional offset and length.
 
  When given multiple input files the sfx and mem commands loads all files to
 where they are located and then crunch the covered memory area. Any unused
