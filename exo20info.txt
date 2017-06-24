@@ -2,10 +2,10 @@ Exomizer 2.0
 
 NEW FEATURES SINCE V1.X:
 
-o  Totally rewitten handling of the sfx decruncher:
+o  Totally rewritten handling of the sfx decruncher:
    1) Several different decrunch effects.
-   2) Complete user control over memory and irq config.
-   3) Can start basic programs properly with built in trampoline by using the
+   2) Complete user control over memory and IRQ configuration.
+   3) Can start BASIC programs properly with built in trampoline by using the
       command 'sfx basic' for the Commodore and Oric targets.
    3) The decruncher code is assembled on the fly for maximum flexibility by an
       embedded assembler.
@@ -13,20 +13,20 @@ o  Totally rewitten handling of the sfx decruncher:
       stream to keep the size down.
    5) Supports the c128 and the vic20 (in several configurations).
    6) The Atari 400/800 XL/XE family is supported as sfx target 168.
-   7) Can generate relocated sfx targets without basic line.
+   7) Can generate relocated sfx targets without BASIC line.
    8) The Apple ][+ (and //e) is supported as sfx target 162.
    9) The Oric 8-bit family is supported as sfx target 1.
 
-o  Reads Atari xex-files and autodetects the RUNAD vector if the sys keyword is
-   given to the sfx command.
+o  Reads Atari xex-files and auto detects the RUNAD vector if the sys keyword
+   is given to the sfx command.
 
 o  Can load plain files using the <filename>@<address> syntax.
 
 o  Has a literal sequence escape mechanism that detects and handles sequences
    of uncrunchable data properly.
 
-o  The level mode of exomizer now crunches each infile separately and appends
-   them to the outfile instead of merging them together like the -r mode did
+o  The level mode of exomizer now crunches each in-file separately and appends
+   them to the out-file instead of merging them together like the -r mode did
    before.
 
 o  New raw mode that features:
@@ -42,11 +42,11 @@ o  New raw mode that features:
 o  New desfx mode that features decrunching of sfx crunched files.
 
 o  Contributed decruncher source
-   1) forward 6502 decuncher by Krill (exodecrs/krilldecr.s)
+   1) forward 6502 decruncher by Krill (exodecrs/krilldecr.s)
    2) z80 decrunchers by Metalbrain, Antonio Villena. (rawdecrs/z80/*)
    3) 6809 decruncher by Edouard Forler.  (rawdecrs/6809/*)
 
-FEATURES PLANNED FOR NEXT STABLE RELEASE:
+FEATURES PLANNED FOR A FUTURE RELEASE
 
 o  Multiple memory segments
    1) Handle the vic20 target better with regards to memory holes.
@@ -60,19 +60,19 @@ o  There is no 6502 assembler decruncher for streaming data crunched forward
    be used by the streaming decrunchers.
 
 o  The sfx command sometimes crunch better with the -c flag. The cruncher
-   doesn't take the sfx decuncher size increase due to enabling the literal
+   doesn't take the sfx decruncher size increase due to enabling the literal
    sequence escape mechanism into consideration.
 
 -------------------------------------------------------------------------------
 The command line syntax differs from v1.x. Here's a quick translation guide:
 old                                     new
 ------------------                      -----------------------------
-exomizer -ssys <infile>                 exomizer sfx sys <infile>
-exomizer -s$1234 <infile>               exomizer sfx $1234 <infile>
-exomizer -r <infile>                    exomizer level <infile>
-exomizer <infile>                       exomizer mem -lnone <infile>
-exomizer -l$1234 <infile>               exomizer mem -l$1234 <infile>
-exomizer -lauto  <infile>               exomizer mem <infile>
+exomizer -ssys <in-file>                exomizer sfx sys <in-file>
+exomizer -s$1234 <in-file>              exomizer sfx $1234 <in-file>
+exomizer -r <in-file>                   exomizer level <in-file>
+exomizer <in-file>                      exomizer mem -lnone <in-file>
+exomizer -l$1234 <in-file>              exomizer mem -l$1234 <in-file>
+exomizer -lauto  <in-file>              exomizer mem <in-file>
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ data. They share the following option flags:
         increases the crunching speed but reduces the crunch result.
 
 -o <outfile>
-        Sets outfile name.
+        Sets out-file name.
 
 -p <passes>
         Limits the maximum number of optimization passes the cruncher uses when
@@ -153,9 +153,8 @@ address to load to.)
 
  To load a prg file to the address contained in its prg-header you simply add
 the file name to the command line. However it is also possible to give an
-optional offset to start from in the file and a lenght using the full prg file
+optional offset to start from in the file and a length using the full prg file
 loading syntax:
-
 <file name>[,<new load address>[,<offset>[,<length>]]]
 
 Examples:
@@ -173,8 +172,9 @@ Examples:
  Relocation does not work for xex or tap files. A relocated xex or tap file
 will simply be treated as if it was a relocated prg file.
 
- Plain files are loaded using a similar syntax:
+Plain raw files are loaded using a different but similar syntax:
 <file name>@<new load address>[,<offset>[,<length>]]
+
 Here too, you can give an optional offset and length.
 
  When given multiple input files the sfx and mem commands loads all files to
@@ -183,9 +183,10 @@ space between files will be zero-filled. The level command loads each input
 file separately, crunches it and then appends the crunched data to the output
 file.
 
-The autodetection of xex or Oric tap files is not perfect. Prg files that load
+The auto detection of xex or Oric tap files is not perfect. Prg files that load
 at $ffff or $1616 will be wrongly detected as xex or Oric tap. To disable the
-autodetection relocate the prg files to the same address they normally load to.
+auto detection relocate the prg files to the same address they normally load
+to.
 
 -------------------------------------------------------------------------------
 -- The mem sub command --------------------------------------------------------
@@ -236,51 +237,51 @@ address or the string sys, the string systrim or the string basic.
 address of a jmp instruction executed after the decrunching.
 
  If the run address is the string sys then the run address will be
-autodetected. Either from the runad vector for the Atari target or by scanning
-the area of the basic start for a sys basic command.
+auto detected. Either from the RUNAD vector for the Atari target or by scanning
+the area of the basic start for a SYS BASIC command.
 
  The keyword systrim behaves just like keyword sys but it also excludes the
-memory area that contains the the sys basic line from being included in the
+memory area that contains the SYS BASIC line from being included in the
 crunched file. This is very handy for the unexpanded VIC-20 target which
-normally can't decrunch sfx-ed programs residing at the basic start since it
+normally can't decrunch sfx-ed programs residing at the BASIC start since it
 has a memory hole that will overlap with the crunched data. By using systrim,
 the start of decrunched data will be moved a few bytes and by that also move
 the crunched data out of the memory hole.
 
- If the run address is the string basic then the computer will run a basic
+ If the run address is the string basic then the computer will run a BASIC
 program after decrunch. This is not yet implemented for the Atari target.
-The Oric target support basic start for the Oric 1 and Atmos computers but not
+The Oric target support BASIC start for the Oric 1 and Atmos computers but not
 for the Telestrat.
 
- The run basic mode takes up to three optional addresses. They are in order:
-start of basic program, end of basic program  and highest address used by
-basic.
+ The run BASIC mode takes up to three optional addresses. They are in order:
+start of BASIC program, end of BASIC program  and highest address used by
+BASIC.
 
 $ exomizer sfx basic[,<start>[,<end>[,<high>]]]
 
- The start of basic, <start>, is the address where the basic program starts in
+ The start of BASIC, <start>, is the address where the BASIC program starts in
 memory. For many but not all targets it defaults to $0801.
 
- The end of basic, <end>, is the address where the basic variables starts in
-memory. It defaults to the the address where the basic program ends.
+ The end of BASIC, <end>, is the address where the BASIC variables starts in
+memory. It defaults to the address where the BASIC program ends.
 
- The highest address used by basic, <high>, is the address where the basic
+ The highest address used by BASIC, <high>, is the address where the BASIC
 variables end. Its default value depends on the target.
 
- The basic interpreter will write all variables, strings and arrays between the
+ The BASIC interpreter will write all variables, strings and arrays between the
 <end> address and the <high> address.
 
- Normally these addresses are autodetected and/or defaulted. However, if non
+ Normally these addresses are auto detected and/or defaulted. However, if non
 standard settings are needed they can be changed. Examples of such situations
-could be when a basic program needs to be run at a non standard address and/or
-some graphic needs to be protected from basic variables.
+could be when a BASIC program needs to be run at a non standard address and/or
+some graphic needs to be protected from BASIC variables.
 
  The output of the sfx command is a runnable program file that decrunches
 itself in memory when run. The output file format depends on the target used:
 
  For all Commodore machines the output is a runnable prg-file that starts
-with a basic line. For the Atari target the output is a auto running xex-file.
-For the Apple target the output is an Applesoft basic file without headers. For
+with a BASIC line. For the Atari target the output is a auto running xex-file.
+For the Apple target the output is an Applesoft BASIC file without headers. For
 the Oric family the output is a Oric tap file.
 
  Please note that the sfx command doesn't support extended memory since it
@@ -330,7 +331,7 @@ can't decrunch into banked memory.
         changing background and/or border color, changing a c128 to 2MHz mode
         or enable 'Skip internal cycles' and burst mode on a DTV2. The fragment
         syntax is the same as for the -X and -x options.
--f<custom decruncher exit asembler fragment>
+-f<custom decruncher exit assembler fragment>
         Specifies an optional assembler fragment to be executed when the
         decruncher has finished decrunching. This assembler fragment is
         intended for things like restoring a c128 to 1MHz or disabling 'Skip
@@ -342,8 +343,8 @@ can't decrunch into banked memory.
 -------------------------------------------------------------------------------
 
  The desfx command decrunches a file generated by the sfx command and write it
-as a prg-file. It autodetects the entry point from the in-file runs the
-embedded decrucher in order to get to the decrunched data.
+as a prg-file. It auto detects the entry point from the in-file runs the
+embedded decruncher in order to get to the decrunched data.
 
  The sfx command has the following options:
 
@@ -358,19 +359,19 @@ embedded decrucher in order to get to the decrunched data.
  Now let's go back to the command that handles plain files, raw.
 The raw command can both crunch and decrunch both forward and backward. It also
 handles generic files without any of the above mentioned restrictions. There's
-no hardcoded limit in file size but it gets increasingly slow with larger files
-so there's a practical limit of about 1MB. The output file format of this
+no hard coded limit in file size but it gets increasingly slow with larger
+files so there's a practical limit of about 1MB. The output file format of this
 command is a plain file.
 
-It is possible to give an optional offset and length for the infile like this:
-<infile>[,offset[,length]]. Negative offsets are allowed. They will wrap around
-to the end of the file.
+It is possible to give an optional offset and length for the in-file like this:
+<in-file>[,offset[,length]]. Negative offsets are allowed. They will wrap
+around to the end of the file.
 
 To skip the first two bytes but read all the rest of a file do like this:
-$ exomizer raw <infile>,2 -o <outfile>
+$ exomizer raw <in-file>,2 -o <out-file>
 
 To read 10 bytes at offset 13 from the end of the file do like this:
-$ exomizer raw <infile>,-13,10 -o <outfile>
+$ exomizer raw <in-file>,-13,10 -o <out-file>
 
 -------------------------------------------------------------------------------
 -- The included decruncher source code with examples --------------------------
@@ -388,7 +389,7 @@ exodecrs/
          Also contained in this directory are two streaming forward decrunchers
         for data crunched with the raw sub command. Both use a circular buffer
         and has a get_byte like interface that are called repeatedly to get one
-        byte or a block of decrunched data until the end of data is signalled
+        byte or a block of decrunched data until the end of data is signaled
         by the call returning with the carry flag set. However they are not
         capable of handling the literal sequence escape mechanism so data must
         be cruncher with the -c flag.
@@ -400,7 +401,7 @@ rawdecrs/
          This directory contains two decrunches written in C. One backwards
         decruncher with a call once and all data are decrunched interface.
         And one forward streaming decruncher with a get_decrunched_byte
-        interface. Also incuded are example code using the decrunchers and
+        interface. Also included are example code using the decrunchers and
         a Makefile that can be used for building them. An ANSI-C compiler are
         necessary for this.
 
@@ -432,7 +433,7 @@ Regression testing
 Ninja / The Dreams
 Csabo / LOD
 iAN CooG / HokutoForce
-Lasse Öörni
+Lasse Ã–Ã¶rni
 
 Inspiration
 -----------
@@ -451,7 +452,7 @@ Inspiration
 
 Beta testing
 ------------
- Lasse Öörni
+ Lasse Ã–Ã¶rni
  Csabo / LOD
  Overkiller / Hokuto Force / PoL
  iAN CooG / Hokuto Force
@@ -492,15 +493,15 @@ the command line using the -D<symbol>=<value> flag:
 The following symbol controls the sfx load address:
  i_load_addr
 
- If it is unset then the sfx file will load to the default basic start address
+ If it is unset then the sfx file will load to the default BASIC start address
 of the target machine. For Atari the default load address is $2000. For the
 Oric the default load address is $0500.
 
  If it is set then the sfx file will load to the given address and it will not
-have any basic line. (The Atari target never has a basic line). The run address
+have any BASIC line. (The Atari target never has a BASIC line). The run address
 is the same as the load address.
 
- The Apple target file format will change from an Applesoft basic file without
+ The Apple target file format will change from an Applesoft BASIC file without
 header to an Apple binary file with a four byte header where the first two
 bytes are 16-bit load address, little endian, and the next two are the length
 in bytes of the following data, little endian. This is the same 4 byte DOS 3.3
@@ -508,31 +509,31 @@ header that cc65 generates. AppleCommander 1.3.5 or later can be used to put
 these binary files onto DOS 3.3 as well as ProDOS 8 disk images using the -cc65
 option.
 
-The following symbol controls the sfx basic line number:
+The following symbol controls the sfx BASIC line number:
  i_line_number
 
 If unset it will default to 20. This symbol can't be combined with i_load_addr.
 
-The following symbols control the memory config:
- i_ram_enter      (defaults to standard ROM config)
+The following symbols control the memory configuration:
+ i_ram_enter      (defaults to standard ROM configuration)
  i_ram_during
- i_ram_exit       (defaults to standard ROM config)
+ i_ram_exit       (defaults to standard ROM configuration)
 
 The i_ram_enter symbol differs from the other two. It isn't used to set the
-memory config. It tells the exomizer of which memory config to expect when
-the decruncher is run. This information is used to minimize the decruncher
-size.
+memory configuration. It tells the exomizer of which memory configuration to
+expect when the decruncher is run. This information is used to minimize the
+decruncher size.
 
 For the c64 and the c128 target the value of the above symbols will be stored
-into $ff00 (c128) or $01 (c64) to set the mem config. For the c16/+4 target the
-possible values are 0=ROM and 1=RAM. For the Atari the value will be stored in
-$d301. The Oric target supports 0=ROM and 1=RAM where 1 will enable decrunching
-into the top 16kB RAM supplied by the microdisc controller.
+into $ff00 (c128) or $01 (c64) to set the mem configuration. For the c16/+4
+target the possible values are 0=ROM and 1=RAM. For the Atari the value will be
+stored in $d301. The Oric target supports 0=ROM and 1=RAM where 1 will enable
+decrunching into the top 16kB RAM supplied by the microdisc controller.
 
 Default is $37 for the c64, $00 for the c128, 0 for the c16/+4 and Oric and $ff
 for the Atari.
 
-The following symbols control irqs. (0=disabled,sei, 1=enabled,cli)
+The following symbols control IRQs. (0=disabled,SEI, 1=enabled,CLI)
  i_irq_enter      (defaults to 1)
  i_irq_during
  i_irq_exit
@@ -555,7 +556,7 @@ Effects are no longer selected by the use of symbols. They are now chosen by
 the -x or -X flags or deactivated by -n.
 
 -------------------------------------------------------------------------------
--- Results for the Canterbury and Calgary corpae for exomizer raw -------------
+-- Results for the Canterbury and Calgary corpora for exomizer raw ------------
 -------------------------------------------------------------------------------
 
 ------------------------------------------------------
