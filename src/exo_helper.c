@@ -239,6 +239,7 @@ void crunch_backwards(struct membuf *inbuf,
     encode_match_data emd;
     search_nodep snp;
     int outlen;
+    int inlen;
     int safety;
     int copy_used;
 
@@ -247,6 +248,7 @@ void crunch_backwards(struct membuf *inbuf,
         options = default_options;
     }
 
+    inlen = membuf_memlen(inbuf);
     outlen = membuf_memlen(outbuf);
     emd->out = NULL;
     optimal_init(emd);
@@ -254,7 +256,7 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 1: Instrumenting file"
          "\n-----------------------------\n"));
-    LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", membuf_memlen(inbuf)));
+    LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", inlen));
 
     match_ctx_init(ctx, inbuf, options->max_len, options->max_offset,
                    options->use_imprecise_rle);
@@ -277,8 +279,11 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
     safety = do_output(ctx, snp, emd, optimal_encode, outbuf,
                        &copy_used, options->output_header);
-    LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n",
-                     membuf_memlen(outbuf) - outlen));
+    outlen = membuf_memlen(outbuf) - outlen;
+    LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));
+
+    LOG(LOG_BRIEF, (" Crunched data reduced %d bytes (%0.2f%%)\n",
+                    inlen - outlen, 100.0 * (inlen - outlen) / inlen));
 
     optimal_free(emd);
     search_node_free(snp);
@@ -354,18 +359,18 @@ void decrunch_backwards(int level,
 
 void print_license(void)
 {
-    LOG(LOG_BRIEF,
+    LOG(LOG_WARNING,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v2.0.10 Copyright (c) 2002-2016 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v2.0.10 Copyright (c) 2002-2017 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
-    LOG(LOG_BRIEF,
+    LOG(LOG_WARNING,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
          "In no event will the authors be held liable for any damages arising from\n"
          "the use of this software.\n"
          "Permission is granted to anyone to use this software, alter it and re-\n"
          "distribute it freely for any non-commercial, non-profit purpose subject to\n"
          "the following restrictions:\n\n"));
-    LOG(LOG_BRIEF,
+    LOG(LOG_WARNING,
         ("   1. The origin of this software must not be misrepresented; you must not\n"
          "   claim that you wrote the original software. If you use this software in a\n"
          "   product, an acknowledgment in the product documentation would be\n"
@@ -373,7 +378,7 @@ void print_license(void)
          "   2. Altered source versions must be plainly marked as such, and must not\n"
          "   be misrepresented as being the original software.\n"
          "   3. This notice may not be removed or altered from any distribution.\n"));
-    LOG(LOG_BRIEF,
+    LOG(LOG_WARNING,
         ("   4. The names of this software and/or it's copyright holders may not be\n"
          "   used to endorse or promote products derived from this software without\n"
          "   specific prior written permission.\n"
@@ -388,7 +393,8 @@ void print_base_flags(enum log_level level, const char *default_outfile)
         ("  -o <outfile>  sets the outfile name, default is \"%s\"\n",
          default_outfile));
     LOG(level,
-        ("  -q            quiet mode, disables display output\n"
+        ("  -q            quiet mode, disables all display output\n"
+         "  -B            brief mode, disables most display output\n"
          "  -v            displays version and the usage license\n"
          "  --            treats all following arguments as non-options\n"
          "  -?            displays this help screen\n"));
@@ -419,6 +425,9 @@ void handle_base_flags(int flag_char, /* IN */
         *default_outfilep = flag_arg;
         break;
     case 'q':
+        LOG_SET_LEVEL(LOG_WARNING);
+        break;
+    case 'B':
         LOG_SET_LEVEL(LOG_BRIEF);
         break;
     case 'v':
@@ -435,7 +444,7 @@ void handle_base_flags(int flag_char, /* IN */
             }
             LOG(LOG_ERROR, ("\n"));
         }
-        print_usage(appl, LOG_BRIEF, *default_outfilep);
+        print_usage(appl, LOG_WARNING, *default_outfilep);
         exit(0);
     }
 }

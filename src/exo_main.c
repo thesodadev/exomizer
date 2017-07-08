@@ -165,7 +165,7 @@ do_load(char *file_name, struct membuf *mem)
     membuf_truncate(mem, info->end);
     membuf_trim(mem, info->start);
 
-    LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ",
+    LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
                      info->start, info->end));
     return info->start;
 }
@@ -177,6 +177,7 @@ struct target_info
     int basic_txt_start;
     int end_of_ram;
     const char *model;
+    const char *outformat;
 };
 
 static
@@ -397,7 +398,11 @@ void print_sfx_usage(const char *appl, enum log_level level,
         ("  -D<symbol>=<value>\n"
          "                predefines symbols for the sfx assembler\n"
          "  -s<custom enter assembler fragment>\n"
-         "  -f<custom exit assembler fragment>\n"));
+         "                assembler fragment to execute when the decruncher starts.\n"
+         "                (don't change Y-reg)\n"
+         "  -f<custom exit assembler fragment>\n"
+         "                assembler fragment o execute when the decruncher has\n"
+         "                finished\n"));
     print_crunch_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
@@ -515,6 +520,8 @@ void level(const char *appl, int argc, char *argv[])
     LOG(LOG_NORMAL, (" the largest safety offset is %d.\n",
                      max_safety));
 
+    LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
+                    membuf_memlen(out), flags->outfile));
     write_file(flags->outfile, out);
 
     membuf_free(out);
@@ -592,7 +599,7 @@ void mem(const char *appl, int argc, char *argv[])
         in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0);
         in_len = membuf_memlen(in);
 
-        LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ",
+        LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
                          in_load, in_load + in_len));
 
         /* make room for load addr */
@@ -655,6 +662,17 @@ void mem(const char *appl, int argc, char *argv[])
                          info->needed_safety_offset));
     }
 
+    if (prepend_load_addr)
+    {
+        LOG(LOG_BRIEF, (" Writing prg to \"%s\", saving from $%04X to $%04X.\n",
+                        flags->outfile, load_addr,
+                        load_addr + membuf_memlen(out) - 2));
+    }
+    else
+    {
+        LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
+                        membuf_memlen(out), flags->outfile));
+    }
     write_file(flags->outfile, out);
 
     membuf_free(out);
@@ -667,17 +685,17 @@ get_target_info(int target)
 {
     static const struct target_info targets[] =
         {
-            {1,   0xbf, 0x0501, 0x10000, "Oric"},
-            {20,  0x9e, 0x1001, 0x2000,  "Vic20"},
-            {23,  0x9e, 0x0401, 0x2000,  "Vic20+3kB"},
-            {52,  0x9e, 0x1201, 0x8000,  "Vic20+32kB"},
-            {55,  0x9e, 0x1201, 0x8000,  "Vic20+3kB+32kB"},
-            {16,  0x9e, 0x1001, 0x4000,  "C16"},
-            {4,   0x9e, 0x1001, 0xfd00,  "plus4"},
-            {64,  0x9e, 0x0801, 0x10000, "C64"},
-            {128, 0x9e, 0x1c01, 0xff00,  "C128"},
-            {162, 0x8c, 0x0801, 0xc000,  "Apple ][+"},
-            {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE"},
+            {1,   0xbf, 0x0501, 0x10000, "Oric", "tap"},
+            {20,  0x9e, 0x1001, 0x2000,  "Vic20", "prg"},
+            {23,  0x9e, 0x0401, 0x2000,  "Vic20+3kB", "prg"},
+            {52,  0x9e, 0x1201, 0x8000,  "Vic20+32kB", "prg"},
+            {55,  0x9e, 0x1201, 0x8000,  "Vic20+3kB+32kB", "prg"},
+            {16,  0x9e, 0x1001, 0x4000,  "C16", "prg"},
+            {4,   0x9e, 0x1001, 0xfd00,  "plus4", "prg"},
+            {64,  0x9e, 0x0801, 0x10000, "C64", "prg"},
+            {128, 0x9e, 0x1c01, 0xff00,  "C128", "prg"},
+            {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "bas"},
+            {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},
             {0,   -1,   -1,     -1,  NULL}
         };
     const struct target_info *targetp;
@@ -1023,14 +1041,14 @@ void sfx(const char *appl, int argc, char *argv[])
         if(in_load + in_len > targetp->end_of_ram)
         {
             LOG(LOG_ERROR, ("Error:\n The memory of the %s target ends at "
-                            "$%04X and can't hold the uncrunched data\n "
+                            "$%04X and can't hold the\n uncrunched data "
                             "that covers $%04X to $%04X.\n",
                             targetp->model, targetp->end_of_ram,
                             in_load, in_load + in_len));
             exit(1);
         }
 
-        LOG(LOG_NORMAL, (" crunching from $%04X to $%04X ",
+        LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
                          in_load, in_load + in_len));
 
         if(decr_target == 20 || decr_target == 52)
@@ -1185,26 +1203,31 @@ void sfx(const char *appl, int argc, char *argv[])
         {
             i32 lowest_addr;
             i32 max_transfer_len;
+            i32 lowest_addr_out;
+            i32 highest_addr_out;
             i32 i_table_addr;
             i32 i_effect;
             i32 i_ram_enter, i_ram_during, i_ram_exit;
             i32 i_irq_enter, i_irq_during, i_irq_exit;
             i32 i_nmi_enter, i_nmi_during, i_nmi_exit;
             i32 c_effect_color;
-            const unsigned char *out_data = membuf_get(out);
-            int out_load = out_data[0] | out_data[1] << 8;
 
             resolve_symbol("lowest_addr", NULL, &lowest_addr);
             resolve_symbol("max_transfer_len", NULL, &max_transfer_len);
+            resolve_symbol("lowest_addr_out", NULL, &lowest_addr_out);
+            resolve_symbol("highest_addr_out", NULL, &highest_addr_out);
             resolve_symbol("i_table_addr", NULL, &i_table_addr);
             resolve_symbol("i_effect2", NULL, &i_effect);
             resolve_symbol("i_irq_enter", NULL, &i_irq_enter);
             resolve_symbol("i_irq_during", NULL, &i_irq_during);
             resolve_symbol("i_irq_exit", NULL, &i_irq_exit);
 
+            LOG(LOG_BRIEF, (" Writing %s to \"%s\", saving from "
+                            "$%04X to $%04X.\n", targetp->outformat,
+                            flags->outfile, lowest_addr_out,
+                            highest_addr_out));
+
             LOG(LOG_NORMAL, ("Memory layout:   |Start |End   |\n"));
-            LOG(LOG_NORMAL, (" Generated file  | $%04X| $%04X|\n",
-                             out_load, out_load + membuf_memlen(out) - 2));
             LOG(LOG_NORMAL, (" Crunched data   | $%04X| $%04X|\n",
                                  lowest_addr, lowest_addr + max_transfer_len));
             LOG(LOG_NORMAL, (" Decrunched data | $%04X| $%04X|\n",
@@ -1301,12 +1324,17 @@ void raw(const char *appl, int argc, char *argv[])
     membuf_init(outbuf);
 
     load_plain_file(infilev[0], inbuf);
+    LOG(LOG_BRIEF, (" Reading %d bytes from \"%s\".\n",
+                    membuf_memlen(inbuf), infilev[0]));
 
     if(decrunch_mode)
     {
         int seems_backward = 0;
         int seems_forward = 0;
         unsigned char *p;
+        int inlen;
+        int outlen;
+
 
         p = membuf_get(inbuf);
         if(p[0] == 0x80 && p[1] == 0x0)
@@ -1326,32 +1354,28 @@ void raw(const char *appl, int argc, char *argv[])
             backwards_mode = seems_backward;
         }
 
+        inlen = membuf_memlen(inbuf);
         if(backwards_mode)
         {
-            LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\" "
-                             " backwards.\n", infilev[0], flags->outfile));
             decrunch_backwards(LOG_NORMAL, inbuf, outbuf);
         }
         else
         {
-            LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\".\n",
-                             infilev[0], flags->outfile));
             decrunch(LOG_NORMAL, inbuf, outbuf);
         }
+        outlen = membuf_memlen(outbuf);
+        LOG(LOG_BRIEF, (" Decrunched data expanded %d bytes (%0.2f%%)\n",
+                        outlen - inlen, 100.0 * (outlen - inlen) / inlen));
     }
     else
     {
         struct crunch_info info[1];
         if(backwards_mode)
         {
-            LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\" "
-                             "backwards.\n", infilev[0], flags->outfile));
             crunch_backwards(inbuf, outbuf, options, info);
         }
         else
         {
-            LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
-                             infilev[0], flags->outfile));
             crunch(inbuf, outbuf, options, info);
         }
 
@@ -1367,6 +1391,8 @@ void raw(const char *appl, int argc, char *argv[])
         reverse_buffer(membuf_get(outbuf), membuf_memlen(outbuf));
     }
 
+    LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
+                    membuf_memlen(outbuf), flags->outfile));
     write_file(flags->outfile, outbuf);
 
     membuf_free(outbuf);
@@ -1473,6 +1499,8 @@ void desfx(const char *appl, int argc, char *argv[])
     p[0] = start;
     p[1] = start >> 8;
 
+    LOG(LOG_BRIEF, (" Writing prg to \"%s\", saving from $%04X to $%04X, "
+                    "entry at $%04X.\n", outfile, start, cookedend, entry));
     write_file(outfile, mem);
 
     membuf_free(mem);

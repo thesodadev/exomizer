@@ -39,8 +39,8 @@ struct common_flags
     const char *outfile;
 };
 
-#define CRUNCH_FLAGS "cCe:Em:M:p:o:qv"
-#define BASE_FLAGS "o:qv"
+#define CRUNCH_FLAGS "cCe:Em:M:p:o:qBv"
+#define BASE_FLAGS "o:qBv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
 

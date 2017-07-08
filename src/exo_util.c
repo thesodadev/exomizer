@@ -175,55 +175,57 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         exit(1);
     }
 
-    int load = -3;
-    int offset = 0;
-    int len = -1;
-    if (--tries >= 0)
     {
-        load = tries_arr[tries];
-    }
-    if (--tries >= 0)
-    {
-        offset = tries_arr[tries];
-    }
-    if (--tries >= 0)
-    {
-        len = tries_arr[tries];
-    }
-
-    if(!is_plain)
-    {
-        /* read the prg load address */
-        int prg_load = get_le_word(in);
-        if(!is_relocated)
+        int load = -3;
+        int offset = 0;
+        int len = -1;
+        if (--tries >= 0)
         {
-            load = prg_load;
-            /* unrelocated prg loading to $ffff is xex */
-            if(prg_load == 0xffff)
+            load = tries_arr[tries];
+        }
+        if (--tries >= 0)
+        {
+            offset = tries_arr[tries];
+        }
+        if (--tries >= 0)
+        {
+            len = tries_arr[tries];
+        }
+
+        if(!is_plain)
+        {
+            /* read the prg load address */
+            int prg_load = get_le_word(in);
+            if(!is_relocated)
             {
-                /* differentiate this from relocated $ffff files so it is
-                 * possible to override the xex auto-detection. */
-                load = -1;
-            }
-            /* unrelocated prg loading to $1616 is Oric tap */
-            else if(prg_load == 0x1616)
-            {
-                load = -2;
+                load = prg_load;
+                /* unrelocated prg loading to $ffff is xex */
+                if(prg_load == 0xffff)
+                {
+                    /* differentiate this from relocated $ffff files so it is
+                     * possible to override the xex auto-detection. */
+                    load = -1;
+                }
+                /* unrelocated prg loading to $1616 is Oric tap */
+                else if(prg_load == 0x1616)
+                {
+                    load = -2;
+                }
             }
         }
-    }
 
-    if(load_addr != NULL)
-    {
-        *load_addr = load;
-    }
-    if(offsetp != NULL)
-    {
-        *offsetp = offset;
-    }
-    if(lenp != NULL)
-    {
-        *lenp = len;
+        if(load_addr != NULL)
+        {
+            *load_addr = load;
+        }
+        if(offsetp != NULL)
+        {
+            *offsetp = offset;
+        }
+        if(lenp != NULL)
+        {
+            *lenp = len;
+        }
     }
     return in;
 }
@@ -520,8 +522,8 @@ void load_located(char *filename, unsigned char mem[65536],
     }
     fclose(in);
 
-    LOG(LOG_NORMAL,
-        (" filename: \"%s\", loading from $%04X to $%04X\n",
+    LOG(LOG_BRIEF,
+        (" Reading \"%s\", loading from $%04X to $%04X.\n",
          filename, info->start, info->end));
 }
 

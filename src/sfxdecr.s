@@ -851,6 +851,7 @@ zp_hi_bits = $81
         .BYTE(c_basic_start / 256, c_basic_start % 256)
         .BYTE(0, 0)
         .ORG(c_basic_start)
+lowest_addr_out:
         .WORD(basic_end, i_line_number)
         .BYTE($bf, o1_start / 1000 % 10 + 48, o1_start / 100 % 10 + 48)
         .BYTE(o1_start / 10 % 10 + 48, o1_start % 10 + 48, 0)
@@ -866,6 +867,7 @@ basic_end:
     .ELSE
         .ORG(i_load_addr)
     .ENDIF
+lowest_addr_out:
   .ENDIF
 o1_start:
 ; -------------------------------------------------------------------
@@ -880,9 +882,11 @@ zp_hi_bits = $9f
   .IF(.DEFINED(i_load_addr))
         .WORD(i_load_addr)
         .ORG(i_load_addr)
+lowest_addr_out:
   .ELSE
         .WORD(c_basic_start)
         .ORG(c_basic_start)
+lowest_addr_out:
         .WORD(basic_end, i_line_number)
         .BYTE($9e, cbm_start / 1000 % 10 + 48, cbm_start / 100 % 10 + 48)
         .BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48, 0)
@@ -912,6 +916,7 @@ zp_hi_bits = $f8
   .ELSE
         .ORG(i_load_addr)
   .ENDIF
+lowest_addr_out:
 a8_start:
 .ELIF(r_target == $a2)
 ; -------------------------------------------------------------------
@@ -926,10 +931,12 @@ zp_hi_bits = $9f
         .WORD(i_load_addr)
         .WORD(a2_end - a2_load)
         .ORG(i_load_addr)
+lowest_addr_out:
 a2_load:
   .ELSE
         ;; Applesoft basic file, no header
         .ORG(c_basic_start)
+lowest_addr_out:
 a2_load:
         .WORD(basic_end, i_line_number)
         .BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
@@ -1331,6 +1338,7 @@ stage3end:
 file1start:
         .INCBIN("crunched_data", 2, transfer_len)
 file1end:
+highest_addr_out:
 ; -------------------------------------------------------------------
 ; -- end of file part 1 ---------------------------------------------
 ; -------------------------------------------------------------------
