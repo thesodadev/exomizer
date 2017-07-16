@@ -110,6 +110,15 @@ static void output_bits_int(output_ctx ctx,        /* IN/OUT */
 {
     /* this makes the bits appear in reversed
      * big endian order in the output stream */
+#if BITS_AS_BYTES
+    while (count > 7)
+    {
+        /* at least 8 bits or more are left */
+        output_byte(ctx, (unsigned char)(val & 0xFF));
+        count -= 8;
+        val >>= 8;
+    }
+#endif
     while (count-- > 0)
     {
         ctx->bitbuf <<= 1;

@@ -2,11 +2,12 @@
 # Makefile for exomizer decruncher
 #
 
-#CFLAGS = -Wall -O3 -ffast-math -mtune=i686 -fomit-frame-pointer -fgcse -pedantic
+WFLAGS = -DBITS_AS_BYTES --std=c89 -Wall -Wstrict-prototypes
+#CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer -fgcse -pedantic
 #LDFLAGS = -s
 
-CFLAGS = -g -mtune=i686 -Wall
-LDFLAGS = -g -mtune=i686
+CFLAGS = -g $(WFLAGS)
+LDFLAGS = -g
 
 TEST_OBJS = main.o exodecrunch.o
 TEST2_OBJS = main2.o exodecr.o

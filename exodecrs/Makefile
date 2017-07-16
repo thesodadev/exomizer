@@ -25,19 +25,19 @@ testrun: $(TEST_OBJS)
 	@$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
 
 $(NAME): $(MAKEFILE) testrun $(SOURCES)
-	ld65 -t c64 $(SOURCES) -o $@
+	ld65 $(SOURCES) -o $@ -Cc64.cfg
 	./testrun $@ data.bin,0x3000
 
 $(NAMEF): $(MAKEFILE) testrun $(SOURCESF)
-	ld65 -t c64 $(SOURCESF) -o $@
+	ld65 $(SOURCESF) -o $@ -Cc64.cfg
 	./testrun $@ data.bin,0x3000
 
 $(NAME1): $(MAKEFILE) testrun $(SOURCES1)
-	ld65 -t c64 $(SOURCES1) -o $@
+	ld65 $(SOURCES1) -o $@ -Cc64.cfg
 	./testrun $@ data.bin,0xEA00
 
 $(NAME2): $(MAKEFILE) testrun $(SOURCES2)
-	ld65 -t c64 $(SOURCES2) -o $@
+	ld65 $(SOURCES2) -o $@ -Cc64.cfg
 	./testrun $@ data.bin,0xEA00
 
 %.os: %.s

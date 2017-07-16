@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     if(info->run == -1)
     {
         /* look for sys line */
-        info->run = find_sys(mem + info->basic_txt_start, 0x9e);
+        info->run = find_sys(mem + info->basic_txt_start, 0x9e, NULL);
     }
     if(info->run == -1)
     {
