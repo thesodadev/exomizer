@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
     int p;
     int pending;
     int fail;
+    int failcount;
     const char *appl;
 
     /* init logging */
@@ -102,7 +103,8 @@ int main(int argc, char *argv[])
     p = info->start;
     fail = 0;
     pending = -1;
-    while(p < info->end)
+    failcount = 0;
+    while(p < info->end && failcount < 10)
     {
         if(mem[p] != mem2[p])
         {
@@ -122,6 +124,7 @@ int main(int argc, char *argv[])
                                 mem[pending],
                                 mem2[pending]));
                 pending = -1;
+                ++failcount;
             }
         }
         ++p;
@@ -133,6 +136,10 @@ int main(int argc, char *argv[])
                         appl, pending, p - 1,
                         mem[pending],
                         mem2[pending]));
+    }
+    if (p < info->end)
+    {
+        LOG(LOG_ERROR, ("%s: giving up, too many mismatches.\n", appl));
     }
 
     return fail;
