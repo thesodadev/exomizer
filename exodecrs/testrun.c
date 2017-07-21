@@ -97,14 +97,15 @@ int main(int argc, char *argv[])
         }
         next_inst(&r);
     }
+    LOG(LOG_BRIEF, ("decrunch took %u cycles.\n", r.cycles));
 
     load_located(argv[2], mem2, info);
     LOG(LOG_BRIEF, ("comparing $%04X - $%04X\n", info->start, info->end));
-    p = info->start;
+    p = info->end - 1;
     fail = 0;
     pending = -1;
     failcount = 0;
-    while(p < info->end && failcount < 10)
+    while(p >= info->start && failcount < 10)
     {
         if(mem[p] != mem2[p])
         {
@@ -120,24 +121,24 @@ int main(int argc, char *argv[])
             {
                 LOG(LOG_ERROR, ("%s: interval mismatch $%04X - $%04X, "
                                 "starts with $%02X, expected $%02X.\n",
-                                appl, pending, p - 1,
+                                appl, pending, p + 1,
                                 mem[pending],
                                 mem2[pending]));
                 pending = -1;
                 ++failcount;
             }
         }
-        ++p;
+        --p;
     }
     if(pending >= 0)
     {
         LOG(LOG_ERROR, ("%s: interval mismatch $%04X - $%04X, "
                         "starts with $%02X, expected $%02X.\n",
-                        appl, pending, p - 1,
+                        appl, pending, p + 1,
                         mem[pending],
                         mem2[pending]));
     }
-    if (p < info->end)
+    if (p > info->start)
     {
         LOG(LOG_ERROR, ("%s: giving up, too many mismatches.\n", appl));
     }
