@@ -366,7 +366,7 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
             ++len;
             --pos;
         }
-        if(len > mp_len)
+        if(len >= mp_len)
         {
             /* allocate match struct and add it to matches */
             mp = match_new(ctx, &matches, index - pos, offset);
