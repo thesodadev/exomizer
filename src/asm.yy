@@ -143,7 +143,7 @@ bit		return BIT;
 
 [0-9]+		{ yylval.num = atoi(yytext); return NUMBER; }
 
-$[0-9a-z]+	{ yylval.num = strtol(yytext + 1, NULL, 16); return NUMBER; }
+$[0-9a-f]+	{ yylval.num = strtol(yytext + 1, NULL, 16); return NUMBER; }
 
 \<		return LT;
 \>		return GT;
@@ -170,6 +170,7 @@ $[0-9a-z]+	{ yylval.num = strtol(yytext + 1, NULL, 16); return NUMBER; }
 x		return X;
 y		return Y;
 
+[a-z][_a-z0-9]*/:	{ yylval.str = strdupped_get(yytext); return LABEL; }
 [a-z][_a-z0-9]*	{ yylval.str = strdupped_get(yytext); return SYMBOL; }
 
 \r\n|\n		++num_lines;

@@ -134,7 +134,8 @@ extern int yydebug;
     ASSIGN = 344,
     GUESS = 345,
     NUMBER = 346,
-    vNEG = 347
+    vNEG = 347,
+    LABEL = 348
   };
 #endif
 
@@ -150,7 +151,7 @@ union YYSTYPE
     struct atom *atom;
     struct expr *expr;
 
-#line 154 "asm.tab.h" /* yacc.c:1909  */
+#line 155 "asm.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
