@@ -163,24 +163,15 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
             /* snp and best_rle_snp is the same rle area,
              * let's see which is best */
-#undef NEW_STYLE
-#ifdef NEW_STYLE
-            rle_mp->len = best_rle_snp->index - snp->index;
-#else
             rle_mp->len = ctx->rle[best_rle_snp->index];
-#endif
             rle_mp->offset = 1;
             best_rle_score = f(rle_mp, emd);
             total_best_rle_score = best_rle_snp->total_score +
                 best_rle_score;
 
-#ifdef NEW_STYLE
-            snp_rle_score = 0.0;
-#else
             rle_mp->len = ctx->rle[snp->index];
             rle_mp->offset = 1;
             snp_rle_score = f(rle_mp, emd);
-#endif
             total_snp_rle_score = snp->total_score + snp_rle_score;
 
             if(total_snp_rle_score <= total_best_rle_score)
@@ -249,16 +240,8 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
             next = mp->next;
             end_len = 1;
-#if 0
-            if(next != NULL)
-            {
-                end_len = next->len + (next->offset > 0);
-            }
-#endif
             *tmp = *mp;
-#if 1
             tmp->next = NULL;
-#endif
             for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
             {
                 float score;
@@ -283,11 +266,9 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                     (snp->match->len == 0 ||
                      total_score < snp->total_score ||
                      (total_score == snp->total_score &&
-#if 1
                       (tmp->offset == 0 ||
                        (snp->match->len == tmp->len &&
                         (total_offset <= snp->total_offset))))))
-#endif
                 {
                     LOG(LOG_DUMP, (", replaced"));
                     snp->index = len - tmp->len;
