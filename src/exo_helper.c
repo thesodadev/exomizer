@@ -259,7 +259,7 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", inlen));
 
     match_ctx_init(ctx, inbuf, options->max_len, options->max_offset,
-                   options->use_imprecise_rle);
+                   options->favor_speed);
 
     LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
 
@@ -404,7 +404,7 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
 {
     LOG(level,
         ("  -c            compatibility mode, disables the use of literal sequences\n"
-         "  -C            enable imprecise rle matching, trades result for speed\n"
+         "  -C            favor compression speed over ratio\n"
          "  -e <encoding> uses the given encoding for crunching\n"
          "  -E            don't write the encoding to the outfile\n"
          "  -m <offset>   sets the maximum sequence offset, default is 65535\n"
@@ -462,7 +462,7 @@ void handle_crunch_flags(int flag_char, /* IN */
         options->use_literal_sequences = 0;
         break;
     case 'C':
-        options->use_imprecise_rle = 1;
+        options->favor_speed = 1;
         break;
     case 'e':
         options->exported_encoding = flag_arg;

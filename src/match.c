@@ -43,7 +43,8 @@ struct match_node {
 
 static
 const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
-                          int index);    /* IN */
+                          int index,            /* IN */
+                          int favor_speed);     /* IN */
 
 matchp match_new(match_ctx ctx, /* IN/OUT */
                  matchp *mpp,
@@ -77,7 +78,7 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
                     struct membuf *inbuf,  /* IN */
                     int max_len,           /* IN */
                     int max_offset,        /* IN */
-                    int use_imprecise_rle) /* IN */
+                    int favor_speed) /* IN */
 {
     struct match_node *np;
     struct progress prog[1];
@@ -154,7 +155,7 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
                 continue;
             }
 
-            if (use_imprecise_rle &&
+            if (favor_speed &&
                 ctx->rle_r[i] != 0 && ctx->rle[i] != 0)
             {
                 continue;
@@ -225,7 +226,7 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
         const_matchp matches;
 
         /* let's populate the cache */
-        matches = matches_calc(ctx, i);
+        matches = matches_calc(ctx, i, favor_speed);
 
         /* add to cache */
         ctx->info[i]->cache = matches;
@@ -265,7 +266,7 @@ void dump_matches(int level, matchp mp)
 }
 
 const_matchp matches_get(match_ctx ctx, /* IN/OUT */
-                         int index)      /* IN */
+                         int index)     /* IN */
 {
     return ctx->info[index]->cache;
 }
@@ -273,7 +274,8 @@ const_matchp matches_get(match_ctx ctx, /* IN/OUT */
 /* this needs to be called with the indexes in
  * reverse order */
 const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
-                          int index)     /* IN */
+                          int index,            /* IN */
+                          int favor_speed)      /* IN */
 {
     const unsigned char *buf;
 
@@ -327,7 +329,6 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
          * > 0 */
         while(len > 1 && buf[pos] == buf[pos + offset])
         {
-#if 1
             int offset1 = ctx->rle_r[pos];
             int offset2 = ctx->rle_r[pos + offset];
             int offset = offset1 < offset2 ? offset1 : offset2;
@@ -337,10 +338,6 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
 
             len -= 1 + offset;
             pos += 1 + offset;
-#else
-            --len;
-            ++pos;
-#endif
         }
         if(len > 1)
         {
@@ -366,7 +363,7 @@ const_matchp matches_calc(match_ctx ctx,        /* IN/OUT */
             ++len;
             --pos;
         }
-        if(len >= mp_len)
+        if(len > mp_len || (!favor_speed && len == mp_len))
         {
             /* allocate match struct and add it to matches */
             mp = match_new(ctx, &matches, index - pos, offset);
@@ -478,20 +475,6 @@ matchp_cache_peek(struct match_ctx *ctx, int pos,
             val = val->next;
         }
     }
-#if 0
-    LOG(LOG_NORMAL, ("[%05d]: ", pos));
-    if(litp == NULL)
-        LOG(LOG_NORMAL, ("litp(NULL)"));
-    else
-        LOG(LOG_NORMAL, ("litp(%d,%d)", litp->len, litp->offset));
-
-    if(seqp == NULL)
-        LOG(LOG_NORMAL, ("seqp(NULL)"));
-    else
-        LOG(LOG_NORMAL, ("seqp(%d,%d)", seqp->len, seqp->offset));
-
-    LOG(LOG_NORMAL, ("\n"));
-#endif
 
     if(litpp != NULL) *litpp = litp;
     if(seqpp != NULL) *seqpp = seqp;

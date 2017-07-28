@@ -68,7 +68,7 @@ struct crunch_options
     int max_len;
     int max_offset;
     int use_literal_sequences;
-    int use_imprecise_rle;
+    int favor_speed;
     int output_header;
 };
 
