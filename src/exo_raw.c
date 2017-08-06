@@ -112,17 +112,28 @@ main(int argc, char *argv[])
     {
         int seems_backward = 0;
         int seems_forward = 0;
+        int version = 0;
         unsigned char *p;
 
         p = membuf_get(inbuf);
-        if(p[0] == 0x80 && p[1] == 0x0)
+        if(p[0] == 0x80 && p[1] == 0x0 && (p[2] & 0x80) == 0)
         {
             seems_backward = 1;
         }
+        if(p[0] == 0x01 && p[1] == 0x0 && (p[2] & 0x01) == 0)
+        {
+            seems_backward = 1;
+            version = 1;
+        }
         p += membuf_memlen(inbuf);
-        if(p[-1] == 0x80 && p[-2] == 0x0)
+        if(p[-1] == 0x80 && p[-2] == 0x0 && (p[-3] & 0x80) == 0)
         {
             seems_forward = 1;
+        }
+        if(p[-1] == 0x01 && p[-2] == 0x0 && (p[-3] & 0x01) == 0)
+        {
+            seems_forward = 1;
+            version = 1;
         }
 
         /* do we know what way it was crunched? */
@@ -136,13 +147,13 @@ main(int argc, char *argv[])
         {
             LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\" "
                              " backwards.\n", infilev[0], flags->outfile));
-            decrunch_backwards(LOG_NORMAL, inbuf, outbuf);
+            decrunch_backwards(LOG_NORMAL, inbuf, outbuf, version);
         }
         else
         {
             LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\".\n",
                              infilev[0], flags->outfile));
-            decrunch(LOG_NORMAL, inbuf, outbuf);
+            decrunch(LOG_NORMAL, inbuf, outbuf, version);
         }
     }
     else

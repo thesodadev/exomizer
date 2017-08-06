@@ -184,6 +184,11 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
         case 2:
             bits += data->offset_f(mp->offset, offset[1], emd->out);
             break;
+#ifdef FOURTH_LEN_PART
+        case 3:
+            bits += data->offset_f(mp->offset, offset[2], emd->out);
+            break;
+#endif
         default:
             bits += data->offset_f(mp->offset, offset[7], emd->out);
             break;
@@ -379,6 +384,9 @@ const char *optimal_encoding_export(encode_match_data emd)
     p += sprintf(p, "%s", export_helper((interval_nodep)data->len_f_priv, 16));
     p += sprintf(p, ",%s", export_helper(offsets[0], 4));
     p += sprintf(p, ",%s", export_helper(offsets[1], 16));
+#ifdef FOURTH_LEN_PART
+    p += sprintf(p, ",%s", export_helper(offsets[2], 16));
+#endif
     p += sprintf(p, ",%s", export_helper(offsets[7], 16));
     return buf;
 }
@@ -449,6 +457,11 @@ void optimal_encoding_import(encode_match_data emd,
     npp = &offsets[1];
     import_helper(npp, &encoding, 4);
 
+#ifdef FOURTH_LEN_PART
+    /* offsets, len = 3 */
+    npp = &offsets[2];
+    import_helper(npp, &encoding, 4);
+#endif
     /* offsets, len >= 3 */
     npp = &offsets[7];
     import_helper(npp, &encoding, 4);
@@ -621,6 +634,16 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
                     LOG(LOG_ERROR, ("offset1 counter wrapped!\n"));
                 }
                 break;
+#ifdef FOURTH_LEN_PART
+            case 3:
+                offset_parr[2][mp->offset] += treshold;
+                offset_arr[2][mp->offset] += 1;
+                if(offset_arr[2][mp->offset] < 0)
+                {
+                    LOG(LOG_ERROR, ("offset2 counter wrapped!\n"));
+                }
+                break;
+#endif
             default:
                 offset_parr[7][mp->offset] += treshold;
                 offset_arr[7][mp->offset] += 1;
@@ -677,6 +700,10 @@ void optimal_dump(int level, encode_match_data emd)
     LOG(level, ("offsets (len =2): "));
     interval_node_dump(level, offset[1]);
 
+#ifdef FOURTH_LEN_PART
+    LOG(level, ("offsets (len =3): "));
+    interval_node_dump(level, offset[2]);
+#endif
     LOG(level, ("offsets (len =8): "));
     interval_node_dump(level, offset[7]);
 }
@@ -725,6 +752,9 @@ void optimal_out(output_ctx out,        /* IN/OUT */
 
     interval_out(out, offset[0], 4);
     interval_out(out, offset[1], 16);
+#ifdef FOURTH_LEN_PART
+    interval_out(out, offset[2], 16);
+#endif
     interval_out(out, offset[7], 16);
     interval_out(out, len, 16);
 }

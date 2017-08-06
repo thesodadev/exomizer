@@ -54,11 +54,34 @@ struct exo_decrunch_ctx
     unsigned short int length;
     unsigned short int offset;
     unsigned short int window_pos;
-    unsigned short int bit_buffer;
+    unsigned char bit_buffer;
 
     exo_read_crunched_byte *read_byte;
     void *read_data;
 };
+
+static int bitbuffer_rotate(struct exo_decrunch_ctx *ctx, int carry)
+{
+    int carry_out;
+#ifdef BITS_AS_BYTES
+    /* rol */
+    carry_out = (ctx->bit_buffer & 0x80) != 0;
+    ctx->bit_buffer <<= 1;
+    if (carry)
+    {
+        ctx->bit_buffer |= 0x01;
+    }
+#else
+    /* ror */
+    carry_out = ctx->bit_buffer & 0x01;
+    ctx->bit_buffer >>= 1;
+    if (carry)
+    {
+        ctx->bit_buffer |= 0x80;
+    }
+#endif
+    return carry_out;
+}
 
 static int
 read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
@@ -70,13 +93,14 @@ read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
     int bits = 0;
     while(bit_count-- > 0)
     {
-        if(ctx->bit_buffer == 1)
+        int carry = bitbuffer_rotate(ctx, 0);
+        if(ctx->bit_buffer == 0)
         {
-            ctx->bit_buffer = 0x100 | ctx->read_byte(ctx->read_data);
+            ctx->bit_buffer = ctx->read_byte(ctx->read_data);
+            carry = bitbuffer_rotate(ctx, 1);
         }
         bits <<= 1;
-        bits |= ctx->bit_buffer & 0x1;
-        ctx->bit_buffer >>= 1;
+        bits |= carry;
     }
 #ifdef BITS_AS_BYTES
     while (byte_count-- > 0)

@@ -18,21 +18,27 @@ TEST2_OBJS = main2.o exodecr.o
 
 build: $(MAKEFILE) test test2
 
-test: main test1.exo test2.exo test3.exo
+
+
+test: main test1.exo test2.exo test3.exo test4.exo
 	./main test1.exo test1.dec
 	cmp -l test1.bin test1.dec
 	./main test2.exo test2.dec
 	cmp -l test2.bin test2.dec
 	./main test3.exo test3.dec
 	cmp -l test3.bin test3.dec
+	./main test4.exo test4.dec
+	cmp -l test4.bin test4.dec
 
-test2: main2 test1.oxe test2.oxe test3.oxe
+test2: main2 test1.oxe test2.oxe test3.oxe test4.oxe
 	./main2 test1.oxe test1.dec
 	cmp -l test1.bin test1.dec
 	./main2 test2.oxe test2.dec
 	cmp -l test2.bin test2.dec
 	./main2 test3.oxe test3.dec
 	cmp -l test3.bin test3.dec
+	./main2 test4.oxe test4.dec
+	cmp -l test4.bin test4.dec
 
 main: deps $(TEST_OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
@@ -50,7 +56,7 @@ deps: $(wildcard *.h)
 	$(CC) -MM $(wildcard *.c) >$@
 
 %.exo: %.bin
-	../src/exomizer raw $< -o $@
+	../src/exomizer raw -q -C $< -o $@
 
 %.oxe: %.bin
-	../src/exomizer raw -b $< -o $@
+	../src/exomizer raw -q -C -b $< -o $@

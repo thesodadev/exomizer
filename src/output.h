@@ -32,7 +32,7 @@
 #include <stdio.h>
 
 struct _output_ctx {
-    unsigned int bitbuf;
+    unsigned char bitbuf;
     int pos;
     int start;
     struct membuf *buf;

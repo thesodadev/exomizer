@@ -53,13 +53,13 @@ dataf.os: dataf.exo
 streamdata.os: streamdata.exo
 
 data.exo: data.bin
-	../src/exomizer mem -q data.bin,0x3000 -o data.exo
+	../src/exomizer mem -q -C data.bin,0x3000 -o data.exo
 
 dataf.exo: data.bin
-	../src/exomizer mem -q -f data.bin,0x3000 -o dataf.exo
+	../src/exomizer mem -q -C -f data.bin,0x3000 -o dataf.exo
 
 streamdata.exo: data.bin
-	../src/exomizer raw -q -b -c -m 1024 data.bin -o streamdata.exo
+	../src/exomizer raw -q -C -b -c -m 1024 data.bin -o streamdata.exo
 
 %.o:	%.c
 	@echo "Compiling $<"

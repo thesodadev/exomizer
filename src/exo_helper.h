@@ -92,11 +92,13 @@ void crunch(struct membuf *inbuf,
 
 void decrunch(int level,
               struct membuf *inbuf,
-              struct membuf *outbuf);
+              struct membuf *outbuf,
+              int version);
 
 void decrunch_backwards(int level,
                         struct membuf *inbuf,
-                        struct membuf *outbuf);
+                        struct membuf *outbuf,
+                        int version);
 
 void reverse_buffer(char *start, int len);
 #endif

@@ -31,9 +31,33 @@
 
 #define OUTPUT_FLAG_REVERSE 1
 
+static int bitbuf_rotate(output_ctx ctx, int carry)
+{
+    int carry_out;
+#if BITS_AS_BYTES
+    /* ror */
+    carry_out = ctx->bitbuf & 0x01;
+    ctx->bitbuf >>= 1;
+    if (carry)
+    {
+        ctx->bitbuf |= 0x80;
+    }
+#else
+    /* rol */
+    carry_out = (ctx->bitbuf & 0x80) != 0;
+    ctx->bitbuf <<= 1;
+    if (carry)
+    {
+        ctx->bitbuf |= 0x01;
+    }
+#endif
+    return carry_out;
+}
+
 void output_ctx_init(output_ctx ctx, struct membuf *out)    /* IN/OUT */
 {
-    ctx->bitbuf = 1;
+    ctx->bitbuf = 0;
+    bitbuf_rotate(ctx, 1);
     ctx->pos = membuf_memlen(out);
     ctx->buf = out;
 }
@@ -76,15 +100,12 @@ void output_bits_flush(output_ctx ctx)  /* IN/OUT */
 {
     /* flush the bitbuf including
      * the extra 1 bit acting as eob flag */
-    output_byte(ctx, (unsigned char) (ctx->bitbuf & 0xFF));
-    if (ctx->bitbuf & 0x100)
-    {
-        output_byte(ctx, 1);
-    }
-    LOG(LOG_DUMP, ("bitstream flushed 0x%02X\n", ctx->bitbuf & 0xFF));
+    output_byte(ctx, ctx->bitbuf);
+    LOG(LOG_DUMP, ("bitstream flushed 0x%02X\n", ctx->bitbuf));
 
     /* reset it */
-    ctx->bitbuf = 1;
+    ctx->bitbuf = 0;
+    bitbuf_rotate(ctx, 1);
 }
 
 void bits_dump(int count, int val)
@@ -121,17 +142,12 @@ static void output_bits_int(output_ctx ctx,        /* IN/OUT */
 #endif
     while (count-- > 0)
     {
-        ctx->bitbuf <<= 1;
-        ctx->bitbuf |= val & 0x1;
-        val >>= 1;
-        if (ctx->bitbuf & 0x100)
+        if (bitbuf_rotate(ctx, val & 1))
         {
             /* full byte, flush it */
-            output_byte(ctx, (unsigned char) (ctx->bitbuf & 0xFF));
-            LOG(LOG_DUMP,
-               ("bitstream byte 0x%02X\n", ctx->bitbuf & 0xFF));
-            ctx->bitbuf = 1;
+            output_bits_flush(ctx);
         }
+        val >>= 1;
     }
 }
 

@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 - 2013 Magnus Lind.
+; Copyright (c) 2002 - 2017 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -342,7 +342,7 @@ lowest_addr = c_effect_char
 stage2_exit_hook = 1
   .MACRO("stage2_exit_hook")
     .IF(c_effect_char < lowest_addr || c_effect_char > v_highest_addr)
-        sty c_effect_char
+        stx c_effect_char
     .ENDIF
   .ENDMACRO
 .ENDIF
@@ -841,9 +841,12 @@ oric_ROM11:
 ; -------------------------------------------------------------------
 ; -- Oric-1 file header stuff ---------------------------------------
 ; -------------------------------------------------------------------
-zp_lo_len = $80
-zp_src_addr = $82
-zp_hi_bits = $81
+zp_len_lo = $80
+zp_len_hi = $81
+zp_src_lo = $82
+zp_src_hi = zp_src_lo + 1
+zp_dest_y = $84
+zp_bits_hi = $85
 
   .IF(r_start_addr == -2)
         .BYTE($16,$16,$16,$24,$00,$00,$00,$c7)
@@ -875,9 +878,12 @@ o1_start:
 ; -------------------------------------------------------------------
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128)
-zp_lo_len = $a7
-zp_src_addr = $ae
-zp_hi_bits = $9f
+zp_len_lo = $a7
+zp_src_lo = $ae
+zp_src_hi = zp_src_lo + 1
+zp_bits_hi = $9f
+zp_len_hi = $9e
+zp_dest_y = $fc
 
   .IF(.DEFINED(i_load_addr))
         .WORD(i_load_addr)
@@ -906,9 +912,12 @@ cbm_start:
 ; -------------------------------------------------------------------
 ; -- Atari file header stuff ------------------------------------
 ; -------------------------------------------------------------------
-zp_lo_len = $f7
-zp_src_addr = $f9
-zp_hi_bits = $f8
+zp_len_lo = $f7
+zp_src_lo = $f9
+zp_src_hi = zp_src_lo + 1
+zp_bits_hi = $f8
+zp_dest_y = $fb
+zp_len_hi = $fc
 
         .WORD($FFFF, a8_start, a8_end - 1)
   .IF(!.DEFINED(i_load_addr))
@@ -922,9 +931,12 @@ a8_start:
 ; -------------------------------------------------------------------
 ; -- Apple file header stuff ------------------------------------
 ; -------------------------------------------------------------------
-zp_lo_len = $a7
-zp_src_addr = $ae
-zp_hi_bits = $9f
+zp_len_lo = $a7
+zp_src_lo = $ae
+zp_src_hi = zp_src_lo + 1
+zp_bits_hi = $9f
+zp_len_hi = $9e
+zp_dest_y = $fc
 
   .IF(.DEFINED(i_load_addr))
         ;; binary file, cc65 header
@@ -968,9 +980,9 @@ a2_start:
 ; -------------------------------------------------------------------
 ; -- required symbols:
 ; --
-; --  zp_lo_len                 A zerpoage location used for a byte.
-; --  zp_src_addr               A zeropage location used for a word.
-; --  zp_hi_bits                A zeropage location used for a byte.
+; --  zp_len_lo                 A zerpoage location used for a byte.
+; --  zp_src_lo + zp_src_hi     A zeropage location used for a word.
+; --  zp_bits_hi                A zeropage location used for a byte.
 ; --  v_safety_addr
 ; --  i_literal_sequences_used
 ; --  i_table_addr
@@ -1080,45 +1092,62 @@ stage2start:
         bne copy2_loop2
 .ENDIF
 ; -------------------------------------------------------------------
-table_gen:
+.IF(.DEFINED(i_fourth_len_part))
+encoded_entries = 68
+.ELSE
+encoded_entries = 52
+.ENDIF
 tabl_bi = i_table_addr
-tabl_lo = i_table_addr + 52
-tabl_hi = i_table_addr + 104
-        inx
-        tya
+tabl_lo = i_table_addr + encoded_entries
+tabl_hi = i_table_addr + 2 * encoded_entries
+table_gen:
+	tax
+	tya
         and #$0f
+	sta tabl_lo,y
         beq shortcut            ; start a new sequence
-
-        txa                     ; this clears reg a
-        lsr                     ; and sets the carry flag
-        ldx tabl_bi-1,y
-rolle:
-        rol
-        rol <zp_hi_bits
-        dex
-        bpl rolle               ; c = 0 after this (rol zp_hi_bits)
-
-        adc tabl_lo-1,y
-        tax
-
-        lda <zp_hi_bits
-        adc tabl_hi-1,y
+; -------------------------------------------------------------------
+	txa
+	adc tabl_lo - 1,y
+	sta tabl_lo,y
+	lda <zp_bits_hi
+	adc tabl_hi - 1,y
 shortcut:
         sta tabl_hi,y
-        txa
-        sta tabl_lo,y
-
-        ldx #4
-        jsr get_bits            ; clears x-reg.
+; -------------------------------------------------------------------
+        lda #$78                ; %01111000
+	jsr get_bits
+	tax
+        lda tabl_mask,x
         sta tabl_bi,y
+; -------------------------------------------------------------------
+	lda #0
+	sta <zp_bits_hi
+rolle:
+	rol
+	rol <zp_bits_hi
+	dex
+	bpl rolle
+	inx
+; -------------------------------------------------------------------
         iny
-        cpy #52
+        cpy #encoded_entries
         bne table_gen
-        ldy #0
+        ldy <zp_dest_lo
+        stx <zp_dest_lo
         .IF(.DEFINED(stage2_exit_hook))
           .INCLUDE("stage2_exit_hook")
         .ENDIF
         jmp begin
+; -------------------------------------------------------------------
+; The used static mask table (16 bytes)
+; the values are %00000000, %01000000, %01100000, %01110000
+;                %01111000, %01111100, %01111110, %01111111
+;                %10000000, %11000000, %11100000, %11110000
+;                %11111000, %11111100, %11111110, %11111111
+tabl_mask:
+        .BYTE($00, $40, $60, $70, $78, $7c, $7e, $7f)
+        .BYTE($80, $c0, $e0, $f0, $f8, $fc, $fe, $ff)
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
@@ -1131,29 +1160,9 @@ stage2end:
 ; -------------------------------------------------------------------
 stage3start:
 ; -------------------------------------------------------------------
-; get bits (29 bytes)
+; get crunched byte (15 bytes) + hooks
 ;
-; args:
-;   x = number of bits to get
-; returns:
-;   a = #bits_lo
-;   x = #0
-;   c = 0
-;   z = 1
-;   zp_hi_bits = #bits_hi
-; notes:
-;   y is untouched
-; -------------------------------------------------------------------
-get_bits:
-        lda #$00
-        sta <zp_hi_bits
-        cpx #$01
-        bcc bits_done
-bits_next:
-        lsr <zp_bitbuf
-        bne ok
-        pha
-literal_get_byte:
+get_crunched_byte:
         .IF(.DEFINED(fast_effect_hook))
           .INCLUDE("effect_hook")
         .ENDIF
@@ -1167,166 +1176,193 @@ get_byte_skip_hi:
         dec get_byte_fixup + 1
 get_byte_fixup:
         lda lowest_addr + max_transfer_len
-        bcc literal_byte_gotten
-        ror
-        sta <zp_bitbuf
-        pla
-ok:
-        rol
-        rol <zp_hi_bits
-        dex
-        bne bits_next
-bits_done:
         .IF(!.DEFINED(exit_hook))
 decr_exit:
         .ENDIF
+return:
         rts
+; -------------------------------------------------------------------
+; get bits (24 bytes)
+;
+get_bits:
+	adc #$80
+	asl
+	bpl gb_skip
+gg_next:
+        asl <zp_bitbuf
+        bne gb_no_refill
+        pha
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
+        pla
+gb_no_refill:
+        rol
+        bmi gg_next
+gb_skip:
+        bvc return
+        sec
+        sta <zp_bits_hi
+        jmp get_crunched_byte
 ; -------------------------------------------------------------------
 ; main copy loop (16 bytes)
 ;
 copy_next_hi:
-        dex
-        dec <zp_dest_hi
-        dec <(zp_src_addr + 1)
+        dec <zp_len_hi
 copy_next:
+        tya
+        bne copy_skip_hi
+        dec <zp_dest_hi
+        dec <zp_src_hi
+copy_skip_hi:
         dey
-.IF(.DEFINED(i_literal_sequences_used))
-        bcc literal_get_byte
-.ENDIF
-        lda (zp_src_addr),y
+        bcc skip_literal_byte
+        jsr get_crunched_byte
+        bcs literal_byte_gotten
+skip_literal_byte:
+        lda (zp_src_lo),y
 literal_byte_gotten:
         sta (zp_dest_lo),y
 copy_start:
-        tya
+        dex
         bne copy_next
-begin:
-        txa
+        lda <zp_len_hi
         bne copy_next_hi
+        beq begin
 ; -------------------------------------------------------------------
-; decruncher entry point, needs calculated tables (15 bytes)
-; x and y must be #0 when entering
+; copy one literal byte to destination (11 bytes)
 ;
-.IF(.DEFINED(i_literal_sequences_used))
-        inx
-        jsr get_bits
-        tay
-        bne literal_start1
-.ELSE
+literal_start1:
+        tya
+        bne no_hi_decr
+        dec <zp_dest_hi
+no_hi_decr:
         dey
-.ENDIF
-begin2:
+        jsr get_crunched_byte
+        sta (zp_dest_lo),y
+; -------------------------------------------------------------------
+; fetch sequence length index (14 bytes)
+; x must be #0 when entering and contains the length index + 1
+; when exiting or 0 for literal byte
+begin:
+	dex
+        lda <zp_bitbuf
+no_literal1:
+        asl
+        bne nofetch8
+        jsr get_crunched_byte
+        rol
+nofetch8:
         inx
-        jsr bits_next
-        lsr
-        iny
-        bcc begin2
-.IF(!.DEFINED(i_literal_sequences_used))
-        beq literal_start
-.ENDIF
-        cpy #$11
-.IF(.DEFINED(i_literal_sequences_used))
+        bcc no_literal1
+        sta <zp_bitbuf
+; -------------------------------------------------------------------
+; check for literal byte (2 bytes)
+;
+	beq literal_start1
+; -------------------------------------------------------------------
+; check for decrunch done and literal sequences (6 bytes)
+;
+        cpx #$11
         bcc sequence_start
         beq decr_exit
 ; -------------------------------------------------------------------
-; literal sequence handling
+; literal sequence handling (12 bytes)
 ;
-        ldx #$10
-        jsr get_bits
-literal_start1:
-        sta <zp_lo_len
-        ldx <zp_hi_bits
-        ldy #0
-        bcc literal_start
+        jsr get_crunched_byte
+        sta <zp_len_hi
+        jsr get_crunched_byte
+        tax
+        inx
+        bcs copy_start
+; -------------------------------------------------------------------
+; calulate length of sequence (zp_len) (17 bytes)
+;
 sequence_start:
-.ELSE
-        bcs decr_exit
-.ENDIF
-; -------------------------------------------------------------------
-; calulate length of sequence (zp_len) (11 bytes)
-;
-        ldx tabl_bi - 1,y
+        sty <zp_dest_y
+        ldy #0
+        sty <zp_bits_hi
+        lda tabl_bi - 1,x
         jsr get_bits
-        adc tabl_lo - 1,y       ; we have now calculated zp_lo_len
-        sta <zp_lo_len
+        adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
+        sta <zp_len_lo
 ; -------------------------------------------------------------------
-; now do the hibyte of the sequence length calculation (6 bytes)
-        lda <zp_hi_bits
-        adc tabl_hi - 1,y       ; c = 0 after this.
-        pha
+; now do the hibyte of the sequence length calculation (9 bytes)
+        lda <zp_bits_hi
+        adc tabl_hi - 1,x       ; c = 0 after this.
+        sta <zp_len_hi
+        sty <zp_bits_hi
 ; -------------------------------------------------------------------
-; here we decide what offset table to use (20 bytes)
-; x is 0 here
+; here we decide what offset table to use (29 bytes)
+; z-flag reflects zp_len_hi here
 ;
         bne nots123
-        ldy <zp_lo_len
-        cpy #$04
+        ldx <zp_len_lo
+.IF(.DEFINED(i_fourth_len_part))
+        cpx #$05
+.ELSE
+        cpx #$04
+.ENDIF
         bcc size123
 nots123:
-        ldy #$03
+.IF(.DEFINED(i_fourth_len_part))
+	ldx #$04
+.ELSE
+        ldx #$03
+.ENDIF
 size123:
-        ldx tabl_bit - 1,y
-        jsr get_bits
-        adc tabl_off - 1,y      ; c = 0 after this.
-        tay                     ; 1 <= y <= 52 here
-; -------------------------------------------------------------------
-; Here we do the dest_lo -= len_lo subtraction to prepare zp_dest
-; but we do it backwards:       a - b == (b - a - 1) ^ ~0 (C-syntax)
-; (14 bytes)
-        lda <zp_lo_len
-literal_start:                  ; literal enters here with y = 0, c = 1
-        sbc <zp_dest_lo
-        bcc noborrow
-        dec <zp_dest_hi
-noborrow:
-        eor #$ff
-        sta <zp_dest_lo
-        cpy #$01                ; y < 1 then literal
-.IF(.DEFINED(i_literal_sequences_used))
-        bcc pre_copy
-.ELSE
-        bcc literal_get_byte
-.ENDIF
-; -------------------------------------------------------------------
-; calulate absolute offset (zp_src) (27 bytes)
-;
-        ldx tabl_bi,y
-        jsr get_bits;
-        adc tabl_lo,y
-        bcc skipcarry
-        inc <zp_hi_bits
-        clc
-skipcarry:
-        adc <zp_dest_lo
-        sta <zp_src_addr
-        lda <zp_hi_bits
-        adc tabl_hi,y
-        adc <zp_dest_hi
-        sta <(zp_src_addr + 1)
-; -------------------------------------------------------------------
-; prepare for copy loop (6 bytes)
-;
+        lda tabl_bit - 1,x
+gbnc2_next:
+        asl <zp_bitbuf
+        bne gbnc2_ok
+        pha
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
         pla
+gbnc2_ok:
+        rol
+        bcs gbnc2_next
         tax
-.IF(.DEFINED(i_literal_sequences_used))
-        sec
+; -------------------------------------------------------------------
+; calulate absolute offset (zp_src) (20 bytes)
+;
+        lda tabl_bi,x
+        jsr get_bits
+        adc tabl_lo,x
+        sta <zp_src_lo
+        lda <zp_bits_hi
+        adc tabl_hi,x
+        adc <zp_dest_hi
+        sta <zp_src_hi
+; -------------------------------------------------------------------
+; prepare for copy loop (8 bytes)
+;
 pre_copy:
-        ldy <zp_lo_len
+        ldx <zp_len_lo
+        ldy <zp_dest_y
+        inx
         jmp copy_start
-.ELSE
-        ldy <zp_lo_len
-        bcc copy_start
-.ENDIF
         .IF(.DEFINED(exit_hook))
 decr_exit:
           .INCLUDE("exit_hook")
         .ENDIF
+.IF(.DEFINED(i_fourth_len_part))
 ; -------------------------------------------------------------------
-; two small static tables (6 bytes)
-;
+; the static stable used for bits+offset for lens 1,2,3 and 4+ (4 bytes)
+; bits 2,4,4,4 and offs 64,48,32,16 corresponding to
+; %10010000, %11100011, %11100010, %11100001
 tabl_bit:
-        .BYTE(2, 4, 4)
-tabl_off:
-        .BYTE(48, 32, 16)
+        .BYTE($90, $e3, $e2, $e1)
+.ELSE
+; -------------------------------------------------------------------
+; the static stable used for bits+offset 1,2 and 3+ (3 bytes)
+; bits 2,4,4 and offs 48,32,16 corresponding to
+; %10001100, %11100010, %11100001
+tabl_bit:
+        .BYTE($8c, $e2, $e1)
+.ENDIF
+; -------------------------------------------------------------------
 stage3end:
 ; -------------------------------------------------------------------
 ; -- end of stage 3 -------------------------------------------------

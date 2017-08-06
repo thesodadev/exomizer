@@ -26,12 +26,38 @@
 #include "exodec.h"
 #include "log.h"
 
-char *get(struct membuf *buf)
+static int bitbuf_rotate(struct dec_ctx *ctx, int carry)
+{
+    int carry_out;
+    if (ctx->version == 1)
+    {
+        /* rol */
+        carry_out = (ctx->bitbuf & 0x80) != 0;
+        ctx->bitbuf <<= 1;
+        if (carry)
+        {
+            ctx->bitbuf |= 0x01;
+        }
+    }
+    else
+    {
+        /* ror */
+        carry_out = ctx->bitbuf & 0x01;
+        ctx->bitbuf >>= 1;
+        if (carry)
+        {
+            ctx->bitbuf |= 0x80;
+        }
+    }
+    return carry_out;
+}
+
+static char *get(struct membuf *buf)
 {
     return membuf_get(buf);
 }
 
-int
+static int
 get_byte(struct dec_ctx *ctx)
 {
     int c;
@@ -41,33 +67,52 @@ get_byte(struct dec_ctx *ctx)
         exit(1);
     }
     c = ctx->inbuf[ctx->inpos++];
+    ctx->bits_read += 8;
 
     return c;
 }
 
-int
+static int
 get_bits(struct dec_ctx *ctx, int count)
 {
+    int byte_count = 0;
     int val;
 
     val = 0;
+    if (ctx->version == 1)
+    {
+        byte_count = count >> 3;
+        count &= 7;
+    }
 
     /*printf("get_bits: count = %d", count);*/
-    while(count-- > 0) {
-        if((ctx->bitbuf & 0x1FF) == 1) {
-            ctx->bitbuf = get_byte(ctx) | 0x100;
+    while(count-- > 0)
+    {
+        int carry = bitbuf_rotate(ctx, 0);
+        if (ctx->bitbuf == 0)
+        {
+            ctx->bitbuf = get_byte(ctx);
+            ctx->bits_read -= 8;
+            carry = bitbuf_rotate(ctx, 1);
         }
         val <<= 1;
-        val |= ctx->bitbuf & 0x1;
-        ctx->bitbuf >>= 1;
+        val |= carry;
+
         /*printf("bit read %d\n", val &1);*/
         ctx->bits_read++;
     }
     /*printf(" val = %d\n", val);*/
+
+    while (byte_count-- > 0)
+    {
+        val <<= 8;
+        val |= get_byte(ctx);
+    }
+
     return val;
 }
 
-int
+static int
 get_gamma_code(struct dec_ctx *ctx)
 {
     int gamma_code;
@@ -80,7 +125,7 @@ get_gamma_code(struct dec_ctx *ctx)
     return gamma_code;
 }
 
-int
+static int
 get_cooked_code_phase2(struct dec_ctx *ctx, int index)
 {
     int base;
@@ -102,12 +147,24 @@ table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
     tp->table_bit[0] = 2;
     tp->table_bit[1] = 4;
     tp->table_bit[2] = 4;
+#ifdef FOURTH_LEN_PART
+    tp->table_bit[3] = 4;
 
+    tp->table_off[0] = 64;
+    tp->table_off[1] = 48;
+    tp->table_off[2] = 32;
+    tp->table_off[3] = 16;
+#else
     tp->table_off[0] = 48;
     tp->table_off[1] = 32;
     tp->table_off[2] = 16;
+#endif
 
+#ifdef FOURTH_LEN_PART
+    for(i = 0; i < 68; ++i)
+#else
     for(i = 0; i < 52; ++i)
+#endif
     {
         if(i & 0xF)
         {
@@ -127,7 +184,7 @@ table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
     }
 }
 
-char *
+static char *
 table_dump(struct dec_table *tp)
 {
     int i, j;
@@ -154,7 +211,8 @@ table_dump(struct dec_table *tp)
 }
 
 char *
-dec_ctx_init(struct dec_ctx *ctx, struct membuf *inbuf, struct membuf *outbuf)
+dec_ctx_init(struct dec_ctx *ctx, struct membuf *inbuf, struct membuf *outbuf,
+             int version)
 {
     char *encoding;
     ctx->bits_read = 0;
@@ -162,6 +220,7 @@ dec_ctx_init(struct dec_ctx *ctx, struct membuf *inbuf, struct membuf *outbuf)
     ctx->inbuf = membuf_get(inbuf);
     ctx->inend = membuf_memlen(inbuf);
     ctx->inpos = 0;
+    ctx->version = version;
 
     ctx->outbuf = outbuf;
 
@@ -221,8 +280,11 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
 
         len = get_cooked_code_phase2(ctx, val);
 
+#ifdef FOURTH_LEN_PART
+        i = (len > 4 ? 4 : len) - 1;
+#else
         i = (len > 3 ? 3 : len) - 1;
-
+#endif
         val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
         offset = get_cooked_code_phase2(ctx, val);
 
@@ -244,7 +306,12 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             membuf_append_char(ctx->outbuf, val);
         } while (--len > 0);
 
-        LOG(LOG_DEBUG, ("bits read for this iteration %d.\n",
-                        ctx->bits_read - bits));
+#ifdef FOURTH_LEN_PART
+        LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
+                        ctx->bits_read - bits, ctx->bits_read - 280));
+#else
+        LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
+                        ctx->bits_read - bits, ctx->bits_read - 216));
+#endif
     }
 }

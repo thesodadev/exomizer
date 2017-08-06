@@ -330,11 +330,12 @@ void crunch(struct membuf *inbuf,
 
 void decrunch(int level,
               struct membuf *inbuf,
-              struct membuf *outbuf)
+              struct membuf *outbuf,
+              int version)
 {
     struct dec_ctx ctx[1];
     char *enc;
-    enc = dec_ctx_init(ctx, inbuf, outbuf);
+    enc = dec_ctx_init(ctx, inbuf, outbuf, version);
 
     LOG(level, (" Encoding: %s\n", enc));
 
@@ -344,13 +345,14 @@ void decrunch(int level,
 
 void decrunch_backwards(int level,
                         struct membuf *inbuf,
-                        struct membuf *outbuf)
+                        struct membuf *outbuf,
+                        int version)
 {
     int outpos;
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     outpos = membuf_memlen(outbuf);
 
-    decrunch(level, inbuf, outbuf);
+    decrunch(level, inbuf, outbuf, version);
 
     reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
     reverse_buffer((char*)membuf_get(outbuf) + outpos,
