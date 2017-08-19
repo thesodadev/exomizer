@@ -2,11 +2,11 @@
 # Makefile for exomizer
 #
 WFLAGS = --std=c89 -Wall -Wstrict-prototypes
-#CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer -fgcse -pedantic
-#LDFLAGS = -s
+CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer -fgcse -pedantic -D_XOPEN_SOURCE=500
+LDFLAGS = -s
 
-CFLAGS = -g $(WFLAGS)
-LDFLAGS = -g
+#CFLAGS = -g $(WFLAGS)
+#LDFLAGS = -g
 
 SHARED_OBJS = getflag.o log.o membuf.o
 RAW_OBJS = match.o search.o exo_raw.o optimal.o output.o membuf_io.o \
