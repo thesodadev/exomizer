@@ -109,7 +109,7 @@ int do_output(match_ctx ctx,
                 }
             } else
             {
-                f(mp, emd);
+                f(mp, emd, NULL);
                 output_bits(out, 1, 0);
             }
 

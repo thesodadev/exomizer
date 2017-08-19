@@ -31,6 +31,16 @@
 #include "match.h"
 #include "output.h"
 
+struct encode_int_bucket {
+    unsigned short start;
+    unsigned short end;
+};
+
+struct encode_match_buckets {
+    struct encode_int_bucket len;
+    struct encode_int_bucket offset;
+};
+
 struct _search_node {
     int index;
     match match;
@@ -54,7 +64,8 @@ typedef struct _encode_match_data *encode_match_datap;
 /* example of what may be used for priv data
  * field in the encode_match_data struct */
 typedef
-float encode_int_f(int val, void *priv, output_ctxp out);       /* IN */
+float encode_int_f(int val, void *priv, output_ctxp out,
+                   struct encode_int_bucket *eibp);       /* IN */
 
 struct _encode_match_priv {
     int lit_num;
@@ -77,7 +88,9 @@ typedef struct _encode_match_priv *encode_match_privp;
 /* end of example */
 
 typedef
-float encode_match_f(const_matchp mp, encode_match_data emd);   /* IN */
+float encode_match_f(const_matchp mp,
+                     encode_match_data emd,     /* IN */
+                     struct encode_match_buckets *embp);    /* OUT */
 
 void search_node_dump(search_nodep snp);        /* IN */
 

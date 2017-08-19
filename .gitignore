@@ -5,6 +5,8 @@
 *.exo
 *~
 deps
+/src/exomizer
+/src/exobasic
 /src/sfxdecr
 /src/sfxdecr.c
 /exodecrs/testrun

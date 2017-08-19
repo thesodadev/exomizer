@@ -1,4 +1,8 @@
-2017-07-08
+2016-08-19
++ rework -C into a generic favor speed flag and make it disable the crunch
+  result changes too.
++ Improve crunch result slightly by also consider same length sequences at
+  larger offsets too (but by doing this also slowing it down).
 + Add a brief output mode enabled with -B, suggested by both Daniel Hotorp and
   Bacchus independently.
 + Display progress indication only on ttys and not when output is redirected,

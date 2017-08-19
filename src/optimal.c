@@ -67,16 +67,16 @@ interval_nodep interval_node_clone(interval_nodep inp)
 
     if(inp != NULL)
     {
-	inp2 = malloc(sizeof(interval_node));
-	if (inp2 == NULL)
-	{
-	    LOG(LOG_ERROR, ("out of memory error in file %s, line %d\n",
-			    __FILE__, __LINE__));
-	    exit(0);
-	}
-	/* copy contents */
-	*inp2 = *inp;
-	inp2->next = interval_node_clone(inp->next);
+        inp2 = malloc(sizeof(interval_node));
+        if (inp2 == NULL)
+        {
+            LOG(LOG_ERROR, ("out of memory error in file %s, line %d\n",
+                            __FILE__, __LINE__));
+            exit(0);
+        }
+        /* copy contents */
+        *inp2 = *inp;
+        inp2->next = interval_node_clone(inp->next);
     }
 
     return inp2;
@@ -109,7 +109,8 @@ void interval_node_dump(int level, interval_nodep inp)
     LOG(level, ("[eol@%d]\n", end));
 }
 
-float optimal_encode_int(int arg, void *priv, output_ctxp out)
+float optimal_encode_int(int arg, void *priv, output_ctxp out,
+                         struct encode_int_bucket *eibp)
 {
     interval_nodep inp;
     int end;
@@ -131,9 +132,19 @@ float optimal_encode_int(int arg, void *priv, output_ctxp out)
     if (inp != NULL)
     {
         val = (float) (inp->prefix + inp->bits);
+        if (eibp != NULL)
+        {
+            eibp->start = inp->start;
+            eibp->end = end;
+        }
     } else
     {
         val += (float) (arg - end);
+        if (eibp != NULL)
+        {
+            eibp->start = 0;
+            eibp->end = 0;
+        }
     }
     LOG(LOG_DUMP, ("encoding %d to %0.1f bits\n", arg, val));
 
@@ -154,11 +165,19 @@ float optimal_encode_int(int arg, void *priv, output_ctxp out)
     return val;
 }
 
-float optimal_encode(const_matchp mp, encode_match_data emd)
+float optimal_encode(const_matchp mp, encode_match_data emd,
+                     struct encode_match_buckets *embp)
 {
     interval_nodep *offset;
     float bits;
     encode_match_privp data;
+    struct encode_int_bucket *eib_len = NULL;
+    struct encode_int_bucket *eib_offset = NULL;
+    if (embp != NULL)
+    {
+        eib_len = &embp->len;
+        eib_offset = &embp->offset;
+    }
 
     data = emd->priv;
     offset = data->offset_f_priv;
@@ -179,10 +198,12 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
             exit(1);
             break;
         case 1:
-            bits += data->offset_f(mp->offset, offset[0], emd->out);
+            bits += data->offset_f(mp->offset, offset[0], emd->out,
+                                   eib_offset);
             break;
         case 2:
-            bits += data->offset_f(mp->offset, offset[1], emd->out);
+            bits += data->offset_f(mp->offset, offset[1], emd->out,
+                                   eib_offset);
             break;
 #ifdef FOURTH_LEN_PART
         case 3:
@@ -190,10 +211,11 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
             break;
 #endif
         default:
-            bits += data->offset_f(mp->offset, offset[7], emd->out);
+            bits += data->offset_f(mp->offset, offset[7], emd->out,
+                                   eib_offset);
             break;
         }
-        bits += data->len_f(mp->len, data->len_f_priv, emd->out);
+        bits += data->len_f(mp->len, data->len_f_priv, emd->out, eib_len);
         if (bits > (9.0 * mp->len))
         {
             /* lets make literals out of it */
@@ -210,6 +232,17 @@ float optimal_encode(const_matchp mp, encode_match_data emd)
                 data->seq_num += 1;
                 data->seq_bits += bits;
             }
+        }
+    }
+    if (embp != NULL)
+    {
+        if (eib_len->start + eib_len->end == 0 ||
+            eib_offset->start + eib_offset->end == 0)
+        {
+            eib_len->start = 0;
+            eib_len->end = 0;
+            eib_offset->start = 0;
+            eib_offset->end = 0;
         }
     }
     return bits;
@@ -611,7 +644,7 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
             treshold = mp->len * 9;
             treshold -= 1 + (int) optimal_encode_int(mp->len,
                                                      data->len_f_priv,
-                                                     NULL);
+                                                     NULL, NULL);
             switch (mp->len)
             {
             case 0:

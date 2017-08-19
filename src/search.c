@@ -165,13 +165,13 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
              * let's see which is best */
             rle_mp->len = ctx->rle[best_rle_snp->index];
             rle_mp->offset = 1;
-            best_rle_score = f(rle_mp, emd);
+            best_rle_score = f(rle_mp, emd, NULL);
             total_best_rle_score = best_rle_snp->total_score +
                 best_rle_score;
 
             rle_mp->len = ctx->rle[snp->index];
             rle_mp->offset = 1;
-            snp_rle_score = f(rle_mp, emd);
+            snp_rle_score = f(rle_mp, emd, NULL);
             total_snp_rle_score = snp->total_score + snp_rle_score;
 
             if(total_snp_rle_score <= total_best_rle_score)
@@ -199,7 +199,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             local_mp->len = best_rle_snp->index - snp->index;
             local_mp->offset = 1;
 
-            rle_score = f(local_mp, emd);
+            rle_score = f(local_mp, emd, NULL);
             total_rle_score = best_rle_snp->total_score + rle_score;
 
             LOG(LOG_DEBUG, ("comparing index %d (%0.1f) with "
@@ -235,24 +235,35 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         {
             matchp next;
             int end_len;
-
             match tmp;
+            int bucket_len_start;
+            int bucket_offset_start;
+            float score;
 
             next = mp->next;
             end_len = 1;
             *tmp = *mp;
             tmp->next = NULL;
+            bucket_len_start = 0;
+            bucket_offset_start = 0;
             for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
             {
-                float score;
                 float total_score;
                 unsigned int total_offset;
+                struct encode_match_buckets match_buckets;
 
                 LOG(LOG_DUMP, ("mp[%d, %d], tmp[%d, %d]\n",
                                mp->offset, mp->len,
                                tmp->offset, tmp->len));
+                if (bucket_len_start == 0 ||
+                    tmp->len < 3 ||
+                    tmp->len < bucket_len_start)
+                {
+                    score = f(tmp, emd, &match_buckets);
+                    bucket_len_start = match_buckets.len.start;
+                    bucket_offset_start = match_buckets.offset.start;
+                }
 
-                score = f(tmp, emd);
                 total_score = prev_score + score;
                 total_offset = prev_offset_sum + tmp->offset;
                 snp = snp_arr[len - tmp->len];
