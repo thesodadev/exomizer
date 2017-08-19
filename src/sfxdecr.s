@@ -29,6 +29,7 @@
 ; -- r_in_load, done /* required, load address of decrunched data area */
 ; -- r_in_len, done /* required, length of decrunched data area */
 ; -- i_literal_sequences_used, done /* defined if true, otherwise not */
+; -- i_max_sequence_length_256, done /* defined if true, otherwise not */
 ; -- i_ram_enter, done /* undef=c_rom_config_value */
 ; -- i_irq_enter, done /* undef=on, 0=off, 1=on */
 ; -- i_ram_during, done /* undef=auto
@@ -985,6 +986,7 @@ a2_start:
 ; --  zp_bits_hi                A zeropage location used for a byte.
 ; --  v_safety_addr
 ; --  i_literal_sequences_used
+; --  i_max_sequence_length_256
 ; --  i_table_addr
 ; --
 ; -- optional symbols
@@ -1101,34 +1103,34 @@ tabl_bi = i_table_addr
 tabl_lo = i_table_addr + encoded_entries
 tabl_hi = i_table_addr + 2 * encoded_entries
 table_gen:
-	tax
-	tya
+        tax
+        tya
         and #$0f
-	sta tabl_lo,y
+        sta tabl_lo,y
         beq shortcut            ; start a new sequence
 ; -------------------------------------------------------------------
-	txa
-	adc tabl_lo - 1,y
-	sta tabl_lo,y
-	lda <zp_bits_hi
-	adc tabl_hi - 1,y
+        txa
+        adc tabl_lo - 1,y
+        sta tabl_lo,y
+        lda <zp_bits_hi
+        adc tabl_hi - 1,y
 shortcut:
         sta tabl_hi,y
 ; -------------------------------------------------------------------
         lda #$78                ; %01111000
-	jsr get_bits
-	tax
+        jsr get_bits
+        tax
         lda tabl_mask,x
         sta tabl_bi,y
 ; -------------------------------------------------------------------
-	lda #0
-	sta <zp_bits_hi
+        lda #0
+        sta <zp_bits_hi
 rolle:
-	rol
-	rol <zp_bits_hi
-	dex
-	bpl rolle
-	inx
+        rol
+        rol <zp_bits_hi
+        dex
+        bpl rolle
+        inx
 ; -------------------------------------------------------------------
         iny
         cpy #encoded_entries
@@ -1185,9 +1187,9 @@ return:
 ; get bits (24 bytes)
 ;
 get_bits:
-	adc #$80
-	asl
-	bpl gb_skip
+        adc #$80
+        asl
+        bpl gb_skip
 gg_next:
         asl <zp_bitbuf
         bne gb_no_refill
@@ -1207,8 +1209,10 @@ gb_skip:
 ; -------------------------------------------------------------------
 ; main copy loop (16 bytes)
 ;
+.IF(!.DEFINED(i_max_sequence_length_256))
 copy_next_hi:
         dec <zp_len_hi
+.ENDIF
 copy_next:
         tya
         bne copy_skip_hi
@@ -1216,18 +1220,22 @@ copy_next:
         dec <zp_src_hi
 copy_skip_hi:
         dey
+.IF(!.DEFINED(i_literal_sequences_used))
         bcc skip_literal_byte
         jsr get_crunched_byte
         bcs literal_byte_gotten
 skip_literal_byte:
+.ENDIF
         lda (zp_src_lo),y
 literal_byte_gotten:
         sta (zp_dest_lo),y
 copy_start:
         dex
         bne copy_next
+.IF(!.DEFINED(i_max_sequence_length_256))
         lda <zp_len_hi
         bne copy_next_hi
+.ENDIF
         beq begin
 ; -------------------------------------------------------------------
 ; copy one literal byte to destination (11 bytes)
@@ -1245,7 +1253,7 @@ no_hi_decr:
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
 begin:
-	dex
+        dex
         lda <zp_bitbuf
 no_literal1:
         asl
@@ -1259,13 +1267,14 @@ nofetch8:
 ; -------------------------------------------------------------------
 ; check for literal byte (2 bytes)
 ;
-	beq literal_start1
+        beq literal_start1
 ; -------------------------------------------------------------------
 ; check for decrunch done and literal sequences (6 bytes)
 ;
         cpx #$11
         bcc sequence_start
         beq decr_exit
+.IF(!.DEFINED(i_literal_sequences_used))
 ; -------------------------------------------------------------------
 ; literal sequence handling (12 bytes)
 ;
@@ -1275,6 +1284,7 @@ nofetch8:
         tax
         inx
         bcs copy_start
+.ENDIF
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (17 bytes)
 ;
@@ -1286,6 +1296,7 @@ sequence_start:
         jsr get_bits
         adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
         sta <zp_len_lo
+.IF(!.DEFINED(i_max_sequence_length_256))
 ; -------------------------------------------------------------------
 ; now do the hibyte of the sequence length calculation (9 bytes)
         lda <zp_bits_hi
@@ -1298,6 +1309,9 @@ sequence_start:
 ;
         bne nots123
         ldx <zp_len_lo
+.ELSE
+        tax
+.ENDIF
 .IF(.DEFINED(i_fourth_len_part))
         cpx #$05
 .ELSE
@@ -1306,7 +1320,7 @@ sequence_start:
         bcc size123
 nots123:
 .IF(.DEFINED(i_fourth_len_part))
-	ldx #$04
+        ldx #$04
 .ELSE
         ldx #$03
 .ENDIF

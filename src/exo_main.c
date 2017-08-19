@@ -1151,7 +1151,7 @@ void sfx(const char *appl, int argc, char *argv[])
         struct membuf source[1];
 
         membuf_init(source);
-        decrunch(LOG_DEBUG, sfxdecr, source);
+        decrunch(LOG_DEBUG, sfxdecr, source, 1);
 
         in = out;
         out = buf1;
@@ -1192,6 +1192,11 @@ void sfx(const char *appl, int argc, char *argv[])
         {
             set_initial_symbol("i_literal_sequences_used", 1);
             initial_symbol_dump(LOG_DEBUG, "i_literal_sequences_used");
+        }
+        if(flags->options->max_len <= 256)
+        {
+            set_initial_symbol("i_max_sequence_length_256", 1);
+            initial_symbol_dump(LOG_DEBUG, "i_max_sequence_length_256");
         }
 
         if(assemble(source, out) != 0)
@@ -1331,20 +1336,30 @@ void raw(const char *appl, int argc, char *argv[])
     {
         int seems_backward = 0;
         int seems_forward = 0;
+        int version = 0;
         unsigned char *p;
         int inlen;
         int outlen;
 
-
         p = membuf_get(inbuf);
-        if(p[0] == 0x80 && p[1] == 0x0)
+        if(p[0] == 0x80 && p[1] == 0x0 && (p[2] & 0x80) == 0)
         {
             seems_backward = 1;
         }
+        if(p[0] == 0x01 && p[1] == 0x0 && (p[2] & 0x01) == 0)
+        {
+            seems_backward = 1;
+            version = 1;
+        }
         p += membuf_memlen(inbuf);
-        if(p[-1] == 0x80 && p[-2] == 0x0)
+        if(p[-1] == 0x80 && p[-2] == 0x0 && (p[-3] & 0x80) == 0)
         {
             seems_forward = 1;
+        }
+        if(p[-1] == 0x01 && p[-2] == 0x0 && (p[-3] & 0x01) == 0)
+        {
+            seems_forward = 1;
+            version = 1;
         }
 
         /* do we know what way it was crunched? */
@@ -1357,11 +1372,11 @@ void raw(const char *appl, int argc, char *argv[])
         inlen = membuf_memlen(inbuf);
         if(backwards_mode)
         {
-            decrunch_backwards(LOG_NORMAL, inbuf, outbuf);
+            decrunch_backwards(LOG_NORMAL, inbuf, outbuf, version);
         }
         else
         {
-            decrunch(LOG_NORMAL, inbuf, outbuf);
+            decrunch(LOG_NORMAL, inbuf, outbuf, version);
         }
         outlen = membuf_memlen(outbuf);
         LOG(LOG_BRIEF, (" Decrunched data expanded %d bytes (%0.2f%%)\n",
