@@ -94,8 +94,8 @@ data. They share the following option flags:
         literal sequence escape mechanism. It will make the output files
         compatible with Exomizer v1.x.
 
--C      This flag enables imprecise rle matching. It increases crunching speed
-        but reduces the crunch result.
+-C      This flag increases crunching speed and as a side effect also reduces
+        the crunch result. This flag is for the impatient developer.
 
 -e <encoding parameters>
         Uses the given encoding parameters for crunching instead of trying to
@@ -131,6 +131,8 @@ data. They share the following option flags:
         result is made.
 
 -q      Enables quiet mode which will disable display output.
+
+-V      Enables brief mode which will disable most display output.
 
 -v      Displays Exomizer version, email address for support and the usage
         license.
