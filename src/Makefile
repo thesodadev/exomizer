@@ -23,8 +23,9 @@ ALL_OBJS = $(EXO_OBJS) $(RAW_OBJS) $(BAS_OBJS) $(SHARED_OBJS)
 #.SILENT:
 
 .PHONY: build clean
+.INTERMEDIATE: b2membuf exoraw
 
-build: $(MAKEFILE) exomizer exoraw exobasic
+build: $(MAKEFILE) exomizer exobasic
 
 exomizer: deps $(EXO_OBJS) $(SHARED_OBJS)
 	@echo "Linking $@"
