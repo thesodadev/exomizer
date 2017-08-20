@@ -1342,21 +1342,21 @@ void raw(const char *appl, int argc, char *argv[])
         int outlen;
 
         p = membuf_get(inbuf);
-        if(p[0] == 0x80 && p[1] == 0x0 && (p[2] & 0x80) == 0)
+        if(p[0] == 0x80 && p[1] == 0x0 && (p[2] & 0x01) == 0)
         {
             seems_backward = 1;
         }
-        if(p[0] == 0x01 && p[1] == 0x0 && (p[2] & 0x01) == 0)
+        if(p[0] == 0x01 && p[1] == 0x0 && (p[2] & 0x80) == 0)
         {
             seems_backward = 1;
             version = 1;
         }
         p += membuf_memlen(inbuf);
-        if(p[-1] == 0x80 && p[-2] == 0x0 && (p[-3] & 0x80) == 0)
+        if(p[-1] == 0x80 && p[-2] == 0x0 && (p[-3] & 0x01) == 0)
         {
             seems_forward = 1;
         }
-        if(p[-1] == 0x01 && p[-2] == 0x0 && (p[-3] & 0x01) == 0)
+        if(p[-1] == 0x01 && p[-2] == 0x0 && (p[-3] & 0x80) == 0)
         {
             seems_forward = 1;
             version = 1;
@@ -1368,6 +1368,7 @@ void raw(const char *appl, int argc, char *argv[])
             /* yes, override option. */
             backwards_mode = seems_backward;
         }
+        LOG(LOG_NORMAL, ("bm %d, ver %d\n", backwards_mode, version));
 
         inlen = membuf_memlen(inbuf);
         if(backwards_mode)
