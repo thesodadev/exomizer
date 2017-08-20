@@ -41,7 +41,8 @@ void search_node_free(search_nodep snp) /* IN */
 search_nodep search_buffer(match_ctx ctx,       /* IN */
                            encode_match_f * f,  /* IN */
                            encode_match_data emd,       /* IN */
-                           int use_literal_sequences)
+                           int use_literal_sequences,   /* IN */
+                           int max_sequence_length)     /* IN */
 {
     struct progress prog[1];
     static struct membuf backing[1] = { STATIC_MEMBUF_INIT };
@@ -89,7 +90,8 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             /* check if we can do even better with copy */
             snp = snp_arr[len];
             if(best_copy_snp->total_score+best_copy_len * 8.0 -
-               snp->total_score > 0.0 || best_copy_len > 65535)
+               snp->total_score > 0.0 ||
+               best_copy_len > max_sequence_length)
             {
                 /* found a better copy endpoint */
                 LOG(LOG_DEBUG,

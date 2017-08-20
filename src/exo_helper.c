@@ -147,7 +147,8 @@ search_nodep
 do_compress(match_ctx ctx, encode_match_data emd,
             const char *exported_encoding,
             int max_passes,
-            int use_literal_sequences)
+            int use_literal_sequences,
+            int max_sequence_length)
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
@@ -181,7 +182,8 @@ do_compress(match_ctx ctx, encode_match_data emd,
     for (;;)
     {
         snp = search_buffer(ctx, optimal_encode, emd,
-                            use_literal_sequences);
+                            use_literal_sequences,
+                            max_sequence_length);
         if (snp == NULL)
         {
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
@@ -270,7 +272,8 @@ void crunch_backwards(struct membuf *inbuf,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
     snp = do_compress(ctx, emd, options->exported_encoding,
-                      options->max_passes, options->use_literal_sequences);
+                      options->max_passes, options->use_literal_sequences,
+                      options->max_len);
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,
