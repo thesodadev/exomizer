@@ -90,15 +90,21 @@ void crunch(struct membuf *inbuf,
             struct crunch_options *options, /* IN */
             struct crunch_info *info); /* OUT */
 
+struct decrunch_options
+{
+    /* -1 unknown, 0 classic, 1 neo */
+    int version;
+    /* -1 unknown, 0 backward, 1 forward */
+    int direction;
+};
+
 void decrunch(int level,
               struct membuf *inbuf,
               struct membuf *outbuf,
-              int version);
-
-void decrunch_backwards(int level,
-                        struct membuf *inbuf,
-                        struct membuf *outbuf,
-                        int version);
+              struct decrunch_options * dopts);
 
 void reverse_buffer(char *start, int len);
+
+void autodetect_dopts(struct membuf *inbuf,     /* IN */
+                      struct decrunch_options *dopts);    /* OUT */
 #endif

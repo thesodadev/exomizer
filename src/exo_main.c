@@ -51,7 +51,7 @@ static void load_plain_file(const char *name, struct membuf *mb)
     int file_len;
     int read_len;
     int offset = 0;
-    int len = -1;
+    int len = 0;
     FILE *in;
 
     in = fopen(name, "rb");
@@ -75,10 +75,10 @@ static void load_plain_file(const char *name, struct membuf *mb)
         {
             p = strrchr(name, ',');
             len = offset;
-            if(len < 0)
+            if(len == 0)
             {
                 LOG(LOG_ERROR, ("Error, value for plain file "
-                                "len must not be negative.\n"));
+                                "len must not be zero.\n"));
                 exit(1);
             }
             *p = '\0';
@@ -109,17 +109,17 @@ static void load_plain_file(const char *name, struct membuf *mb)
     {
         offset += file_len;
     }
-    if(len < 0)
-    {
-        len = file_len - offset;
-    }
     if(fseek(in, offset, SEEK_SET))
     {
         LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
         fclose(in);
         exit(1);
     }
-    if(offset + len > file_len)
+    if(len <= 0)
+    {
+        len += file_len - offset;
+    }
+    if(len < 0 || offset + len > file_len)
     {
         LOG(LOG_ERROR, ("Error: can't read %d bytes from offset %d.\n",
                         len, offset));
@@ -1148,10 +1148,12 @@ void sfx(const char *appl, int argc, char *argv[])
 
     {
         /* add decruncher */
-        struct membuf source[1];
+        /* version neo and forward direction */
+        struct decrunch_options dopts = {1, 1};
+        struct membuf source;
 
-        membuf_init(source);
-        decrunch(LOG_DEBUG, sfxdecr, source, 1);
+        membuf_init(&source);
+        decrunch(LOG_DEBUG, sfxdecr, &source, &dopts);
 
         in = out;
         out = buf1;
@@ -1199,7 +1201,7 @@ void sfx(const char *appl, int argc, char *argv[])
             initial_symbol_dump(LOG_DEBUG, "i_max_sequence_length_256");
         }
 
-        if(assemble(source, out) != 0)
+        if(assemble(&source, out) != 0)
         {
             LOG(LOG_ERROR, ("Parse failure.\n"));
             exit(1);
@@ -1268,7 +1270,7 @@ void sfx(const char *appl, int argc, char *argv[])
             }
         }
 
-        membuf_free(source);
+        membuf_free(&source);
     }
 
     write_file(flags->outfile, out);
@@ -1334,51 +1336,22 @@ void raw(const char *appl, int argc, char *argv[])
 
     if(decrunch_mode)
     {
-        int seems_backward = 0;
-        int seems_forward = 0;
-        int version = 0;
-        unsigned char *p;
         int inlen;
         int outlen;
+        struct decrunch_options dopts;
 
-        p = membuf_get(inbuf);
-        if(p[0] == 0x80 && p[1] == 0x0 && (p[2] & 0x01) == 0)
+        autodetect_dopts(inbuf, &dopts);
+        if (dopts.direction == -1 || dopts.version == -1)
         {
-            seems_backward = 1;
+            /* not conclusive auto detection */
+            LOG(LOG_ERROR,
+                ("Error: failed to auto detect decrunch options.\n"));
+            exit(1);
         }
-        if(p[0] == 0x01 && p[1] == 0x0 && (p[2] & 0x80) == 0)
-        {
-            seems_backward = 1;
-            version = 1;
-        }
-        p += membuf_memlen(inbuf);
-        if(p[-1] == 0x80 && p[-2] == 0x0 && (p[-3] & 0x01) == 0)
-        {
-            seems_forward = 1;
-        }
-        if(p[-1] == 0x01 && p[-2] == 0x0 && (p[-3] & 0x80) == 0)
-        {
-            seems_forward = 1;
-            version = 1;
-        }
-
-        /* do we know what way it was crunched? */
-        if((seems_backward ^ seems_forward) != 0)
-        {
-            /* yes, override option. */
-            backwards_mode = seems_backward;
-        }
-        LOG(LOG_NORMAL, ("bm %d, ver %d\n", backwards_mode, version));
 
         inlen = membuf_memlen(inbuf);
-        if(backwards_mode)
-        {
-            decrunch_backwards(LOG_NORMAL, inbuf, outbuf, version);
-        }
-        else
-        {
-            decrunch(LOG_NORMAL, inbuf, outbuf, version);
-        }
+        decrunch(LOG_NORMAL, inbuf, outbuf, &dopts);
+
         outlen = membuf_memlen(outbuf);
         LOG(LOG_BRIEF, (" Decrunched data expanded %d bytes (%0.2f%%)\n",
                         outlen - inlen, 100.0 * (outlen - inlen) / inlen));

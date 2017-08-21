@@ -334,32 +334,76 @@ void crunch(struct membuf *inbuf,
 void decrunch(int level,
               struct membuf *inbuf,
               struct membuf *outbuf,
-              int version)
+              struct decrunch_options *dopts)
 {
     struct dec_ctx ctx[1];
     char *enc;
-    enc = dec_ctx_init(ctx, inbuf, outbuf, version);
+    int outpos;
+
+    if (dopts->direction == 0)
+    {
+        reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
+    }
+    outpos = membuf_memlen(outbuf);
+
+    enc = dec_ctx_init(ctx, inbuf, outbuf, dopts->version);
 
     LOG(level, (" Encoding: %s\n", enc));
 
     dec_ctx_decrunch(ctx);
     dec_ctx_free(ctx);
+
+    if (dopts->direction == 0)
+    {
+        reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
+        reverse_buffer((char*)membuf_get(outbuf) + outpos,
+                       membuf_memlen(outbuf) - outpos);
+    }
 }
 
-void decrunch_backwards(int level,
-                        struct membuf *inbuf,
-                        struct membuf *outbuf,
-                        int version)
+void autodetect_dopts(struct membuf *inbuf,     /* IN */
+                      struct decrunch_options *dopts)     /* OUT */
 {
-    int outpos;
-    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
-    outpos = membuf_memlen(outbuf);
+    int direction_backward = 0;
+    int direction_forward = 0;
+    int version_classic = 0;
+    int version_neo = 0;
+    unsigned char *p;
 
-    decrunch(level, inbuf, outbuf, version);
+    p = membuf_get(inbuf);
+    if(p[0] == 0x80 && p[1] == 0x0)
+    {
+        direction_backward = 1;
+        version_classic = 1;
+    }
+    if(p[0] == 0x01 && p[1] == 0x0)
+    {
+        direction_backward = 1;
+        version_neo = 1;
+    }
+    p += membuf_memlen(inbuf);
+    if(p[-1] == 0x80 && p[-2] == 0x0)
+    {
+        direction_forward = 1;
+        version_classic = 1;
+    }
+    if(p[-1] == 0x01 && p[-2] == 0x0)
+    {
+        direction_forward = 1;
+        version_neo = 1;
+    }
 
-    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
-    reverse_buffer((char*)membuf_get(outbuf) + outpos,
-                   membuf_memlen(outbuf) - outpos);
+    dopts->direction = -1;
+    if (direction_forward ^ direction_backward)
+    {
+        dopts->direction = direction_forward;
+    }
+
+    dopts->version = -1;
+    if (version_classic ^ version_neo)
+    {
+        dopts->version = version_neo;
+    }
 }
 
 void print_license(void)
