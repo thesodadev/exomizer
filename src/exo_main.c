@@ -367,6 +367,7 @@ void print_raw_usage(const char *appl, enum log_level level,
     LOG(level, ("usage: %s [option]... infile\n", appl));
     LOG(level,
         ("  -b            crunch/decrunch backwards\n"
+         "  -f            crunch/decrunch forwards (default)\n"
          "  -r            write outfile in reverse order\n"
          "  -d            decrunch (instead of crunch)\n"));
     print_crunch_flags(level, default_out_name);
@@ -1286,6 +1287,7 @@ void raw(const char *appl, int argc, char *argv[])
     char flags_arr[32];
     int decrunch_mode = 0;
     int backwards_mode = 0;
+    int forwards_mode = 0;
     int reverse_mode = 0;
     int c, infilec;
     char **infilev;
@@ -1297,7 +1299,7 @@ void raw(const char *appl, int argc, char *argv[])
     struct membuf outbuf[1];
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "bdr%s", CRUNCH_FLAGS);
+    sprintf(flags_arr, "bfrd%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
@@ -1305,6 +1307,9 @@ void raw(const char *appl, int argc, char *argv[])
         {
         case 'b':
             backwards_mode = 1;
+            break;
+        case 'f':
+            forwards_mode = 1;
             break;
         case 'r':
             reverse_mode = 1;
@@ -1341,6 +1346,17 @@ void raw(const char *appl, int argc, char *argv[])
         struct decrunch_options dopts;
 
         autodetect_dopts(inbuf, &dopts);
+        if (dopts.direction == -1)
+        {
+            if (forwards_mode == 1)
+            {
+                dopts.direction = 1;
+            }
+            if (backwards_mode == 1)
+            {
+                dopts.direction = 0;
+            }
+        }
         if (dopts.direction == -1 || dopts.version == -1)
         {
             /* not conclusive auto detection */

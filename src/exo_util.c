@@ -113,9 +113,9 @@ static int get_be_word(FILE *in)
 /**
  * if the file is detected to be xex then load_addr will be set to -1
  * if the file is detected to be oric tap then load_addr will be set to -2
- * if the name contains no len info then len will be set to NULL
- * if the name contains offset info then the FILE* will be skipped offset
- * bytes.
+ * if the name contains no len info then *lenp will be set to 0.
+ * if the name contains no offset info then *offsetp will be set to 0.
+ * if the file is detected as a prg then the prg header will be read.
  */
 static
 FILE *
@@ -373,17 +373,42 @@ static void load_prg(unsigned char mem[65536], FILE *in,
                      int offset, int len,
                      struct load_info *info)
 {
-    if (offset != 0)
+    int header_offset;
+    int file_len;
+
+    header_offset = ftell(in);
+    /* get the real length of the file and validate the offset*/
+    if(fseek(in, 0, SEEK_END))
     {
-        int origin = SEEK_CUR;
-        if (offset < 0)
-        {
-            origin = SEEK_END;
-        }
-        fseek(in, offset, origin);
+        LOG(LOG_ERROR, ("Error: can't seek to EOF.\n"));
+        fclose(in);
+        exit(1);
     }
-    if (len < 0 || len  > 65536 - info->start)
+    file_len = ftell(in) - header_offset;
+    if(offset < 0)
     {
+        offset += file_len;
+    }
+    if(fseek(in, offset + header_offset, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
+        fclose(in);
+        exit(1);
+    }
+    if(len < 0)
+    {
+        len += file_len - offset;
+    }
+    if(len < 0)
+    {
+        LOG(LOG_ERROR, ("Error: can't read %d bytes from offset %d.\n",
+                        len, offset));
+        fclose(in);
+        exit(1);
+    }
+    if (len == 0 || len > 65536 - info->start)
+    {
+        /* limit len to available buffer space */
         len = 65536 - info->start;
     }
 

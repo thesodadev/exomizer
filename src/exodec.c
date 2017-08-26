@@ -250,12 +250,15 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
     {
         int literal = 0;
         bits = ctx->bits_read;
+        LOG(LOG_DEBUG, ("[%02X]",ctx->bitbuf));
         if(get_bits(ctx, 1))
         {
             /* literal */
             len = 1;
 
-            LOG(LOG_DEBUG, ("[%d] literal\n", membuf_memlen(ctx->outbuf)));
+            LOG(LOG_DEBUG, ("[%d] literal $%02X\n",
+                             membuf_memlen(ctx->outbuf),
+                             ctx->inbuf[ctx->inpos]));
 
             literal = 1;
             goto literal;

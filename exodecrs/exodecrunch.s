@@ -276,8 +276,12 @@ nofetch8:
         sta zp_len_hi
         jsr get_crunched_byte
         tax
+.IFNDEF MAX_SEQUENCE_LENGTH_256
         inx
         bcs copy_start
+.ELSE
+        bcs copy_next
+.ENDIF
 .ENDIF
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (14 bytes) + get_bits macro
@@ -305,6 +309,7 @@ sequence_start:
         ldx zp_len_lo
 .ELSE
         tax
+        beq nots123
 .ENDIF
         cpx #$04
         bcc size123
@@ -337,8 +342,12 @@ gbnc2_ok:
 pre_copy:
         ldx zp_len_lo
         ldy zp_dest_y
+.IFNDEF MAX_SEQUENCE_LENGTH_256
         inx
         jmp copy_start
+.ELSE
+        jmp copy_next
+.ENDIF
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset 1,2 and 3+ (3 bytes)
 ; bits 2,4,4 and offs 48,32,16.

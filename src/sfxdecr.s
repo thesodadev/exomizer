@@ -1220,7 +1220,7 @@ copy_next:
         dec <zp_src_hi
 copy_skip_hi:
         dey
-.IF(!.DEFINED(i_literal_sequences_used))
+.IF(.DEFINED(i_literal_sequences_used))
         bcc skip_literal_byte
         jsr get_crunched_byte
         bcs literal_byte_gotten
@@ -1274,7 +1274,7 @@ nofetch8:
         cpx #$11
         bcc sequence_start
         beq decr_exit
-.IF(!.DEFINED(i_literal_sequences_used))
+.IF(.DEFINED(i_literal_sequences_used))
 ; -------------------------------------------------------------------
 ; literal sequence handling (12 bytes)
 ;
@@ -1282,8 +1282,12 @@ nofetch8:
         sta <zp_len_hi
         jsr get_crunched_byte
         tax
+.IF(!.DEFINED(i_max_sequence_length_256))
         inx
         bcs copy_start
+.ELSE
+        bcs copy_next
+.ENDIF
 .ENDIF
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (17 bytes)
@@ -1311,6 +1315,7 @@ sequence_start:
         ldx <zp_len_lo
 .ELSE
         tax
+        beq nots123
 .ENDIF
 .IF(.DEFINED(i_fourth_len_part))
         cpx #$05
@@ -1355,8 +1360,12 @@ gbnc2_ok:
 pre_copy:
         ldx <zp_len_lo
         ldy <zp_dest_y
+.IF(!.DEFINED(i_max_sequence_length_256))
         inx
         jmp copy_start
+.ELSE
+        jmp copy_next
+.ENDIF
         .IF(.DEFINED(exit_hook))
 decr_exit:
           .INCLUDE("exit_hook")
