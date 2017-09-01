@@ -1,6 +1,7 @@
 2017-12-25
 Release of 2.0.10 source code and Win32 binaries.
 + Fix broken things in rawdecrs folder since 2.0.9
++ Add PET 4032 as sfx target from the nanoflite github fork.
 
 2017-12-16
 Release of 2.0.10 preview 3

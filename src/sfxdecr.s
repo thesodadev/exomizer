@@ -191,6 +191,14 @@
   c_rom_nmi_value = $40
   c_ram_nmi_value = 0
   c_default_table = $0600
+.ELIF(r_target == 4032)
+  c_basic_start = $0401
+  c_end_of_mem_rom = $8000
+  c_rom_config_value = 0
+  c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
+  c_default_table = $027a
 .ELSE
   .ERROR("Symbol r_target_addr has an invalid value.")
 .ENDIF
@@ -514,6 +522,11 @@ exit_hook = 1
         jsr $c659               ; init
         jsr $c533               ; regenerate line links
         jmp $c7ae               ; start
+    .ELIF(r_target == 4032)
+        jsr $B622               ; Reset TXTPTR
+        jsr $B5F0               ; CLR
+        jsr $B4B6               ; relink
+        jmp $B74A
     .ELIF(r_target == 16 || r_target == 4)
         jsr $8bbe               ; init
         jsr $8818               ; regenerate line links and set $2d/$2e
@@ -772,9 +785,10 @@ oric_ROM11:
   .ENDMACRO
   .MACRO("d2r_nmi")
   .ENDMACRO
-.ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55)
+.ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
+      r_target == 4032)
 ; -------------------------------------------------------------------
-; -- The ram/rom switch macros for c20 ------------------------------
+; -- The ram/rom switch macros for c20 and PET 4032 -----------------
 ; -------------------------------------------------------------------
   .MACRO("b2d_nmi")
   .ENDMACRO
@@ -874,7 +888,8 @@ o1_start:
 ; -- Commodore file header stuff ------------------------------------
 ; -------------------------------------------------------------------
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
-    r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128)
+      r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128 ||
+      r_target == 4032)
   .IF(r_target == 16 || r_target == 4)
 zp_lo_len = $a7
 zp_src_addr = $9d
@@ -1362,7 +1377,8 @@ highest_addr_out:
 ; -------------------------------------------------------------------
 o1_end:
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
-    r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128)
+      r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128
+      r_target == 4032)
 ; -------------------------------------------------------------------
 ; -- Start of Commodore file footer stuff ---------------------------
 ; -------------------------------------------------------------------
