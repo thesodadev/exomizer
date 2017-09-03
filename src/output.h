@@ -36,6 +36,7 @@ struct _output_ctx {
     int pos;
     int start;
     struct membuf *buf;
+    int flags;
 };
 
 typedef struct _output_ctx output_ctx[1];

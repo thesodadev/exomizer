@@ -34,23 +34,26 @@
 static int bitbuf_rotate(output_ctx ctx, int carry)
 {
     int carry_out;
-#if BITS_AS_BYTES
-    /* ror */
-    carry_out = ctx->bitbuf & 0x01;
-    ctx->bitbuf >>= 1;
-    if (carry)
+    if ((ctx->flags & 1) == 0)
     {
-        ctx->bitbuf |= 0x80;
+        /* ror */
+        carry_out = ctx->bitbuf & 0x01;
+        ctx->bitbuf >>= 1;
+        if (carry)
+        {
+            ctx->bitbuf |= 0x80;
+        }
     }
-#else
-    /* rol */
-    carry_out = (ctx->bitbuf & 0x80) != 0;
-    ctx->bitbuf <<= 1;
-    if (carry)
+    else
     {
-        ctx->bitbuf |= 0x01;
+        /* rol */
+        carry_out = (ctx->bitbuf & 0x80) != 0;
+        ctx->bitbuf <<= 1;
+        if (carry)
+        {
+            ctx->bitbuf |= 0x01;
+        }
     }
-#endif
     return carry_out;
 }
 
@@ -131,15 +134,17 @@ static void output_bits_int(output_ctx ctx,        /* IN/OUT */
 {
     /* this makes the bits appear in reversed
      * big endian order in the output stream */
-#if BITS_AS_BYTES
-    while (count > 7)
+    if ((ctx->flags & 1) == 0)
     {
-        /* at least 8 bits or more are left */
-        output_byte(ctx, (unsigned char)(val & 0xFF));
-        count -= 8;
-        val >>= 8;
+        while (count > 7)
+        {
+            /* at least 8 bits or more are left */
+            output_byte(ctx, (unsigned char)(val & 0xFF));
+            count -= 8;
+            val >>= 8;
+        }
     }
-#endif
+
     while (count-- > 0)
     {
         if (bitbuf_rotate(ctx, val & 1))

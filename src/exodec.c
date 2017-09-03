@@ -29,7 +29,7 @@
 static int bitbuf_rotate(struct dec_ctx *ctx, int carry)
 {
     int carry_out;
-    if (ctx->version == 1)
+    if ((ctx->flags & 1) == 0)
     {
         /* rol */
         carry_out = (ctx->bitbuf & 0x80) != 0;
@@ -79,7 +79,7 @@ get_bits(struct dec_ctx *ctx, int count)
     int val;
 
     val = 0;
-    if (ctx->version == 1)
+    if ((ctx->flags & 1) == 0)
     {
         byte_count = count >> 3;
         count &= 7;
@@ -140,31 +140,32 @@ static
 void
 table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
 {
-    int i;
+    int i, end;
     unsigned int a = 0;
     unsigned int b = 0;
 
     tp->table_bit[0] = 2;
     tp->table_bit[1] = 4;
     tp->table_bit[2] = 4;
-#ifdef FOURTH_LEN_PART
-    tp->table_bit[3] = 4;
+    if (ctx->flags & 8)
+    {
+        end = 68;
+        tp->table_bit[3] = 4;
 
-    tp->table_off[0] = 64;
-    tp->table_off[1] = 48;
-    tp->table_off[2] = 32;
-    tp->table_off[3] = 16;
-#else
-    tp->table_off[0] = 48;
-    tp->table_off[1] = 32;
-    tp->table_off[2] = 16;
-#endif
+        tp->table_off[0] = 64;
+        tp->table_off[1] = 48;
+        tp->table_off[2] = 32;
+        tp->table_off[3] = 16;
+    }
+    else
+    {
+        end = 52;
+        tp->table_off[0] = 48;
+        tp->table_off[1] = 32;
+        tp->table_off[2] = 16;
+    }
 
-#ifdef FOURTH_LEN_PART
-    for(i = 0; i < 68; ++i)
-#else
-    for(i = 0; i < 52; ++i)
-#endif
+    for(i = 0; i < end; ++i)
     {
         if(i & 0xF)
         {
@@ -212,7 +213,7 @@ table_dump(struct dec_table *tp)
 
 char *
 dec_ctx_init(struct dec_ctx *ctx, struct membuf *inbuf, struct membuf *outbuf,
-             int version)
+             int flags)
 {
     char *encoding;
     ctx->bits_read = 0;
@@ -220,7 +221,7 @@ dec_ctx_init(struct dec_ctx *ctx, struct membuf *inbuf, struct membuf *outbuf,
     ctx->inbuf = membuf_get(inbuf);
     ctx->inend = membuf_memlen(inbuf);
     ctx->inpos = 0;
-    ctx->version = version;
+    ctx->flags = flags;
 
     ctx->outbuf = outbuf;
 
@@ -245,6 +246,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
     int len;
     int offset;
     int src = 0;
+    int treshold = (ctx->flags & 8)? 4: 3;
 
     for(;;)
     {
@@ -283,11 +285,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
 
         len = get_cooked_code_phase2(ctx, val);
 
-#ifdef FOURTH_LEN_PART
-        i = (len > 4 ? 4 : len) - 1;
-#else
-        i = (len > 3 ? 3 : len) - 1;
-#endif
+        i = (len > treshold ? treshold : len) - 1;
         val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
         offset = get_cooked_code_phase2(ctx, val);
 
@@ -309,12 +307,15 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             membuf_append_char(ctx->outbuf, val);
         } while (--len > 0);
 
-#ifdef FOURTH_LEN_PART
-        LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
-                        ctx->bits_read - bits, ctx->bits_read - 280));
-#else
-        LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
-                        ctx->bits_read - bits, ctx->bits_read - 216));
-#endif
+        if (ctx->flags & 8)
+        {
+            LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
+                            ctx->bits_read - bits, ctx->bits_read - 280));
+        }
+        else
+        {
+            LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
+                            ctx->bits_read - bits, ctx->bits_read - 216));
+        }
     }
 }

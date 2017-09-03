@@ -11,7 +11,7 @@ deps
 /src/sfxdecr.c
 /exodecrs/testrun
 /exodecrs/test.prg
-/exodecrs/*.os
+/exodecrs/*.os*
 /rawdecrs/main
 /rawdecrs/main2
 /rawdecrs/*.dec

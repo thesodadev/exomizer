@@ -145,10 +145,7 @@ int do_output(match_ctx ctx,
 
 search_nodep
 do_compress(match_ctx ctx, encode_match_data emd,
-            const char *exported_encoding,
-            int max_passes,
-            int use_literal_sequences,
-            int max_sequence_length)
+            struct crunch_options *options) /* IN */
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
@@ -164,10 +161,10 @@ do_compress(match_ctx ctx, encode_match_data emd,
     prev_enc[0] = '\0';
 
     LOG(LOG_NORMAL, (" pass %d: ", pass));
-    if(exported_encoding != NULL)
+    if(options->exported_encoding != NULL)
     {
-        LOG(LOG_NORMAL, ("importing %s\n", exported_encoding));
-        optimal_encoding_import(emd, exported_encoding);
+        LOG(LOG_NORMAL, ("importing %s\n", options->exported_encoding));
+        optimal_encoding_import(emd, options->exported_encoding);
     }
     else
     {
@@ -181,9 +178,9 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
     for (;;)
     {
-        snp = search_buffer(ctx, optimal_encode, emd,
-                            use_literal_sequences,
-                            max_sequence_length);
+        snp = search_buffer(ctx, options->encode, emd,
+                            options->use_literal_sequences,
+                            options->max_len);
         if (snp == NULL)
         {
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
@@ -208,13 +205,13 @@ do_compress(match_ctx ctx, encode_match_data emd,
         old_size = size;
         ++pass;
 
-        if(pass > max_passes)
+        if(pass > options->max_passes)
         {
             break;
         }
 
         optimal_free(emd);
-        optimal_init(emd);
+        optimal_init(emd, options->flags);
 
         LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
@@ -253,7 +250,7 @@ void crunch_backwards(struct membuf *inbuf,
     inlen = membuf_memlen(inbuf);
     outlen = membuf_memlen(outbuf);
     emd->out = NULL;
-    optimal_init(emd);
+    optimal_init(emd, options->flags);
 
     LOG(LOG_NORMAL,
         ("\nPhase 1: Instrumenting file"
@@ -266,21 +263,19 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
 
     emd->out = NULL;
-    optimal_init(emd);
+    optimal_init(emd, options->flags);
 
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snp = do_compress(ctx, emd, options->exported_encoding,
-                      options->max_passes, options->use_literal_sequences,
-                      options->max_len);
+    snp = do_compress(ctx, emd, options);
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
     LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
-    safety = do_output(ctx, snp, emd, optimal_encode, outbuf,
+    safety = do_output(ctx, snp, emd, options->encode, outbuf,
                        &copy_used, options->output_header);
     outlen = membuf_memlen(outbuf) - outlen;
     LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));
@@ -455,10 +450,13 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
         ("  -c            compatibility mode, disables the use of literal sequences\n"
          "  -C            favor compression speed over ratio\n"
          "  -e <encoding> uses the given encoding for crunching\n"
-         "  -E            don't write the encoding to the outfile\n"
-         "  -m <offset>   sets the maximum sequence offset, default is 65535\n"
+         "  -E            don't write the encoding to the outfile\n"));
+    LOG(level,
+        ("  -m <offset>   sets the maximum sequence offset, default is 65535\n"
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
-         "  -p <passes>   limits the number of optimization passes, default is 65535\n"));
+         "  -p <passes>   limits the number of optimization passes, default is 65535\n"
+         "  -S <options>  bitfield that that modifies the bit stream protocol. [0-31]\n"
+            ));
     print_base_flags(level, default_outfile);
 }
 
@@ -548,6 +546,17 @@ void handle_crunch_flags(int flag_char, /* IN */
             LOG(LOG_ERROR,
                 ("Error: invalid value for -p option, "
                  "must be in the range of [1 - 65535]\n"));
+            print_usage(appl, LOG_NORMAL, flags->outfile);
+            exit(1);
+        }
+        break;
+    case 'S':
+        if (str_to_int(flag_arg, &options->flags) != 0 ||
+            options->flags < 0 || options->flags > 31)
+        {
+            LOG(LOG_ERROR,
+                ("Error: invalid value for -S option, "
+                 "must be in the range of [0 - 31]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(1);
         }

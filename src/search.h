@@ -68,6 +68,7 @@ float encode_int_f(int val, void *priv, output_ctxp out,
                    struct encode_int_bucket *eibp);       /* IN */
 
 struct _encode_match_priv {
+    int flags;
     int lit_num;
     int seq_num;
     int rle_num;

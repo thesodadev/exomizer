@@ -1202,10 +1202,10 @@ return:
 ; get bits (24 bytes)
 ;
 get_bits:
-        adc #$80
+        adc #$80		; needs c=0, affects v
         asl
         bpl gb_skip
-gg_next:
+gb_next:
         asl <zp_bitbuf
         bne gb_no_refill
         pha
@@ -1215,7 +1215,7 @@ gg_next:
         pla
 gb_no_refill:
         rol
-        bmi gg_next
+        bmi gb_next
 gb_skip:
         bvc return
         sec

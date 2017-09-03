@@ -30,8 +30,11 @@
 
 #include "log.h"
 #include "membuf.h"
+#include "search.h"
+#include "optimal.h"
 
-#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 1, 0, 1}
+#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 1, 0, 1, 0, \
+                                optimal_encode}
 
 struct common_flags
 {
@@ -39,7 +42,7 @@ struct common_flags
     const char *outfile;
 };
 
-#define CRUNCH_FLAGS "cCe:Em:M:p:o:qBv"
+#define CRUNCH_FLAGS "cCe:Em:M:p:S:o:qBv"
 #define BASE_FLAGS "o:qBv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
@@ -70,6 +73,19 @@ struct crunch_options
     int use_literal_sequences;
     int favor_speed;
     int output_header;
+    /*
+     * bit 0  Controls bit access orientation and how bit fetches of more than
+     *        seven bits are performed: 0 = left and fetches are split into a
+     *        smaller shift + get byte (new), 1 = right and fetches are not
+     *         split (old)
+     * bit 1  Sequences with length 1: 0=enable,1=disable
+     * bit 2  Sequences with length > 255 where (length & 255) would have been
+     *        using its own decrunch table: 0=enable, 1=disable
+     * bit 3  Decides if we are to have two lengths (1 and 2) or three lengths
+     *        (1, 2 and 3) using dedicated decrunch tables: 0=enable, 1=disable
+     */
+    int flags;
+    encode_match_f *encode;
 };
 
 struct crunch_info

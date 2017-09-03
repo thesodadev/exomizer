@@ -83,16 +83,16 @@ tabl_hi = decrunch_table + 104
 .IFDEF INLINE_GET_BITS
 .MACRO mac_get_bits
 .SCOPE
-        adc #$80
+        adc #$80		; needs c=0, affects v
         asl
         bpl gb_skip
-gg_next:
+gb_next:
         asl <zp_bitbuf
         bne gb_ok
         mac_refill_bits
 gb_ok:
         rol
-        bmi gg_next
+        bmi gb_next
 gb_skip:
         bvc skip
         sec
@@ -106,16 +106,16 @@ skip:
         jsr get_bits
 .ENDMACRO
 get_bits:
-        adc #$80
+        adc #$80		; needs c=0, affects v
         asl
         bpl gb_skip
-gg_next:
+gb_next:
         asl <zp_bitbuf
         bne gb_ok
         mac_refill_bits
 gb_ok:
         rol
-        bmi gg_next
+        bmi gb_next
 gb_skip:
         bvc return
         sec

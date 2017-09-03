@@ -101,6 +101,18 @@ data. They share the following option flags:
         cruncher will always stop when no further improvement to the crunch
         result is made.
 
+-S <options>
+        bitfield that that modifies the bit stream protocol (experimental).
+        bit 0 Controls bit access orientation and how bit fetches of more than
+              seven bits are performed: 0 = left and fetches are split into a
+              smaller shift + get byte (default), 1 = right and fetches are not
+              split (old)
+        bit 1 Enables sequences with length 1: 0=enable (default), 1=disable
+        bit 2 Enables sequences with length > 255 where (length & 255) would
+              have been using its own decrunch table: 0=enable, 1=disable
+        bit 3 Decides if the two or three shortest sequences lengths have
+              dedicated decrunch tables: 0=enable, 1=disable
+
 -q      Enables quiet mode which will disable display output.
 
 -V      Enables brief mode which will disable most display output.
@@ -322,7 +334,7 @@ can't decrunch into banked memory.
 as a prg-file. It auto detects the entry point from the in-file runs the
 embedded decruncher in order to get to the decrunched data.
 
- The sfx command has the following options:
+ The desfx command has the following options:
 
 -e <address>|load
         Overrides the entry point of the decruncher with <address> or if the

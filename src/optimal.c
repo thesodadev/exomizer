@@ -198,21 +198,38 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
             exit(1);
             break;
         case 1:
-            bits += data->offset_f(mp->offset, offset[0], emd->out,
-                                   eib_offset);
+            if (data->flags & 2)
+            {
+                bits += 100000000.0;
+            }
+            else
+            {
+                bits += data->offset_f(mp->offset, offset[0], emd->out,
+                                       eib_offset);
+            }
             break;
         case 2:
             bits += data->offset_f(mp->offset, offset[1], emd->out,
                                    eib_offset);
             break;
-#ifdef FOURTH_LEN_PART
         case 3:
-            bits += data->offset_f(mp->offset, offset[2], emd->out);
-            break;
-#endif
+            if (data->flags & 8)
+            {
+                bits += data->offset_f(mp->offset, offset[2], emd->out,
+                                       eib_offset);
+                break;
+            }
         default:
-            bits += data->offset_f(mp->offset, offset[7], emd->out,
-                                   eib_offset);
+            if ((data->flags & 4) &&
+                (mp->len & 255) < ((data->flags & 8) ? 4 : 3))
+            {
+                bits += 100000000.0;
+            }
+            else
+            {
+                bits += data->offset_f(mp->offset, offset[7], emd->out,
+                                       eib_offset);
+            }
             break;
         }
         bits += data->len_f(mp->len, data->len_f_priv, emd->out, eib_len);
@@ -417,9 +434,10 @@ const char *optimal_encoding_export(encode_match_data emd)
     p += sprintf(p, "%s", export_helper((interval_nodep)data->len_f_priv, 16));
     p += sprintf(p, ",%s", export_helper(offsets[0], 4));
     p += sprintf(p, ",%s", export_helper(offsets[1], 16));
-#ifdef FOURTH_LEN_PART
-    p += sprintf(p, ",%s", export_helper(offsets[2], 16));
-#endif
+    if (data->flags & 8)
+    {
+        p += sprintf(p, ",%s", export_helper(offsets[2], 16));
+    }
     p += sprintf(p, ",%s", export_helper(offsets[7], 16));
     return buf;
 }
@@ -472,10 +490,11 @@ void optimal_encoding_import(encode_match_data emd,
 
     LOG(LOG_DEBUG, ("importing encoding: %s\n", encoding));
 
-    optimal_free(emd);
-    optimal_init(emd);
-
     data = emd->priv;
+
+    optimal_free(emd);
+    optimal_init(emd, data->flags);
+
     offsets = (interval_nodep*)data->offset_f_priv;
 
     /* lengths */
@@ -490,11 +509,13 @@ void optimal_encoding_import(encode_match_data emd,
     npp = &offsets[1];
     import_helper(npp, &encoding, 4);
 
-#ifdef FOURTH_LEN_PART
-    /* offsets, len = 3 */
-    npp = &offsets[2];
-    import_helper(npp, &encoding, 4);
-#endif
+    if (data->flags & 8)
+    {
+        /* offsets, len = 3 */
+        npp = &offsets[2];
+        import_helper(npp, &encoding, 4);
+    }
+
     /* offsets, len >= 3 */
     npp = &offsets[7];
     import_helper(npp, &encoding, 4);
@@ -503,7 +524,7 @@ void optimal_encoding_import(encode_match_data emd,
     optimal_dump(LOG_DEBUG, emd);
 }
 
-void optimal_init(encode_match_data emd)        /* IN/OUT */
+void optimal_init(encode_match_data emd, int flags)        /* IN/OUT */
 {
     encode_match_privp data;
     interval_nodep *inpp;
@@ -526,6 +547,7 @@ void optimal_init(encode_match_data emd)        /* IN/OUT */
     inpp[7] = NULL;
     data->offset_f_priv = inpp;
     data->len_f_priv = NULL;
+    data->flags = flags;
 }
 
 void optimal_free(encode_match_data emd)        /* IN */
@@ -667,16 +689,17 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
                     LOG(LOG_ERROR, ("offset1 counter wrapped!\n"));
                 }
                 break;
-#ifdef FOURTH_LEN_PART
             case 3:
-                offset_parr[2][mp->offset] += treshold;
-                offset_arr[2][mp->offset] += 1;
-                if(offset_arr[2][mp->offset] < 0)
+                if (data->flags & 8)
                 {
-                    LOG(LOG_ERROR, ("offset2 counter wrapped!\n"));
+                    offset_parr[2][mp->offset] += treshold;
+                    offset_arr[2][mp->offset] += 1;
+                    if(offset_arr[2][mp->offset] < 0)
+                    {
+                        LOG(LOG_ERROR, ("offset2 counter wrapped!\n"));
+                    }
+                    break;
                 }
-                break;
-#endif
             default:
                 offset_parr[7][mp->offset] += treshold;
                 offset_arr[7][mp->offset] += 1;
@@ -733,10 +756,11 @@ void optimal_dump(int level, encode_match_data emd)
     LOG(level, ("offsets (len =2): "));
     interval_node_dump(level, offset[1]);
 
-#ifdef FOURTH_LEN_PART
-    LOG(level, ("offsets (len =3): "));
-    interval_node_dump(level, offset[2]);
-#endif
+    if (data->flags & 8)
+    {
+        LOG(level, ("offsets (len =3): "));
+        interval_node_dump(level, offset[2]);
+    }
     LOG(level, ("offsets (len =8): "));
     interval_node_dump(level, offset[7]);
 }
@@ -785,9 +809,10 @@ void optimal_out(output_ctx out,        /* IN/OUT */
 
     interval_out(out, offset[0], 4);
     interval_out(out, offset[1], 16);
-#ifdef FOURTH_LEN_PART
-    interval_out(out, offset[2], 16);
-#endif
+    if (data->flags & 8)
+    {
+        interval_out(out, offset[2], 16);
+    }
     interval_out(out, offset[7], 16);
     interval_out(out, len, 16);
 }

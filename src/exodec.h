@@ -49,7 +49,7 @@ struct dec_ctx
     /* dep_table */
     struct dec_table t[1];
     int bits_read;
-    int version;
+    int flags;
 };
 
 /* returns the encoding */
