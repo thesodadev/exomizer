@@ -44,10 +44,9 @@ static struct crunch_options default_options[1] = { CRUNCH_OPTIONS_DEFAULT };
 int do_output(match_ctx ctx,
               search_nodep snp,
               encode_match_data emd,
-              encode_match_f * f,
+              struct crunch_options *options,
               struct membuf *outbuf,
-              int *literal_sequences_used,
-              int output_header)
+              int *literal_sequences_used)
 {
     int pos;
     int pos_diff;
@@ -57,7 +56,7 @@ int do_output(match_ctx ctx,
     output_ctxp old;
     output_ctx out;
 
-    output_ctx_init(out, outbuf);
+    output_ctx_init(out, options->flags, outbuf);
     old = emd->out;
     emd->out = out;
 
@@ -109,7 +108,7 @@ int do_output(match_ctx ctx,
                 }
             } else
             {
-                f(mp, emd, NULL);
+                options->encode(mp, emd, NULL);
                 output_bits(out, 1, 0);
             }
 
@@ -125,7 +124,7 @@ int do_output(match_ctx ctx,
     }
 
     LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    if (output_header)
+    if (options->output_header)
     {
         /* output header here */
         optimal_out(out, emd);
@@ -275,8 +274,8 @@ void crunch_backwards(struct membuf *inbuf,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
     LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
-    safety = do_output(ctx, snp, emd, options->encode, outbuf,
-                       &copy_used, options->output_header);
+    safety = do_output(ctx, snp, emd, options, outbuf,
+                       &copy_used);
     outlen = membuf_memlen(outbuf) - outlen;
     LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));
 
@@ -341,7 +340,7 @@ void decrunch(int level,
     }
     outpos = membuf_memlen(outbuf);
 
-    enc = dec_ctx_init(ctx, inbuf, outbuf, dopts->version);
+    enc = dec_ctx_init(ctx, inbuf, outbuf, !dopts->version);
 
     LOG(level, (" Encoding: %s\n", enc));
 

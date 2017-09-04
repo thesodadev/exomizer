@@ -31,7 +31,7 @@ static int bitbuf_rotate(struct dec_ctx *ctx, int carry)
     int carry_out;
     if ((ctx->flags & 1) == 0)
     {
-        /* rol */
+        /* rol (new) */
         carry_out = (ctx->bitbuf & 0x80) != 0;
         ctx->bitbuf <<= 1;
         if (carry)
@@ -41,7 +41,7 @@ static int bitbuf_rotate(struct dec_ctx *ctx, int carry)
     }
     else
     {
-        /* ror */
+        /* ror (old) */
         carry_out = ctx->bitbuf & 0x01;
         ctx->bitbuf >>= 1;
         if (carry)

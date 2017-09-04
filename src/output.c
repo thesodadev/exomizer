@@ -36,7 +36,7 @@ static int bitbuf_rotate(output_ctx ctx, int carry)
     int carry_out;
     if ((ctx->flags & 1) == 0)
     {
-        /* ror */
+        /* ror (new) */
         carry_out = ctx->bitbuf & 0x01;
         ctx->bitbuf >>= 1;
         if (carry)
@@ -46,7 +46,7 @@ static int bitbuf_rotate(output_ctx ctx, int carry)
     }
     else
     {
-        /* rol */
+        /* rol (old) */
         carry_out = (ctx->bitbuf & 0x80) != 0;
         ctx->bitbuf <<= 1;
         if (carry)
@@ -57,12 +57,15 @@ static int bitbuf_rotate(output_ctx ctx, int carry)
     return carry_out;
 }
 
-void output_ctx_init(output_ctx ctx, struct membuf *out)    /* IN/OUT */
+void output_ctx_init(output_ctx ctx,    /* IN/OUT */
+                     int flags, /* IN */
+                     struct membuf *out)/* IN/OUT */
 {
     ctx->bitbuf = 0;
-    bitbuf_rotate(ctx, 1);
     ctx->pos = membuf_memlen(out);
     ctx->buf = out;
+    ctx->flags = flags;
+    bitbuf_rotate(ctx, 1);
 }
 
 unsigned int output_get_pos(output_ctx ctx)     /* IN */

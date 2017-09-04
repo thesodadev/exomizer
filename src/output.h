@@ -42,7 +42,9 @@ struct _output_ctx {
 typedef struct _output_ctx output_ctx[1];
 typedef struct _output_ctx *output_ctxp;
 
-void output_ctx_init(output_ctx ctx, struct membuf *out);   /* IN/OUT */
+void output_ctx_init(output_ctx ctx,    /* IN/OUT */
+                     int flags, /* IN */
+                     struct membuf *out);       /* IN/OUT */
 
 unsigned int output_get_pos(output_ctx ctx);    /* IN */
 
