@@ -113,7 +113,8 @@ static int get_be_word(FILE *in)
 /**
  * if the file is detected to be xex then load_addr will be set to -1
  * if the file is detected to be oric tap then load_addr will be set to -2
- * if the name contains no len info then *lenp will be set to 0.
+ * if the name contains no len info then *lenp will be set to -1. If the name
+ * contains negative len then *lenp will be set to len - 1.
  * if the name contains no offset info then *offsetp will be set to 0.
  * if the file is detected as a prg then the prg header will be read.
  */
@@ -189,7 +190,13 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         }
         if (--tries >= 0)
         {
-            len = tries_arr[tries];
+            int val = tries_arr[tries];
+            if (val < 0)
+            {
+                /* make room for -1 to mean no explicit len */
+                val -= 1;
+            }
+            len = val;
         }
 
         if(!is_plain)
@@ -369,6 +376,9 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
     }
 }
 
+/* (len == -1) => no length was given
+ * (len >= 0) => given length == len
+ * (len < -1) => given length == len + 1 */
 static void load_prg(unsigned char mem[65536], FILE *in,
                      int offset, int len,
                      struct load_info *info)
@@ -397,7 +407,7 @@ static void load_prg(unsigned char mem[65536], FILE *in,
     }
     if(len < 0)
     {
-        len += file_len - offset;
+        len += file_len - offset + 1; /* + 1 convert back to given length */
     }
     if(len < 0)
     {
