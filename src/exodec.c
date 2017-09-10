@@ -79,7 +79,7 @@ get_bits(struct dec_ctx *ctx, int count)
     int val;
 
     val = 0;
-    if ((ctx->flags & 1) == 0)
+    if ((ctx->flags & 16) == 0)
     {
         byte_count = count >> 3;
         count &= 7;

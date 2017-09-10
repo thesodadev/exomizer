@@ -74,15 +74,15 @@ struct crunch_options
     int favor_speed;
     int output_header;
     /*
-     * bit 0  Controls bit access orientation and how bit fetches of more than
-     *        seven bits are performed: 0 = left and fetches are split into a
-     *        smaller shift + get byte (new), 1 = right and fetches are not
-     *         split (old)
+     * bit 0  Controls bit bit orientation: 0=normal (new), 1=reversed (old)
      * bit 1  Sequences with length 1: 0=enable,1=disable
      * bit 2  Sequences with length > 255 where (length & 255) would have been
      *        using its own decrunch table: 0=enable, 1=disable
      * bit 3  Decides if we are to have two lengths (1 and 2) or three lengths
      *        (1, 2 and 3) using dedicated decrunch tables: 0=enable, 1=disable
+     * bit 4  Contols how more than 7 bits are shifted 0=split into a shift of
+     *        of less than 8 bits + a byte (new), 1=all bits are shifted (old)
+     * bit 5  Align bit stream towards start without flag: 1=enable, 0=disable
      */
     int flags;
     encode_match_f *encode;

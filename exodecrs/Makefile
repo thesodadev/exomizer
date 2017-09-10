@@ -94,10 +94,10 @@ data256c.exo: data.bin
 	../src/exomizer mem -q -M256 -c -C data.bin,0x3000 -o data256c.exo
 
 dataf.exo: data.bin
-	../src/exomizer mem -q -C -S1 -f data.bin,0x3000 -o dataf.exo
+	../src/exomizer mem -q -C -S17 -f data.bin,0x3000 -o dataf.exo
 
 streamdata.exo: data.bin
-	../src/exomizer raw -q -C -S1 -b -c -m 1024 data.bin -o streamdata.exo
+	../src/exomizer raw -q -C -S17 -b -c -m 1024 data.bin -o streamdata.exo
 
 %.o:	%.c
 	@echo "Compiling $<"

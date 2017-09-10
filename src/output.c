@@ -135,9 +135,7 @@ static void output_bits_int(output_ctx ctx,        /* IN/OUT */
                             int count,     /* IN */
                             int val)       /* IN */
 {
-    /* this makes the bits appear in reversed
-     * big endian order in the output stream */
-    if ((ctx->flags & 1) == 0)
+    if ((ctx->flags & 16) == 0)
     {
         while (count > 7)
         {

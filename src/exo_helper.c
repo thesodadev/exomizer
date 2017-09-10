@@ -454,7 +454,7 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
         ("  -m <offset>   sets the maximum sequence offset, default is 65535\n"
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"
-         "  -S <options>  bitfield that that modifies the bit stream protocol. [0-31]\n"
+         "  -S <options>  bitfield that that modifies the bit stream protocol. [0-63]\n"
             ));
     print_base_flags(level, default_outfile);
 }
@@ -551,13 +551,20 @@ void handle_crunch_flags(int flag_char, /* IN */
         break;
     case 'S':
         if (str_to_int(flag_arg, &options->flags) != 0 ||
-            options->flags < 0 || options->flags > 31)
+            options->flags < 0 || options->flags > 63)
         {
             LOG(LOG_ERROR,
                 ("Error: invalid value for -S option, "
-                 "must be in the range of [0 - 31]\n"));
+                 "must be in the range of [0 - 63]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(1);
+        }
+        if (options->flags & 0x20)
+        {
+            LOG(LOG_ERROR,
+                ("Warning: bit 5 value for -S option is not implemented, "
+                 "ignoring it\n"));
+            options->flags &= ~0x20;
         }
         break;
     default:

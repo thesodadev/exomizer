@@ -962,6 +962,19 @@ void sfx(const char *appl, int argc, char *argv[])
         }
     }
 
+    if (flags->options->flags & 0x31)
+    {
+        LOG(LOG_ERROR,
+            ("Warning: -S bits 0, 4 and 5 are not not supported by sfx, "
+             "ignoring them\n"));
+        options->flags &= ~0x31;
+    }
+
+    if (flags->options->flags & 8)
+    {
+        set_initial_symbol("i_fourth_len_part", 1);
+    }
+
     do_effect(appl, no_effect, fast, slow);
     if(enter_custom != NULL)
     {

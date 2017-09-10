@@ -103,15 +103,15 @@ data. They share the following option flags:
 
 -S <options>
         bitfield that that modifies the bit stream protocol (experimental).
-        bit 0 Controls bit access orientation and how bit fetches of more than
-              seven bits are performed: 0 = left and fetches are split into a
-              smaller shift + get byte (default), 1 = right and fetches are not
-              split (old)
+        bit 0 Controls bit orientation: 0=normal (default), 1=reversed (old)
         bit 1 Enables sequences with length 1: 0=enable (default), 1=disable
         bit 2 Enables sequences with length > 255 where (length & 255) would
               have been using its own decrunch table: 0=enable, 1=disable
         bit 3 Decides if the two or three shortest sequences lengths have
               dedicated decrunch tables: 0=enable, 1=disable
+        bit 4 Contols how more than 7 bits are shifted 0=split into a shift of
+              of less than 8 bits + a byte (new), 1=all bits are shifted (old)
+        bit 5 Align bit stream towards start without flag: 1=enable, 0=disable
 
 -q      Enables quiet mode which will disable display output.
 
