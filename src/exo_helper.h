@@ -108,19 +108,17 @@ void crunch(struct membuf *inbuf,
 
 struct decrunch_options
 {
-    /* -1 unknown, 0 classic, 1 neo */
-    int version;
-    /* -1 unknown, 0 backward, 1 forward */
+    /* see crunch_options flags field */
+    int flags;
+    /* 0 backward, 1 forward */
     int direction;
 };
 
 void decrunch(int level,
               struct membuf *inbuf,
               struct membuf *outbuf,
-              struct decrunch_options * dopts);
+              struct decrunch_options *dopts);
 
 void reverse_buffer(char *start, int len);
 
-void autodetect_dopts(struct membuf *inbuf,     /* IN */
-                      struct decrunch_options *dopts);    /* OUT */
 #endif

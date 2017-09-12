@@ -110,16 +110,9 @@ main(int argc, char *argv[])
 
     if(decrunch_mode)
     {
-        struct decrunch_options dopts = {-1, -1};
-
-        autodetect_dopts(inbuf, &dopts);
-        if (dopts.direction == -1 || dopts.version == -1)
-        {
-            /* not conclusive auto detection */
-            LOG(LOG_ERROR,
-                ("Error: failed to auto detect decrunch options.\n"));
-            exit(1);
-        }
+        struct decrunch_options dopts;
+        dopts.direction = !backwards_mode;
+        dopts.flags = options->flags;
 
         if (dopts.direction == 0)
         {

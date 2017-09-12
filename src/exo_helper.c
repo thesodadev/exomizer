@@ -55,82 +55,104 @@ int do_output(match_ctx ctx,
     int copy_used = 0;
     output_ctxp old;
     output_ctx out;
+    search_nodep initial_snp;
+    int initial_len;
+    int alignment = 0;
+    int measure_alignment;
 
-    output_ctx_init(out, options->flags, outbuf);
     old = emd->out;
     emd->out = out;
 
-    pos = output_get_pos(out);
-
-    pos_diff = pos;
-    max_diff = 0;
-
-    LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    output_gamma_code(out, 16);
-    output_bits(out, 1, 0); /* 1 bit out */
-
-    diff = output_get_pos(out) - pos_diff;
-    if(diff > max_diff)
+    initial_len = membuf_memlen(outbuf);
+    initial_snp = snp;
+    measure_alignment = (options->flags & 32);
+    for (;;)
     {
-        max_diff = diff;
-    }
+        membuf_truncate(outbuf, initial_len);
+        snp = initial_snp;
+        output_ctx_init(out, options->flags, outbuf);
 
-    LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    LOG(LOG_DUMP, ("------------\n"));
+        output_bits(out, alignment, 0);
 
-    while (snp != NULL)
-    {
-        const_matchp mp;
+        pos = output_get_pos(out);
 
-        mp = snp->match;
-        if (mp != NULL && mp->len > 0)
+        pos_diff = pos;
+        max_diff = 0;
+
+        LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+        output_gamma_code(out, 16);
+        output_bits(out, 1, 0); /* 1 bit out */
+
+        diff = output_get_pos(out) - pos_diff;
+        if(diff > max_diff)
         {
-            if (mp->offset == 0)
+            max_diff = diff;
+        }
+
+        LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+        LOG(LOG_DUMP, ("------------\n"));
+
+        while (snp != NULL)
+        {
+            const_matchp mp;
+
+            mp = snp->match;
+            if (mp != NULL && mp->len > 0)
             {
-                if(mp->len == 1)
+                if (mp->offset == 0)
                 {
-                    /* literal */
-                    LOG(LOG_DUMP, ("literal byte: $%02X\n",
-                                   ctx->buf[snp->index]));
-                    output_byte(out, ctx->buf[snp->index]);
-                    output_bits(out, 1, 1);
+                    if(mp->len == 1)
+                    {
+                        /* literal */
+                        LOG(LOG_DUMP, ("literal byte: $%02X\n",
+                                       ctx->buf[snp->index]));
+                        output_byte(out, ctx->buf[snp->index]);
+                        output_bits(out, 1, 1);
+                    } else
+                    {
+                        int i;
+                        for(i = 0; i < mp->len; ++i)
+                        {
+                            output_byte(out, ctx->buf[snp->index + i]);
+                        }
+                        output_bits(out, 16, mp->len);
+                        output_gamma_code(out, 17);
+                        output_bits(out, 1, 0);
+                        copy_used = 1;
+                    }
                 } else
                 {
-                    int i;
-                    for(i = 0; i < mp->len; ++i)
-                    {
-                        output_byte(out, ctx->buf[snp->index + i]);
-                    }
-                    output_bits(out, 16, mp->len);
-                    output_gamma_code(out, 17);
+                    options->encode(mp, emd, NULL);
                     output_bits(out, 1, 0);
-                    copy_used = 1;
                 }
-            } else
-            {
-                options->encode(mp, emd, NULL);
-                output_bits(out, 1, 0);
-            }
 
-            pos_diff += mp->len;
-            diff = output_get_pos(out) - pos_diff;
-            if(diff > max_diff)
-            {
-                max_diff = diff;
+                pos_diff += mp->len;
+                diff = output_get_pos(out) - pos_diff;
+                if(diff > max_diff)
+                {
+                    max_diff = diff;
+                }
             }
+            LOG(LOG_DUMP, ("------------\n"));
+            snp = snp->prev;
         }
-        LOG(LOG_DUMP, ("------------\n"));
-        snp = snp->prev;
-    }
 
-    LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-    if (options->output_header)
-    {
-        /* output header here */
-        optimal_out(out, emd);
         LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+        if (options->output_header)
+        {
+            /* output header here */
+            optimal_out(out, emd);
+            LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+        }
+
+        if (!measure_alignment)
+        {
+            break;
+        }
+        alignment = output_bits_alignment(out);
+        measure_alignment = 0;
     }
-    output_bits_flush(out);
+    output_bits_flush(out, (options->flags & 32) == 0);
 
     emd->out = old;
 
@@ -340,7 +362,7 @@ void decrunch(int level,
     }
     outpos = membuf_memlen(outbuf);
 
-    enc = dec_ctx_init(ctx, inbuf, outbuf, !dopts->version);
+    enc = dec_ctx_init(ctx, inbuf, outbuf, dopts->flags);
 
     LOG(level, (" Encoding: %s\n", enc));
 
@@ -352,51 +374,6 @@ void decrunch(int level,
         reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
         reverse_buffer((char*)membuf_get(outbuf) + outpos,
                        membuf_memlen(outbuf) - outpos);
-    }
-}
-
-void autodetect_dopts(struct membuf *inbuf,     /* IN */
-                      struct decrunch_options *dopts)     /* OUT */
-{
-    int direction_backward = 0;
-    int direction_forward = 0;
-    int version_classic = 0;
-    int version_neo = 0;
-    unsigned char *p;
-
-    p = membuf_get(inbuf);
-    if(p[0] == 0x80 && p[1] == 0x0)
-    {
-        direction_backward = 1;
-        version_classic = 1;
-    }
-    if(p[0] == 0x01 && p[1] == 0x0)
-    {
-        direction_backward = 1;
-        version_neo = 1;
-    }
-    p += membuf_memlen(inbuf);
-    if(p[-1] == 0x80 && p[-2] == 0x0)
-    {
-        direction_forward = 1;
-        version_classic = 1;
-    }
-    if(p[-1] == 0x01 && p[-2] == 0x0)
-    {
-        direction_forward = 1;
-        version_neo = 1;
-    }
-
-    dopts->direction = -1;
-    if (direction_forward ^ direction_backward)
-    {
-        dopts->direction = direction_forward;
-    }
-
-    dopts->version = -1;
-    if (version_classic ^ version_neo)
-    {
-        dopts->version = version_neo;
     }
 }
 
@@ -558,13 +535,6 @@ void handle_crunch_flags(int flag_char, /* IN */
                  "must be in the range of [0 - 63]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(1);
-        }
-        if (options->flags & 0x20)
-        {
-            LOG(LOG_ERROR,
-                ("Warning: bit 5 value for -S option is not implemented, "
-                 "ignoring it\n"));
-            options->flags &= ~0x20;
         }
         break;
     default:

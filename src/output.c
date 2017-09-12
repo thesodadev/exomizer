@@ -29,32 +29,34 @@
 #include "log.h"
 #include "output.h"
 
-#define OUTPUT_FLAG_REVERSE 1
-
-static int bitbuf_rotate(output_ctx ctx, int carry)
+static void bitbuf_bit(output_ctx ctx, int bit)
 {
-    int carry_out;
     if ((ctx->flags & 1) == 0)
     {
         /* ror (new) */
-        carry_out = ctx->bitbuf & 0x01;
         ctx->bitbuf >>= 1;
-        if (carry)
+        if (bit)
         {
             ctx->bitbuf |= 0x80;
+        }
+        if (++ctx->bitcount == 8)
+        {
+            output_bits_flush(ctx, 0);
         }
     }
     else
     {
         /* rol (old) */
-        carry_out = (ctx->bitbuf & 0x80) != 0;
         ctx->bitbuf <<= 1;
-        if (carry)
+        if (bit)
         {
             ctx->bitbuf |= 0x01;
         }
+        if (++ctx->bitcount == 8)
+        {
+            output_bits_flush(ctx, 0);
+        }
     }
-    return carry_out;
 }
 
 void output_ctx_init(output_ctx ctx,    /* IN/OUT */
@@ -62,10 +64,10 @@ void output_ctx_init(output_ctx ctx,    /* IN/OUT */
                      struct membuf *out)/* IN/OUT */
 {
     ctx->bitbuf = 0;
+    ctx->bitcount = 0;
     ctx->pos = membuf_memlen(out);
     ctx->buf = out;
     ctx->flags = flags;
-    bitbuf_rotate(ctx, 1);
 }
 
 unsigned int output_get_pos(output_ctx ctx)     /* IN */
@@ -102,16 +104,37 @@ void output_word(output_ctx ctx,        /* IN/OUT */
 }
 
 
-void output_bits_flush(output_ctx ctx)  /* IN/OUT */
+void output_bits_flush(output_ctx ctx,  /* IN/OUT */
+                       int add_marker_bit)      /* IN */
 {
-    /* flush the bitbuf including
-     * the extra 1 bit acting as eob flag */
-    output_byte(ctx, ctx->bitbuf);
-    LOG(LOG_DUMP, ("bitstream flushed 0x%02X\n", ctx->bitbuf));
+    if (add_marker_bit)
+    {
+        if ((ctx->flags & 1) == 0)
+        {
+            ctx->bitbuf |= (0x80 >> ctx->bitcount);
+        }
+        else
+        {
+            ctx->bitbuf |= (0x01 << ctx->bitcount);
+        }
+        ++ctx->bitcount;
+    }
+    if (ctx->bitcount > 0)
+    {
+        /* flush the bitbuf */
+        output_byte(ctx, ctx->bitbuf);
+        LOG(LOG_DUMP, ("bitstream flushed 0x%02X\n", ctx->bitbuf));
+        /* reset it */
+        ctx->bitbuf = 0;
+        ctx->bitcount = 0;
+    }
+}
 
-    /* reset it */
-    ctx->bitbuf = 0;
-    bitbuf_rotate(ctx, 1);
+int output_bits_alignment(output_ctx ctx)
+{
+    int alignment = (8 - ctx->bitcount) & 7;
+    LOG(LOG_DUMP, ("bitbuf 0x%02X aligned %d\n", ctx->bitbuf, alignment));
+    return alignment;
 }
 
 void bits_dump(int count, int val)
@@ -148,11 +171,7 @@ static void output_bits_int(output_ctx ctx,        /* IN/OUT */
 
     while (count-- > 0)
     {
-        if (bitbuf_rotate(ctx, val & 1))
-        {
-            /* full byte, flush it */
-            output_bits_flush(ctx);
-        }
+        bitbuf_bit(ctx, val & 1);
         val >>= 1;
     }
 }

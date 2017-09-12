@@ -225,8 +225,15 @@ dec_ctx_init(struct dec_ctx *ctx, struct membuf *inbuf, struct membuf *outbuf,
 
     ctx->outbuf = outbuf;
 
-    /* init bitbuf */
-    ctx->bitbuf = get_byte(ctx);
+    if (flags & 32)
+    {
+        ctx->bitbuf = 0;
+    }
+    else
+    {
+        /* init bitbuf */
+        ctx->bitbuf = get_byte(ctx);
+    }
 
     /* init tables */
     table_init(ctx, ctx->t);

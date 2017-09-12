@@ -33,6 +33,7 @@
 
 struct _output_ctx {
     unsigned char bitbuf;
+    unsigned char bitcount;
     int pos;
     int start;
     struct membuf *buf;
@@ -54,7 +55,10 @@ void output_byte(output_ctx ctx,        /* IN/OUT */
 void output_word(output_ctx ctx,        /* IN/OUT */
                  unsigned short int word);      /* IN */
 
-void output_bits_flush(output_ctx ctx); /* IN/OUT */
+void output_bits_flush(output_ctx ctx,  /* IN/OUT */
+                       int add_marker_bit);     /* IN */
+
+int output_bits_alignment(output_ctx ctx);      /* IN */
 
 void output_bits(output_ctx ctx,        /* IN/OUT */
                  int count,     /* IN */
