@@ -366,8 +366,7 @@ void print_raw_usage(const char *appl, enum log_level level,
 {
     LOG(level, ("usage: %s [option]... infile\n", appl));
     LOG(level,
-        ("  -b            crunch/decrunch backwards\n"
-         "  -f            crunch/decrunch forwards (default)\n"
+        ("  -b            crunch/decrunch backwards instead of forward\n"
          "  -r            write outfile in reverse order\n"
          "  -d            decrunch (instead of crunch)\n"));
     print_crunch_flags(level, default_out_name);
@@ -1214,6 +1213,11 @@ void sfx(const char *appl, int argc, char *argv[])
         {
             set_initial_symbol("i_max_sequence_length_256", 1);
             initial_symbol_dump(LOG_DEBUG, "i_max_sequence_length_256");
+        }
+        if(flags->options->flags & 64)
+        {
+            set_initial_symbol("i_start_with_literal_byte", 1);
+            initial_symbol_dump(LOG_DEBUG, "i_start_with_literal_byte");
         }
 
         if(assemble(&source, out) != 0)

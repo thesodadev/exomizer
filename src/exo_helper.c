@@ -101,27 +101,43 @@ int do_output(match_ctx ctx,
             {
                 if (mp->offset == 0)
                 {
-                    if(mp->len == 1)
+                    int splitLitSeq =
+                        snp->prev->match->len == 0 && (options->flags & 64);
+                    int i = 0;
+                    if (mp->len > 1)
                     {
-                        /* literal */
-                        LOG(LOG_DUMP, ("literal byte: $%02X\n",
-                                       ctx->buf[snp->index]));
-                        output_byte(out, ctx->buf[snp->index]);
-                        output_bits(out, 1, 1);
-                    } else
-                    {
-                        int i;
-                        for(i = 0; i < mp->len; ++i)
+                        int len = mp->len;
+                        if (splitLitSeq)
+                        {
+                            --len;
+                        }
+                        for(; i < len; ++i)
                         {
                             output_byte(out, ctx->buf[snp->index + i]);
                         }
-                        output_bits(out, 16, mp->len);
+                        output_bits(out, 16, len);
                         output_gamma_code(out, 17);
                         output_bits(out, 1, 0);
                         copy_used = 1;
+                        /* literal sequence */
+                        LOG(LOG_DUMP, ("literal sequence for %d bytes\n",
+                                       len));
+                    }
+                    if (i < mp->len)
+                    {
+                        /* literal */
+                        LOG(LOG_DUMP, ("literal byte: $%02X\n",
+                                       ctx->buf[snp->index + i]));
+                        output_byte(out, ctx->buf[snp->index + i]);
+                        if (!splitLitSeq)
+                        {
+                            output_bits(out, 1, 1);
+                        }
                     }
                 } else
                 {
+                    LOG(LOG_DUMP, ("sequence for %d bytes at offset %d\n",
+                                   mp->len, mp->offset));
                     options->encode(mp, emd, NULL);
                     output_bits(out, 1, 0);
                 }
@@ -431,7 +447,7 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
         ("  -m <offset>   sets the maximum sequence offset, default is 65535\n"
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"
-         "  -S <options>  bitfield that that modifies the bit stream protocol. [0-63]\n"
+         "  -S <options>  bitfield that that modifies the bit stream protocol. [0-127]\n"
             ));
     print_base_flags(level, default_outfile);
 }
@@ -528,11 +544,11 @@ void handle_crunch_flags(int flag_char, /* IN */
         break;
     case 'S':
         if (str_to_int(flag_arg, &options->flags) != 0 ||
-            options->flags < 0 || options->flags > 63)
+            options->flags < 0 || options->flags > 127)
         {
             LOG(LOG_ERROR,
                 ("Error: invalid value for -S option, "
-                 "must be in the range of [0 - 63]\n"));
+                 "must be in the range of [0 - 127]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(1);
         }

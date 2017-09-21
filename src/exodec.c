@@ -247,13 +247,18 @@ void dec_ctx_free(struct dec_ctx *ctx)
 
 void dec_ctx_decrunch(struct dec_ctx ctx[1])
 {
-    int bits;
+    int bits = ctx->bits_read;
     int val;
     int i;
     int len;
     int offset;
     int src = 0;
     int treshold = (ctx->flags & 8)? 4: 3;
+
+    if (ctx->flags & 64)
+    {
+        goto literal_start;
+    }
 
     for(;;)
     {
@@ -262,6 +267,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
         LOG(LOG_DEBUG, ("[%02X]",ctx->bitbuf));
         if(get_bits(ctx, 1))
         {
+        literal_start:
             /* literal */
             len = 1;
 
