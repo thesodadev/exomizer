@@ -961,12 +961,12 @@ void sfx(const char *appl, int argc, char *argv[])
         }
     }
 
-    if (flags->options->flags & 0x31)
+    if (flags->options->flags & 0x71)
     {
         LOG(LOG_ERROR,
-            ("Warning: -S bits 0, 4 and 5 are not not supported by sfx, "
+            ("Warning: -S bits 0, 4, 5 and 6 are not not supported by sfx, "
              "ignoring them\n"));
-        options->flags &= ~0x31;
+        options->flags &= ~0x71;
     }
 
     if (flags->options->flags & 8)
@@ -1213,11 +1213,6 @@ void sfx(const char *appl, int argc, char *argv[])
         {
             set_initial_symbol("i_max_sequence_length_256", 1);
             initial_symbol_dump(LOG_DEBUG, "i_max_sequence_length_256");
-        }
-        if(flags->options->flags & 64)
-        {
-            set_initial_symbol("i_start_with_literal_byte", 1);
-            initial_symbol_dump(LOG_DEBUG, "i_start_with_literal_byte");
         }
 
         if(assemble(&source, out) != 0)

@@ -83,7 +83,7 @@ struct crunch_options
      * bit 4  Contols how more than 7 bits are shifted 0=split into a shift of
      *        of less than 8 bits + a byte (new), 1=all bits are shifted (old)
      * bit 5  Align bit stream towards start without flag: 1=enable, 0=disable
-     * bit 6  Always start with a literal byte: 1=enable, 0=disable
+     * bit 6  Implicit first literal byte: 0=enable, 1=disable
      */
     int flags;
     encode_match_f *encode;

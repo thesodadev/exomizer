@@ -102,7 +102,7 @@ int do_output(match_ctx ctx,
                 if (mp->offset == 0)
                 {
                     int splitLitSeq =
-                        snp->prev->match->len == 0 && (options->flags & 64);
+                        snp->prev->match->len == 0 && !(options->flags & 64);
                     int i = 0;
                     if (mp->len > 1)
                     {

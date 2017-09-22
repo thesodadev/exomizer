@@ -255,7 +255,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
     int src = 0;
     int treshold = (ctx->flags & 8)? 4: 3;
 
-    if (ctx->flags & 64)
+    if (!(ctx->flags & 64))
     {
         goto literal_start;
     }

@@ -29,6 +29,7 @@
 
 enum exo_state
 {
+    STATE_IMPLICIT_FIRST_LITERAL_BYTE,
     STATE_NEXT_BYTE,
     STATE_NEXT_LITERAL_BYTE,
     STATE_NEXT_SEQUENCE_BYTE,
@@ -63,7 +64,6 @@ struct exo_decrunch_ctx
 static int bitbuffer_rotate(struct exo_decrunch_ctx *ctx, int carry)
 {
     int carry_out;
-#ifdef BITS_AS_BYTES
     /* rol */
     carry_out = (ctx->bit_buffer & 0x80) != 0;
     ctx->bit_buffer <<= 1;
@@ -71,25 +71,14 @@ static int bitbuffer_rotate(struct exo_decrunch_ctx *ctx, int carry)
     {
         ctx->bit_buffer |= 0x01;
     }
-#else
-    /* ror */
-    carry_out = ctx->bit_buffer & 0x01;
-    ctx->bit_buffer >>= 1;
-    if (carry)
-    {
-        ctx->bit_buffer |= 0x80;
-    }
-#endif
     return carry_out;
 }
 
 static int
 read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
 {
-#ifdef BITS_AS_BYTES
     int byte_count = bit_count >> 3;
     bit_count &= 7;
-#endif
     int bits = 0;
     while(bit_count-- > 0)
     {
@@ -102,13 +91,11 @@ read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
         bits <<= 1;
         bits |= carry;
     }
-#ifdef BITS_AS_BYTES
     while (byte_count-- > 0)
     {
         bits <<= 8;
         bits |= ctx->read_byte(ctx->read_data);
     }
-#endif
     return bits;
 }
 
@@ -138,7 +125,7 @@ exo_decrunch_new(unsigned short int max_offset,
 
     ctx = malloc(sizeof(struct exo_decrunch_ctx));
 
-    ctx->state = STATE_NEXT_BYTE;
+    ctx->state = STATE_IMPLICIT_FIRST_LITERAL_BYTE;
     ctx->window_pos = 0;
     ctx->bit_buffer = read_byte(read_data);
     ctx->read_byte = read_byte;
@@ -189,6 +176,11 @@ exo_read_decrunched_byte(struct exo_decrunch_ctx *ctx)
 
     switch(ctx->state)
     {
+    case STATE_IMPLICIT_FIRST_LITERAL_BYTE:
+        /* literal byte */
+        c = ctx->read_byte(ctx->read_data);
+        ctx->state = STATE_NEXT_BYTE;
+        break;
     case STATE_NEXT_BYTE:
         if(read_bits(ctx, 1) == 1)
         {

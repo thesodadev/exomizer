@@ -30,7 +30,6 @@
 ; -- r_in_len, done /* required, length of decrunched data area */
 ; -- i_literal_sequences_used, done /* defined if true, otherwise not */
 ; -- i_max_sequence_length_256, done /* defined if true, otherwise not */
-; -- i_start_with_literal_byte, done /* defined if true, otherwise not */
 ; -- i_ram_enter, done /* undef=c_rom_config_value */
 ; -- i_irq_enter, done /* undef=on, 0=off, 1=on */
 ; -- i_ram_during, done /* undef=auto
@@ -1154,11 +1153,7 @@ rolle:
         .IF(.DEFINED(stage2_exit_hook))
           .INCLUDE("stage2_exit_hook")
         .ENDIF
-.IF(.DEFINED(i_start_with_literal_byte))
         jmp literal_start1
-.ELSE
-        jmp begin
-.ENDIF
 ; -------------------------------------------------------------------
 ; The used static mask table (16 bytes)
 ; the values are %00000000, %01000000, %01100000, %01110000

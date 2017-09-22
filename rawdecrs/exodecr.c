@@ -33,7 +33,6 @@ static unsigned char bit_buffer;
 static int bitbuffer_rotate(int carry)
 {
     int carry_out;
-#ifdef BITS_AS_BYTES
     /* rol */
     carry_out = (bit_buffer & 0x80) != 0;
     bit_buffer <<= 1;
@@ -41,15 +40,6 @@ static int bitbuffer_rotate(int carry)
     {
         bit_buffer |= 0x01;
     }
-#else
-    /* ror */
-    carry_out = bit_buffer & 0x01;
-    bit_buffer >>= 1;
-    if (carry)
-    {
-        bit_buffer |= 0x80;
-    }
-#endif
     return carry_out;
 }
 
@@ -62,10 +52,8 @@ static unsigned char read_byte(const char **inp)
 static unsigned short int
 read_bits(const char **inp, int bit_count)
 {
-#ifdef BITS_AS_BYTES
     int byte_count = bit_count >> 3;
     bit_count &= 7;
-#endif
     unsigned short int bits = 0;
     while(bit_count-- > 0)
     {
@@ -78,13 +66,11 @@ read_bits(const char **inp, int bit_count)
         bits <<= 1;
         bits |= carry;
     }
-#ifdef BITS_AS_BYTES
     while (byte_count-- > 0)
     {
         bits <<= 8;
         bits |= read_byte(inp);
     }
-#endif
     return bits;
 }
 
@@ -122,11 +108,14 @@ exo_decrunch(const char *in, char *out)
     bit_buffer = read_byte(&in);
 
     init_table(&in);
+
+    goto implicit_literal_byte;
     for(;;)
     {
         literal = read_bits(&in, 1);
         if(literal == 1)
         {
+        implicit_literal_byte:
             /* literal byte */
             length = 1;
             goto copy;
@@ -143,12 +132,8 @@ exo_decrunch(const char *in, char *out)
         if(index == 17)
         {
             literal = 1;
-#ifdef BITS_AS_BYTES
             length = read_byte(&in) << 8;
             length |= read_byte(&in);
-#else
-            length = read_bits(&in, 16);
-#endif
             goto copy;
         }
         length = base[index];

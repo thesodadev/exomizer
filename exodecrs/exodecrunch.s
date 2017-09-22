@@ -186,7 +186,7 @@ rolle:
 ; prepare for main decruncher
         ldy zp_dest_lo
         stx zp_dest_lo
-        bcs next_round
+        bcs literal_start1
 ; -------------------------------------------------------------------
 ; The used static mask table (16 bytes)
 tabl_mask:
