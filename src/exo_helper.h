@@ -79,7 +79,7 @@ struct crunch_options
      * bit 2  Sequences with length > 255 where (length & 255) would have been
      *        using its own decrunch table: 0=enable, 1=disable
      * bit 3  Decides if we are to have two lengths (1 and 2) or three lengths
-     *        (1, 2 and 3) using dedicated decrunch tables: 0=enable, 1=disable
+     *        (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three
      * bit 4  Contols how more than 7 bits are shifted 0=split into a shift of
      *        of less than 8 bits + a byte (new), 1=all bits are shifted (old)
      * bit 5  Align bit stream towards start without flag: 1=enable, 0=disable
