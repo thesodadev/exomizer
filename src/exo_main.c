@@ -257,14 +257,6 @@ do_loads(int filec, char *filev[], struct membuf *mem,
         {
             max_end = info->end;
         }
-        if(info->basic_var_start != -1)
-        {
-            info->basic_var_start = info->basic_var_start;
-        }
-        if(info->run != -1)
-        {
-            info->run = info->run;
-        }
     }
 
     if(basic_txt_start >= 0 && !basic_code && run == -1)

@@ -894,12 +894,21 @@ o1_start:
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
       r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128 ||
       r_target == 4032)
+  .IF(r_target == 16 || r_target == 4)
+zp_len_lo = $a7
+zp_src_lo = $9d
+zp_src_hi = zp_src_lo + 1
+zp_bits_hi = $2d
+zp_len_hi = $2e
+zp_dest_y = $fc
+  .ELSE
 zp_len_lo = $a7
 zp_src_lo = $ae
 zp_src_hi = zp_src_lo + 1
 zp_bits_hi = $9f
 zp_len_hi = $9e
 zp_dest_y = $fc
+  .ENDIF
 
   .IF(.DEFINED(i_load_addr))
         .WORD(i_load_addr)
