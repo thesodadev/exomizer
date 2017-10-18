@@ -875,9 +875,15 @@ o1_start:
 ; -------------------------------------------------------------------
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
     r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128)
+  .IF(r_target == 16 || r_target == 4)
+zp_lo_len = $a7
+zp_src_addr = $9d
+zp_hi_bits = $2d
+  .ELSE
 zp_lo_len = $a7
 zp_src_addr = $ae
 zp_hi_bits = $9f
+  .ENDIF
 
   .IF(.DEFINED(i_load_addr))
         .WORD(i_load_addr)
