@@ -85,6 +85,7 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
 
     int buf_len = membuf_memlen(inbuf);
     const unsigned char *buf = membuf_get(inbuf);
+    char *rle_map;
 
     int c, i;
     int val;
@@ -131,14 +132,14 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
     }
 
     /* add extra nodes to rle sequences */
+    rle_map = malloc(65536);
     for(c = 0; c < 256; ++c)
     {
-        static char rle_map[65536];
         struct match_node *prev_np;
         unsigned short int rle_len;
 
         /* for each possible rle char */
-        memset(rle_map, 0, sizeof(rle_map));
+        memset(rle_map, 0, 65536);
         prev_np = NULL;
         for (i = 0; i < buf_len; ++i)
         {
@@ -180,7 +181,7 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
             prev_np = np;
         }
 
-        memset(rle_map, 0, sizeof(rle_map));
+        memset(rle_map, 0, 65536);
         prev_np = NULL;
         for (i = buf_len - 1; i >= 0; --i)
         {
@@ -218,6 +219,7 @@ void match_ctx_init(match_ctx ctx,         /* IN/OUT */
             rle_map[rle_len] = 1;
         }
     }
+    free(rle_map);
 
     progress_init(prog, "building.directed.acyclic.graph.", buf_len - 1, 0);
 
