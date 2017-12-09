@@ -37,7 +37,7 @@ struct search_node*
 search_buffer(match_ctx ctx,       /* IN */
               encode_match_f * f,  /* IN */
               encode_match_data emd,       /* IN */
-                           int use_literal_sequences)
+              int use_literal_sequences)
 {
     struct progress prog[1];
     struct search_node *sn_arr;

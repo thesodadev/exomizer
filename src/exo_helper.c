@@ -290,13 +290,15 @@ void crunch_backwards(struct membuf *inbuf,
     optimal_free(emd);
     free(snp);
     match_ctx_free(ctx);
-    membuf_free(&exported_enc);
 
     if(info != NULL)
     {
         info->literal_sequences_used = copy_used;
         info->needed_safety_offset = safety;
+        strncpy(info->used_encoding, (char*)membuf_get(&exported_enc), 100);
+        info->used_encoding[99] = '\0';
     }
+    membuf_free(&exported_enc);
 }
 
 void reverse_buffer(char *start, int len)

@@ -76,6 +76,7 @@ struct crunch_info
 {
     int literal_sequences_used;
     int needed_safety_offset;
+    char used_encoding[100];
 };
 
 void print_license(void);

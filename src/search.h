@@ -94,8 +94,8 @@ void search_node_dump(const struct search_node *snp);        /* IN */
 struct search_node*
 search_buffer(match_ctx ctx,       /* IN */
               encode_match_f * f,  /* IN */
-                           encode_match_data emd,
-                           int use_literal_sequences);      /* IN */
+              encode_match_data emd,
+              int use_literal_sequences);      /* IN */
 
 struct _matchp_snp_enum {
     const struct search_node *startp;
