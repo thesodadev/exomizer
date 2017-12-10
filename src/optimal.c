@@ -405,41 +405,43 @@ optimize(int stats[65536], int stats2[65536], int max_depth, int flags)
     return inp;
 }
 
-static const char *export_helper(interval_nodep np, int depth)
+static void export_helper(interval_nodep np, int depth,
+                          struct membuf *target)
 {
-    static char buf[20];
-    char *p = buf;
     while(np != NULL)
     {
-        p += sprintf(p, "%X", np->bits);
+        membuf_printf(target, "%X", np->bits);
         np = np->next;
         --depth;
     }
     while(depth-- > 0)
     {
-        p += sprintf(p, "0");
+        membuf_printf(target, "0");
     }
-    return buf;
 }
 
-const char *optimal_encoding_export(encode_match_data emd)
+
+void optimal_encoding_export(encode_match_data emd,
+                             struct membuf *target)
 {
     interval_nodep *offsets;
-    static char buf[100];
-    char *p = buf;
     encode_match_privp data;
 
+    membuf_truncate(target, 0);
     data = emd->priv;
     offsets = (interval_nodep*)data->offset_f_priv;
-    p += sprintf(p, "%s", export_helper((interval_nodep)data->len_f_priv, 16));
-    p += sprintf(p, ",%s", export_helper(offsets[0], 4));
-    p += sprintf(p, ",%s", export_helper(offsets[1], 16));
+    export_helper((interval_nodep)data->len_f_priv, 16, target);
+    membuf_append_char(target, ',');
+    export_helper(offsets[0], 4, target);
+    membuf_append_char(target, ',');
+    export_helper(offsets[1], 16, target);
     if (data->flags & 8)
     {
-        p += sprintf(p, ",%s", export_helper(offsets[2], 16));
+        membuf_append_char(target, ',');
+        export_helper(offsets[2], 16, target);
     }
-    p += sprintf(p, ",%s", export_helper(offsets[7], 16));
-    return buf;
+    membuf_append_char(target, ',');
+    export_helper(offsets[7], 16, target);
 }
 
 static void import_helper(interval_nodep *npp,

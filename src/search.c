@@ -33,37 +33,31 @@
 #include "membuf.h"
 #include "progress.h"
 
-void search_node_free(search_nodep snp) /* IN */
-{
-    /* emty now since snp:s are stored in an array */
-}
-
-search_nodep search_buffer(match_ctx ctx,       /* IN */
-                           encode_match_f * f,  /* IN */
-                           encode_match_data emd,       /* IN */
-                           int use_literal_sequences,   /* IN */
-                           int max_sequence_length)     /* IN */
+void search_buffer(match_ctx ctx,       /* IN */
+                   encode_match_f * f,  /* IN */
+                   encode_match_data emd,       /* IN */
+                   int use_literal_sequences,   /* IN */
+                   int max_sequence_length,     /* IN */
+                   struct search_node **result)/* OUT */
 {
     struct progress prog[1];
-    static struct membuf backing[1] = { STATIC_MEMBUF_INIT };
-    static search_node *snp_arr;
+    struct search_node *sn_arr;
     const_matchp mp = NULL;
-    search_nodep snp;
-    search_nodep best_copy_snp;
+    struct search_node *snp;
+    struct search_node *best_copy_snp;
     int best_copy_len;
 
-    search_nodep best_rle_snp;
+    struct search_node *best_rle_snp;
 
     int len = ctx->len + 1;
 
     progress_init(prog, "finding.shortest.path.",len, 0);
 
-    membuf_atleast(backing, len * sizeof(search_node));
-    snp_arr = membuf_get(backing);
-    memset(snp_arr, 0, len * sizeof(search_node));
+    sn_arr = malloc(len * sizeof(struct search_node));
+    memset(sn_arr, 0, len * sizeof(struct search_node));
 
     --len;
-    snp = snp_arr[len];
+    snp = &sn_arr[len];
     snp->index = len;
     snp->match->offset = 0;
     snp->match->len = 0;
@@ -88,7 +82,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         if(use_literal_sequences)
         {
             /* check if we can do even better with copy */
-            snp = snp_arr[len];
+            snp = &sn_arr[len];
             if(best_copy_snp->total_score+best_copy_len * 8.0 -
                snp->total_score > 0.0 ||
                best_copy_len > max_sequence_length)
@@ -131,7 +125,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         }
 
         /* check if we can do rle */
-        snp = snp_arr[len];
+        snp = &sn_arr[len];
         if(best_rle_snp == NULL ||
            snp->index + 65535 < best_rle_snp->index ||
            snp->index + ctx->rle_r[snp->index] < best_rle_snp->index)
@@ -231,8 +225,8 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
             ("matches for index %d with total score %0.1f\n",
              len - 1, snp->total_score));
 
-        prev_score = snp_arr[len]->total_score;
-        prev_offset_sum = snp_arr[len]->total_offset;
+        prev_score = sn_arr[len].total_score;
+        prev_offset_sum = sn_arr[len].total_offset;
         while (mp != NULL)
         {
             matchp next;
@@ -268,7 +262,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
                 total_score = prev_score + score;
                 total_offset = prev_offset_sum + tmp->offset;
-                snp = snp_arr[len - tmp->len];
+                snp = &sn_arr[len - tmp->len];
 
                 LOG(LOG_DUMP,
                     ("[%05d] cmp [%05d, %05d score %.1f + %.1f] with %.1f",
@@ -289,7 +283,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
                     *snp->match = *tmp;
                     snp->total_offset = total_offset;
                     snp->total_score = total_score;
-                    snp->prev = snp_arr[len];
+                    snp->prev = &sn_arr[len];
                 }
                 LOG(LOG_DUMP, ("\n"));
             }
@@ -303,7 +297,7 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
         /* slow way to get to the next node for cur */
         --len;
         ++best_copy_len;
-        if(snp_arr[len]->match == NULL)
+        if(sn_arr[len].match == NULL)
         {
             LOG(LOG_ERROR, ("Found unreachable node at len %d.\n", len));
         }
@@ -318,10 +312,10 @@ search_nodep search_buffer(match_ctx ctx,       /* IN */
 
     progress_free(prog);
 
-    return snp_arr[0];
+    *result = sn_arr;
 }
 
-void matchp_snp_get_enum(const_search_nodep snp,        /* IN */
+void matchp_snp_get_enum(const struct search_node *snp, /* IN */
                          matchp_snp_enum snpe)  /* IN/OUT */
 {
     snpe->startp = snp;

@@ -1,4 +1,10 @@
-2016-08-19
++ Change zp-usage of the sfx-decr for plus4/c16 to avoid overwriting current
+  device number address.
+2017-12-09
++ Add used encoding to the crunch_info struct returned by core crunch func.
++ Rework core compression core to not use local static vars to simplify use
+  when compiled into a library.
+2017-08-19
 + rework -C into a generic favor speed flag and make it disable the crunch
   result changes too.
 + Improve crunch result slightly by also consider same length sequences at

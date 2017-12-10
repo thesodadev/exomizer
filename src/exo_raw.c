@@ -61,7 +61,7 @@ main(int argc, char *argv[])
     int c, infilec;
     char **infilev;
 
-    static struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
+    struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
     struct common_flags flags[1] = { {options, DEFAULT_OUTFILE} };
 
     struct membuf inbuf[1];
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
     }
     else
     {
-        struct crunch_info info[1];
+        struct crunch_info info[1] = {STATIC_CRUNCH_INFO_INIT};
         if(backwards_mode)
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\" "

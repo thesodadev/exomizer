@@ -42,9 +42,9 @@
 static struct crunch_options default_options[1] = { CRUNCH_OPTIONS_DEFAULT };
 
 int do_output(match_ctx ctx,
-              search_nodep snp,
+              struct search_node *snp,
               encode_match_data emd,
-              struct crunch_options *options,
+              const struct crunch_options *options,
               struct membuf *outbuf,
               int *literal_sequences_used)
 {
@@ -55,7 +55,7 @@ int do_output(match_ctx ctx,
     int copy_used = 0;
     output_ctxp old;
     output_ctx out;
-    search_nodep initial_snp;
+    struct search_node *initial_snp;
     int initial_len;
     int alignment = 0;
     int measure_alignment;
@@ -180,19 +180,19 @@ int do_output(match_ctx ctx,
     return max_diff;
 }
 
-search_nodep
+struct search_node*
 do_compress(match_ctx ctx, encode_match_data emd,
-            struct crunch_options *options) /* IN */
+            const struct crunch_options *options,
+            struct membuf *enc) /* IN */
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
-    search_nodep snp;
-    search_nodep best_snp;
+    struct search_node *snp;
+    struct search_node *best_snp;
     int pass;
     float size;
     float old_size;
     char prev_enc[100];
-    const char *curr_enc;
 
     pass = 1;
     prev_enc[0] = '\0';
@@ -215,9 +215,11 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
     for (;;)
     {
-        snp = search_buffer(ctx, options->encode, emd,
-                            options->use_literal_sequences,
-                            options->max_len);
+        snp = NULL;
+        search_buffer(ctx, options->encode, emd,
+                      options->use_literal_sequences,
+                      options->max_len,
+                      &snp);
         if (snp == NULL)
         {
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
@@ -230,13 +232,13 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
         if (size >= old_size)
         {
-            search_node_free(snp);
+            free(snp);
             break;
         }
 
         if (best_snp != NULL)
         {
-            search_node_free(best_snp);
+            free(best_snp);
         }
         best_snp = snp;
         old_size = size;
@@ -255,12 +257,12 @@ do_compress(match_ctx ctx, encode_match_data emd,
         matchp_snp_get_enum(snp, snpe);
         optimal_optimize(emd, matchp_snp_enum_get_next, snpe);
 
-        curr_enc = optimal_encoding_export(emd);
-        if (strcmp(curr_enc, prev_enc) == 0)
+        optimal_encoding_export(emd, enc);
+        if (strcmp(membuf_get(enc), prev_enc) == 0)
         {
             break;
         }
-        strcpy(prev_enc, curr_enc);
+        strcpy(prev_enc, membuf_get(enc));
     }
 
     return best_snp;
@@ -268,16 +270,17 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
 void crunch_backwards(struct membuf *inbuf,
                       struct membuf *outbuf,
-                      struct crunch_options *options, /* IN */
+                      const struct crunch_options *options, /* IN */
                       struct crunch_info *info) /* OUT */
 {
     static match_ctx ctx;
     encode_match_data emd;
-    search_nodep snp;
+    struct search_node *snp;
     int outlen;
     int inlen;
     int safety;
     int copy_used;
+    struct membuf exported_enc = STATIC_MEMBUF_INIT;
 
     if(options == NULL)
     {
@@ -305,13 +308,13 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snp = do_compress(ctx, emd, options);
+    snp = do_compress(ctx, emd, options, &exported_enc);
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
-    LOG(LOG_NORMAL, (" Encoding: %s\n", optimal_encoding_export(emd)));
+    LOG(LOG_NORMAL, (" Encoding: %s\n", (char*)membuf_get(&exported_enc)));
     safety = do_output(ctx, snp, emd, options, outbuf,
                        &copy_used);
     outlen = membuf_memlen(outbuf) - outlen;
@@ -321,8 +324,9 @@ void crunch_backwards(struct membuf *inbuf,
                     inlen - outlen, 100.0 * (inlen - outlen) / inlen));
 
     optimal_free(emd);
-    search_node_free(snp);
+    free(snp);
     match_ctx_free(ctx);
+    membuf_free(&exported_enc);
 
     if(info != NULL)
     {
@@ -349,7 +353,7 @@ void reverse_buffer(char *start, int len)
 
 void crunch(struct membuf *inbuf,
             struct membuf *outbuf,
-            struct crunch_options *options, /* IN */
+            const struct crunch_options *options, /* IN */
             struct crunch_info *info) /* OUT */
 {
     int outpos;
@@ -369,7 +373,7 @@ void decrunch(int level,
               struct decrunch_options *dopts)
 {
     struct dec_ctx ctx[1];
-    char *enc;
+    struct membuf enc_buf[1] = {STATIC_MEMBUF_INIT};
     int outpos;
 
     if (dopts->direction == 0)
@@ -378,10 +382,11 @@ void decrunch(int level,
     }
     outpos = membuf_memlen(outbuf);
 
-    enc = dec_ctx_init(ctx, inbuf, outbuf, dopts->flags);
+    dec_ctx_init(ctx, inbuf, outbuf, dopts->flags, enc_buf);
 
-    LOG(level, (" Encoding: %s\n", enc));
+    LOG(level, (" Encoding: %s\n", (char*)membuf_get(enc_buf)));
 
+    membuf_free(enc_buf);
     dec_ctx_decrunch(ctx);
     dec_ctx_free(ctx);
 

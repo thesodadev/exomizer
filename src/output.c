@@ -137,23 +137,6 @@ int output_bits_alignment(output_ctx ctx)
     return alignment;
 }
 
-void bits_dump(int count, int val)
-{
-    static char buf[1024];
-    char *pek;
-    pek = buf;
-    if (count > 0)
-    {
-        pek += sprintf(pek, "0x%04X, % 2d: ", val, count);
-    }
-    while (count-- > 0)
-    {
-        *(pek++) = val & (1 << count) ? '1' : '0';
-    }
-    *(pek++) = '\0';
-    LOG(LOG_NORMAL, ("%s\n", buf));
-}
-
 static void output_bits_int(output_ctx ctx,        /* IN/OUT */
                             int count,     /* IN */
                             int val)       /* IN */

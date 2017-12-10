@@ -89,6 +89,7 @@ struct crunch_options
     encode_match_f *encode;
 };
 
+#define STATIC_CRUNCH_INFO_INIT {0, 0}
 struct crunch_info
 {
     int literal_sequences_used;
@@ -99,12 +100,12 @@ void print_license(void);
 
 void crunch_backwards(struct membuf *inbuf,
                       struct membuf *outbuf,
-                      struct crunch_options *options, /* IN */
+                      const struct crunch_options *options, /* IN */
                       struct crunch_info *info); /* OUT */
 
 void crunch(struct membuf *inbuf,
             struct membuf *outbuf,
-            struct crunch_options *options, /* IN */
+            const struct crunch_options *options, /* IN */
             struct crunch_info *info); /* OUT */
 
 struct decrunch_options

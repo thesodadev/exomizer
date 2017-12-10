@@ -41,17 +41,13 @@ struct encode_match_buckets {
     struct encode_int_bucket offset;
 };
 
-struct _search_node {
+struct search_node {
     int index;
     match match;
     unsigned int total_offset;
     float total_score;
-    struct _search_node *prev;
+    struct search_node *prev;
 };
-
-typedef struct _search_node search_node[1];
-typedef struct _search_node *search_nodep;
-typedef const struct _search_node *const_search_nodep;
 
 struct _encode_match_data {
     output_ctxp out;
@@ -93,25 +89,25 @@ float encode_match_f(const_matchp mp,
                      encode_match_data emd,     /* IN */
                      struct encode_match_buckets *embp);    /* OUT */
 
-void search_node_dump(search_nodep snp);        /* IN */
+void search_node_dump(const struct search_node *snp);        /* IN */
 
-void search_node_free(search_nodep snp);        /* IN/OUT */
-
-search_nodep search_buffer(match_ctx ctx,       /* IN */
-                           encode_match_f * f,  /* IN */
-                           encode_match_data emd,       /* IN */
-                           int use_literal_sequences,   /* IN */
-                           int max_sequence_length);    /* IN */
+/* Dont forget to free the (*result) after calling */
+void search_buffer(match_ctx ctx,       /* IN */
+                   encode_match_f * f,  /* IN */
+                   encode_match_data emd,       /* IN */
+                   int use_literal_sequences,   /* IN */
+                   int max_sequence_length,
+                   struct search_node **result);       /* IN */
 
 struct _matchp_snp_enum {
-    const_search_nodep startp;
-    const_search_nodep currp;
+    const struct search_node *startp;
+    const struct search_node *currp;
 };
 
 typedef struct _matchp_snp_enum matchp_snp_enum[1];
 typedef struct _matchp_snp_enum *matchp_snp_enump;
 
-void matchp_snp_get_enum(const_search_nodep snp,        /* IN */
+void matchp_snp_get_enum(const struct search_node *snp,   /* IN */
                          matchp_snp_enum snpe); /* IN/OUT */
 
 const_matchp matchp_snp_enum_get_next(void *matchp_snp_enum);
