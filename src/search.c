@@ -233,7 +233,6 @@ void search_buffer(match_ctx ctx,       /* IN */
             int end_len;
             match tmp;
             int bucket_len_start;
-            int bucket_offset_start;
             float score;
 
             next = mp->next;
@@ -241,7 +240,6 @@ void search_buffer(match_ctx ctx,       /* IN */
             *tmp = *mp;
             tmp->next = NULL;
             bucket_len_start = 0;
-            bucket_offset_start = 0;
             for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
             {
                 float total_score;
@@ -257,7 +255,6 @@ void search_buffer(match_ctx ctx,       /* IN */
                 {
                     score = f(tmp, emd, &match_buckets);
                     bucket_len_start = match_buckets.len.start;
-                    bucket_offset_start = match_buckets.offset.start;
                 }
 
                 total_score = prev_score + score;

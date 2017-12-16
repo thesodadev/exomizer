@@ -326,7 +326,7 @@ optimize1(optimize_arg arg, int start, int depth, int init)
                 (inp->prefix + inp->bits);
 
             /* one index below */
-            LOG(LOG_DUMP, ("interval score: [%d«%d[%d\n",
+            LOG(LOG_DUMP, ("interval score: [%d<<%d[%d\n",
                            start, i, inp->score));
             if (end_count > 0)
             {
