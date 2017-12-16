@@ -174,6 +174,8 @@ do_compress(match_ctx ctx, encode_match_data emd,
         matchp_cache_get_enum(ctx, mpce);
         optimal_optimize(emd, matchp_cache_enum_get_next, mpce);
     }
+    optimal_encoding_export(emd, enc);
+    strcpy(prev_enc, membuf_get(enc));
 
     best_snp = NULL;
     old_size = 100000000.0;
@@ -235,7 +237,7 @@ void crunch_backwards(struct membuf *inbuf,
                       struct crunch_options *options, /* IN */
                       struct crunch_info *info) /* OUT */
 {
-    static match_ctx ctx;
+    match_ctx ctx;
     encode_match_data emd;
     struct search_node *snp;
     int outlen;

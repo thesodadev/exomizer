@@ -413,7 +413,6 @@ void optimal_encoding_export(encode_match_data emd,
     export_helper(offsets[0], 4, target);
     membuf_append_char(target, ',');
     export_helper(offsets[1], 16, target);
-        export_helper(offsets[2], 16, target);
     membuf_append_char(target, ',');
     export_helper(offsets[7], 16, target);
 }
