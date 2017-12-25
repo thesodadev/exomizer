@@ -78,7 +78,7 @@ exo_decrunch(const char *in, char *out)
     char c;
     char literal;
 
-    bit_buffer = *--in;
+    bit_buffer = *--in & 0xff;
 
     init_table(&in);
     for(;;)

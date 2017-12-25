@@ -1377,7 +1377,7 @@ highest_addr_out:
 ; -------------------------------------------------------------------
 o1_end:
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
-      r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128
+      r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128 ||
       r_target == 4032)
 ; -------------------------------------------------------------------
 ; -- Start of Commodore file footer stuff ---------------------------
