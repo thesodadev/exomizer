@@ -30,14 +30,9 @@ static unsigned short int base[52];
 static char bits[52];
 static unsigned short int bit_buffer;
 
-#if 0
 static unsigned short int
 read_bits(const char **inp, int bit_count)
 {
-#ifdef BITS_AS_BYTES
-    int byte_count = bit_count >> 3;
-    bit_count &= 7;
-#endif
     unsigned short int bits = 0;
     while(bit_count-- > 0)
     {
@@ -49,59 +44,8 @@ read_bits(const char **inp, int bit_count)
         bits |= bit_buffer & 0x1;
         bit_buffer >>= 1;
     }
-#ifdef BITS_AS_BYTES
-    while (byte_count-- > 0)
-    {
-        bits <<= 8;
-        bits |= *--(*inp) & 0xff;
-    }
-#endif
     return bits;
 }
-#else
-
-static unsigned char shift_mask[] = {
-    0b00000000, 0b10000000, 0b11000000, 0b11100000,
-    0b11110000, 0b11111000, 0b11111100, 0b11111110,
-    0b01000000, 0b10100000, 0b11010000, 0b11101000,
-    0b11110100, 0b11111010, 0b11111101, 0b11111110};
-
-
-static unsigned short int
-read_bits(const char **inp, int bit_count)
-{
-    unsigned short int bits = shift_mask[bit_count];
-    int carry = bit_count == 15;
-    for (;;)
-    {
-        bits <<= 1;
-        bits |= carry;
-        carry = (bits & 0x100) != 0;
-        bits &= 0xFF;
-
-        if (carry == 0)
-        {
-            break;
-        }
-
-        if(bit_buffer == 1)
-        {
-            bit_buffer = 0x100 | (*--(*inp) & 0xff);
-        }
-        carry =  bit_buffer & 0x1;
-        bit_buffer >>= 1;
-    }
-
-    if ((bits & 0x80) != 0)
-    {
-        bits &= 0x7F;
-        bits <<= 8;
-        bits |= *--(*inp) & 0xff;
-    }
-
-    return bits;
-}
-#endif
 
 static void
 init_table(const char **inp)
@@ -158,12 +102,7 @@ exo_decrunch(const char *in, char *out)
         if(index == 17)
         {
             literal = 1;
-#ifdef BITS_AS_BYTES
-            length = (*--in & 0xFF) << 8;
-            length |= *--in & 0xFF;
-#else
             length = read_bits(&in, 16);
-#endif
             goto copy;
         }
         length = base[index] + read_bits(&in, bits[index]);

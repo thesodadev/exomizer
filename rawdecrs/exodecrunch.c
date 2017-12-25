@@ -63,10 +63,6 @@ struct exo_decrunch_ctx
 static int
 read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
 {
-#ifdef BITS_AS_BYTES
-    int byte_count = bit_count >> 3;
-    bit_count &= 7;
-#endif
     int bits = 0;
     while(bit_count-- > 0)
     {
@@ -78,13 +74,6 @@ read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
         bits |= ctx->bit_buffer & 0x1;
         ctx->bit_buffer >>= 1;
     }
-#ifdef BITS_AS_BYTES
-    while (byte_count-- > 0)
-    {
-        bits <<= 8;
-        bits |= ctx->read_byte(ctx->read_data);
-    }
-#endif
     return bits;
 }
 
@@ -217,6 +206,9 @@ exo_read_decrunched_byte(struct exo_decrunch_ctx *ctx)
         }
         c = read_byte_from_window(ctx, ctx->offset);
         break;
+    default:
+        /* should never get here. Silences compiler warning. */
+        return -2;
     }
 
     ctx->window[ctx->window_pos++] = (unsigned char)c;
