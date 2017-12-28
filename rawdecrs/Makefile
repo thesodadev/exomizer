@@ -6,8 +6,8 @@ WFLAGS = --std=c89 -Wall -Wstrict-prototypes
 CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer -fgcse -pedantic
 LDFLAGS = -s
 
-CFLAGS = -g $(WFLAGS)
-LDFLAGS = -g
+#CFLAGS = -g $(WFLAGS)
+#LDFLAGS = -g
 
 TEST_OBJS = main.o exodecrunch.o
 TEST2_OBJS = main2.o exodecr.o

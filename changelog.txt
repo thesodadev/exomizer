@@ -1,14 +1,26 @@
+2017-12-25
+Release of 2.0.10 source code and Win32 binaries.
++ Fix broken things in rawdecrs folder since 2.0.9
++ Add PET 4032 as sfx target from the nanoflite github fork.
+
+2017-12-16
+Release of 2.0.10 preview 3
++ Fix core dump when using max_passes=1 caused by static var removal.
 + Change zp-usage of the sfx-decr for plus4/c16 to avoid overwriting current
   device number address.
+
 2017-12-09
+Release of 2.0.10 preview 2
 + Add used encoding to the crunch_info struct returned by core crunch func.
 + Rework core compression core to not use local static vars to simplify use
   when compiled into a library.
-2017-08-19
 + rework -C into a generic favor speed flag and make it disable the crunch
   result changes too.
 + Improve crunch result slightly by also consider same length sequences at
   larger offsets too (but by doing this also slowing it down).
+
+20170708
+Release of 2.0.10 preview 1
 + Add a brief output mode enabled with -B, suggested by both Daniel Hotorp and
   Bacchus independently.
 + Display progress indication only on ttys and not when output is redirected,

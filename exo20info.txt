@@ -399,7 +399,7 @@ rawdecrs/
 All of the included makefiles have only been tested with Gnu make.
 
 -------------------------------------------------------------------------------
--- Credits for Exomizer 2.x ---------------------------------------------------
+-- Credits for Exomizer 2.0 ---------------------------------------------------
 -------------------------------------------------------------------------------
 
 Feature suggestions
@@ -424,7 +424,7 @@ Regression testing
 Ninja / The Dreams
 Csabo / LOD
 iAN CooG / HokutoForce
-Lasse Ã–Ã¶rni
+Lasse Öörni
 
 Inspiration
 -----------
