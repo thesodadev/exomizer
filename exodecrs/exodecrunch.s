@@ -26,7 +26,7 @@
 ; -------------------------------------------------------------------
 ; The decruncher jsr:s to the get_crunched_byte address when it wants to
 ; read a crunched byte into A. This subroutine has to preserve X and Y
-; register and must not modify the state of the carry flag.
+; register and must not modify the state of the carry nor the overflow flag.
 ; -------------------------------------------------------------------
 .import get_crunched_byte
 ; -------------------------------------------------------------------
