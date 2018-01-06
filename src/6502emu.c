@@ -373,7 +373,7 @@ static void op_bvc(struct cpu_ctx *r, int mode, union inst_arg *arg)
 
 static void op_bvs(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    if(!(r->flags & FLAG_V))
+    if((r->flags & FLAG_V))
     {
         branch(r, arg);
     }

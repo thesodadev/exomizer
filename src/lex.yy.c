@@ -1309,7 +1309,7 @@ return BVC;
 case 58:
 YY_RULE_SETUP
 #line 132 "asm.yy"
-return BCS;
+return BVS;
 	YY_BREAK
 case 59:
 YY_RULE_SETUP

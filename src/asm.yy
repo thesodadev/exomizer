@@ -128,7 +128,7 @@ bcs		return BCS;
 bpl		return BPL;
 bmi		return BMI;
 bvc		return BVC;
-bvs		return BCS;
+bvs		return BVS;
 inx		return INX;
 dex		return DEX;
 iny		return INY;
