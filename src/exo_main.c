@@ -1399,6 +1399,7 @@ void desfx(const char *appl, int argc, char *argv[])
     u8 *p;
     u16 start;
     u16 end;
+    u32 cycles;
     int cookedend;
     int entry = -1;
 
@@ -1470,14 +1471,14 @@ void desfx(const char *appl, int argc, char *argv[])
         exit(1);
     }
 
-    LOG(LOG_NORMAL, (" crunched file entry point $%04X\n", entry));
-    entry = decrunch_sfx(p, entry, &start, &end);
+    entry = decrunch_sfx(p, entry, &start, &end, &cycles);
+
+    LOG(LOG_NORMAL,
+        (" Crunched file entry point $%04X, decrunch took %u cycles.\n",
+         entry, cycles));
 
     /* change 0x0 into 0x10000 */
     cookedend = ((end - 1) & 0xffff) + 1;
-
-    LOG(LOG_NORMAL, (" decrunched entry point $%04X, from $%04X to $%04X\n",
-                     entry, start, cookedend));
 
     membuf_truncate(mem, cookedend);
     membuf_trim(mem, start);

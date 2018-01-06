@@ -30,6 +30,6 @@
 
 #include "int.h"
 
-u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *start, u16 *end);
+u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *start, u16 *end, u32 *cycles);
 
 #endif
