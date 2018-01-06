@@ -1203,13 +1203,12 @@ get_byte_fixup:
         .IF(!.DEFINED(exit_hook))
 decr_exit:
         .ENDIF
-return:
         rts
 ; -------------------------------------------------------------------
 ; get bits (24 bytes)
 ;
 get_bits:
-        adc #$80		; needs c=0, affects v
+        adc #$80                ; needs c=0, affects v
         asl
         bpl gb_skip
 gb_next:
@@ -1224,10 +1223,13 @@ gb_no_refill:
         rol
         bmi gb_next
 gb_skip:
-        bvc return
+        bvs gb_get_hi
+        sty <zp_bits_hi
+        rts
+gb_get_hi:
         sec
         sta <zp_bits_hi
-        jmp get_crunched_byte
+        bcs get_crunched_byte
 ; -------------------------------------------------------------------
 ; main copy loop (16 bytes)
 ;
@@ -1317,7 +1319,6 @@ nofetch8:
 sequence_start:
         sty <zp_dest_y
         ldy #0
-        sty <zp_bits_hi
         lda tabl_bi - 1,x
         jsr get_bits
         adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
@@ -1328,7 +1329,6 @@ sequence_start:
         lda <zp_bits_hi
         adc tabl_hi - 1,x       ; c = 0 after this.
         sta <zp_len_hi
-        sty <zp_bits_hi
 ; -------------------------------------------------------------------
 ; here we decide what offset table to use (29 bytes)
 ; z-flag reflects zp_len_hi here
