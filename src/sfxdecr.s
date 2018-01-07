@@ -1231,37 +1231,6 @@ gb_get_hi:
         sta <zp_bits_hi
         bcs get_crunched_byte
 ; -------------------------------------------------------------------
-; main copy loop (16 bytes)
-;
-.IF(!.DEFINED(i_max_sequence_length_256))
-copy_next_hi:
-        dec <zp_len_hi
-.ENDIF
-copy_next:
-        tya
-        bne copy_skip_hi
-        dec <zp_dest_hi
-        dec <zp_src_hi
-copy_skip_hi:
-        dey
-.IF(.DEFINED(i_literal_sequences_used))
-        bcc skip_literal_byte
-        jsr get_crunched_byte
-        bcs literal_byte_gotten
-skip_literal_byte:
-.ENDIF
-        lda (zp_src_lo),y
-literal_byte_gotten:
-        sta (zp_dest_lo),y
-copy_start:
-        dex
-        bne copy_next
-.IF(!.DEFINED(i_max_sequence_length_256))
-        lda <zp_len_hi
-        bne copy_next_hi
-.ENDIF
-        beq begin
-; -------------------------------------------------------------------
 ; copy one literal byte to destination (11 bytes)
 ;
 literal_start1:
@@ -1303,12 +1272,14 @@ nofetch8:
 ; literal sequence handling (12 bytes)
 ;
         jsr get_crunched_byte
+.IF(!.DEFINED(i_max_sequence_length_256))
         sta <zp_len_hi
+.ENDIF
         jsr get_crunched_byte
         tax
 .IF(!.DEFINED(i_max_sequence_length_256))
-        inx
-        bcs copy_start
+        bne copy_next
+        bcs copy_next_hi
 .ELSE
         bcs copy_next
 .ENDIF
@@ -1380,14 +1351,41 @@ gbnc2_ok:
 ; prepare for copy loop (8 bytes)
 ;
 pre_copy:
-        ldx <zp_len_lo
         ldy <zp_dest_y
+        ldx <zp_len_lo
 .IF(!.DEFINED(i_max_sequence_length_256))
-        inx
-        jmp copy_start
-.ELSE
-        jmp copy_next
+        bne copy_next
 .ENDIF
+; -------------------------------------------------------------------
+; main copy loop (16 bytes)
+;
+.IF(!.DEFINED(i_max_sequence_length_256))
+copy_next_hi:
+        dec <zp_len_hi
+.ENDIF
+copy_next:
+        tya
+        bne copy_skip_hi
+        dec <zp_dest_hi
+        dec <zp_src_hi
+copy_skip_hi:
+        dey
+.IF(.DEFINED(i_literal_sequences_used))
+        bcc skip_literal_byte
+        jsr get_crunched_byte
+        bcs literal_byte_gotten
+skip_literal_byte:
+.ENDIF
+        lda (zp_src_lo),y
+literal_byte_gotten:
+        sta (zp_dest_lo),y
+        dex
+        bne copy_next
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda <zp_len_hi
+        bne copy_next_hi
+.ENDIF
+        jmp begin
         .IF(.DEFINED(exit_hook))
 decr_exit:
           .INCLUDE("exit_hook")
