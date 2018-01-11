@@ -65,12 +65,12 @@ int do_output(match_ctx ctx,
 
     initial_len = membuf_memlen(outbuf);
     initial_snp = snp;
-    measure_alignment = (options->flags & 32);
+    measure_alignment = options->flags_proto & FLAG_PROTO_BITS_PAD_END;
     for (;;)
     {
         membuf_truncate(outbuf, initial_len);
         snp = initial_snp;
-        output_ctx_init(out, options->flags, outbuf);
+        output_ctx_init(out, options->flags_proto, outbuf);
 
         output_bits(out, alignment, 0);
 
@@ -102,7 +102,8 @@ int do_output(match_ctx ctx,
                 if (mp->offset == 0)
                 {
                     int splitLitSeq =
-                        snp->prev->match->len == 0 && !(options->flags & 64);
+                        snp->prev->match->len == 0 &&
+                        !(options->flags_proto & FLAG_PROTO_NO_IMPL_1LIT);
                     int i = 0;
                     if (mp->len > 1)
                     {
@@ -168,7 +169,8 @@ int do_output(match_ctx ctx,
         alignment = output_bits_alignment(out);
         measure_alignment = 0;
     }
-    output_bits_flush(out, (options->flags & 32) == 0);
+    output_bits_flush(out,
+                      (options->flags_proto & FLAG_PROTO_BITS_PAD_END) == 0);
 
     emd->out = old;
 
@@ -219,7 +221,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
     {
         snp = NULL;
         search_buffer(ctx, options->encode, emd,
-                      options->use_literal_sequences,
+                      options->flags_avoid & FLAG_AVOID_LIT_SEQ,
                       options->max_len,
                       &snp);
         if (snp == NULL)
@@ -252,7 +254,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
         }
 
         optimal_free(emd);
-        optimal_init(emd, options->flags);
+        optimal_init(emd, options->flags_avoid, options->flags_proto);
 
         LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
@@ -292,7 +294,7 @@ void crunch_backwards(struct membuf *inbuf,
     inlen = membuf_memlen(inbuf);
     outlen = membuf_memlen(outbuf);
     emd->out = NULL;
-    optimal_init(emd, options->flags);
+    optimal_init(emd, options->flags_avoid, options->flags_proto);
 
     LOG(LOG_NORMAL,
         ("\nPhase 1: Instrumenting file"
@@ -305,7 +307,7 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
 
     emd->out = NULL;
-    optimal_init(emd, options->flags);
+    optimal_init(emd, options->flags_avoid, options->flags_proto);
 
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
@@ -384,7 +386,7 @@ void decrunch(int level,
     }
     outpos = membuf_memlen(outbuf);
 
-    dec_ctx_init(ctx, inbuf, outbuf, dopts->flags, enc_buf);
+    dec_ctx_init(ctx, inbuf, outbuf, dopts->flags_proto, enc_buf);
 
     LOG(level, (" Encoding: %s\n", (char*)membuf_get(enc_buf)));
 
@@ -404,7 +406,7 @@ void print_license(void)
 {
     LOG(LOG_WARNING,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v2.0.10 Copyright (c) 2002-2017 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v2.1.0 Copyright (c) 2002-2018 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_WARNING,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -505,7 +507,7 @@ void handle_crunch_flags(int flag_char, /* IN */
     switch(flag_char)
     {
     case 'c':
-        options->use_literal_sequences = 0;
+        options->flags_avoid |= FLAG_AVOID_LIT_SEQ;
         break;
     case 'C':
         options->favor_speed = 1;
@@ -549,13 +551,24 @@ void handle_crunch_flags(int flag_char, /* IN */
             exit(1);
         }
         break;
-    case 'S':
-        if (str_to_int(flag_arg, &options->flags) != 0 ||
-            options->flags < 0 || options->flags > 127)
+    case 'A':
+        if (str_to_int(flag_arg, &options->flags_avoid) != 0 ||
+            options->flags_avoid < 0 || options->flags_avoid > 7)
         {
             LOG(LOG_ERROR,
-                ("Error: invalid value for -S option, "
-                 "must be in the range of [0 - 127]\n"));
+                ("Error: invalid value for -A option, "
+                 "must be in the range of [0 - 7]\n"));
+            print_usage(appl, LOG_NORMAL, flags->outfile);
+            exit(1);
+        }
+        break;
+    case 'P':
+        if (str_to_int(flag_arg, &options->flags_proto) != 0 ||
+            options->flags_proto < 0 || options->flags_proto > 31)
+        {
+            LOG(LOG_ERROR,
+                ("Error: invalid value for -P option, "
+                 "must be in the range of [0 - 31]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(1);
         }

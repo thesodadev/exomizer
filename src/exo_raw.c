@@ -114,7 +114,7 @@ main(int argc, char *argv[])
     {
         struct decrunch_options dopts;
         dopts.direction = !backwards_mode;
-        dopts.flags = options->flags;
+        dopts.flags_proto = options->flags_proto;
 
         if (dopts.direction == 0)
         {

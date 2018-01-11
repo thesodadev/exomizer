@@ -29,6 +29,7 @@
  */
 
 #include "membuf.h"
+#include "flags.h"
 
 struct dec_table
 {
@@ -49,13 +50,13 @@ struct dec_ctx
     /* dep_table */
     struct dec_table t[1];
     int bits_read;
-    int flags;
+    int flags_proto;
 };
 
 /* returns the encoding */
 void
 dec_ctx_init(struct dec_ctx ctx[1],
-             struct membuf *inbuf, struct membuf *outbuf, int flags,
+             struct membuf *inbuf, struct membuf *outbuf, int flags_proto,
              struct membuf *enc_out);   /* OUT, might be null for no output */
 
 void

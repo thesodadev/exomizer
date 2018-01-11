@@ -1304,11 +1304,9 @@ sequence_start:
 ; here we decide what offset table to use (29 bytes)
 ; z-flag reflects zp_len_hi here
 ;
-        bne nots123
         ldx <zp_len_lo
 .ELSE
         tax
-        beq nots123
 .ENDIF
 .IF(.DEFINED(i_fourth_len_part))
         cpx #$05
@@ -1323,7 +1321,7 @@ nots123:
         ldx #$03
 .ENDIF
 size123:
-        lda tabl_bit - 1,x
+        lda tabl_bit,x
 gbnc2_next:
         asl <zp_bitbuf
         bne gbnc2_ok
@@ -1396,14 +1394,14 @@ decr_exit:
 ; bits 2,4,4,4 and offs 64,48,32,16 corresponding to
 ; %10010000, %11100011, %11100010, %11100001
 tabl_bit:
-        .BYTE($90, $e3, $e2, $e1)
+        .BYTE($e1, $90, $e3, $e2, $e1)
 .ELSE
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset 1,2 and 3+ (3 bytes)
 ; bits 2,4,4 and offs 48,32,16 corresponding to
 ; %10001100, %11100010, %11100001
 tabl_bit:
-        .BYTE($8c, $e2, $e1)
+        .BYTE($e1, $8c, $e2, $e1)
 .ENDIF
 ; -------------------------------------------------------------------
 stage3end:

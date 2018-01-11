@@ -31,7 +31,7 @@
 
 static void bitbuf_bit(output_ctx ctx, int bit)
 {
-    if ((ctx->flags & 1) == 0)
+    if ((ctx->flags_proto & FLAG_PROTO_BITS_ORDER_LE) == 0)
     {
         /* ror (new) */
         ctx->bitbuf >>= 1;
@@ -60,14 +60,14 @@ static void bitbuf_bit(output_ctx ctx, int bit)
 }
 
 void output_ctx_init(output_ctx ctx,    /* IN/OUT */
-                     int flags, /* IN */
+                     int flags_proto, /* IN */
                      struct membuf *out)/* IN/OUT */
 {
     ctx->bitbuf = 0;
     ctx->bitcount = 0;
     ctx->pos = membuf_memlen(out);
     ctx->buf = out;
-    ctx->flags = flags;
+    ctx->flags_proto = flags_proto;
 }
 
 unsigned int output_get_pos(output_ctx ctx)     /* IN */
@@ -109,7 +109,7 @@ void output_bits_flush(output_ctx ctx,  /* IN/OUT */
 {
     if (add_marker_bit)
     {
-        if ((ctx->flags & 1) == 0)
+        if ((ctx->flags_proto & FLAG_PROTO_BITS_ORDER_LE) == 0)
         {
             ctx->bitbuf |= (0x80 >> ctx->bitcount);
         }
@@ -141,7 +141,7 @@ static void output_bits_int(output_ctx ctx,        /* IN/OUT */
                             int count,     /* IN */
                             int val)       /* IN */
 {
-    if ((ctx->flags & 16) == 0)
+    if ((ctx->flags_proto & FLAG_PROTO_BITS_SHIFT_GT_7) == 0)
     {
         while (count > 7)
         {

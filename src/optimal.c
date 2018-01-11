@@ -198,7 +198,7 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
             exit(1);
             break;
         case 1:
-            if (data->flags & 2)
+            if (data->flags_avoid & FLAG_AVOID_LEN1_SEQ)
             {
                 bits += 100000000.0;
             }
@@ -213,15 +213,16 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
                                    eib_offset);
             break;
         case 3:
-            if (data->flags & 8)
+            if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
             {
                 bits += data->offset_f(mp->offset, offset[2], emd->out,
                                        eib_offset);
                 break;
             }
         default:
-            if ((data->flags & 4) &&
-                (mp->len & 255) < ((data->flags & 8) ? 4 : 3))
+            if ((data->flags_avoid & FLAG_AVOID_LEN123_SEQ_MIRRORS) &&
+                (mp->len & 255) < ((data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS) ?
+                                   4 : 3))
             {
                 bits += 100000000.0;
             }
@@ -435,7 +436,7 @@ void optimal_encoding_export(encode_match_data emd,
     export_helper(offsets[0], 4, target);
     membuf_append_char(target, ',');
     export_helper(offsets[1], 16, target);
-    if (data->flags & 8)
+    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
     {
         membuf_append_char(target, ',');
         export_helper(offsets[2], 16, target);
@@ -495,7 +496,7 @@ void optimal_encoding_import(encode_match_data emd,
     data = emd->priv;
 
     optimal_free(emd);
-    optimal_init(emd, data->flags);
+    optimal_init(emd, data->flags_avoid, data->flags_proto);
 
     data = emd->priv;
     offsets = (interval_nodep*)data->offset_f_priv;
@@ -512,7 +513,7 @@ void optimal_encoding_import(encode_match_data emd,
     npp = &offsets[1];
     import_helper(npp, &encoding, 4);
 
-    if (data->flags & 8)
+    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
     {
         /* offsets, len = 3 */
         npp = &offsets[2];
@@ -527,7 +528,7 @@ void optimal_encoding_import(encode_match_data emd,
     optimal_dump(LOG_DEBUG, emd);
 }
 
-void optimal_init(encode_match_data emd, int flags)        /* IN/OUT */
+void optimal_init(encode_match_data emd, int flags_avoid, int flags_proto)  /* IN/OUT */
 {
     encode_match_privp data;
     interval_nodep *inpp;
@@ -550,7 +551,8 @@ void optimal_init(encode_match_data emd, int flags)        /* IN/OUT */
     inpp[7] = NULL;
     data->offset_f_priv = inpp;
     data->len_f_priv = NULL;
-    data->flags = flags;
+    data->flags_avoid = flags_avoid;
+    data->flags_proto = flags_proto;
 }
 
 void optimal_free(encode_match_data emd)        /* IN */
@@ -683,7 +685,7 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
                 }
                 break;
             case 3:
-                if (data->flags & 8)
+                if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
                 {
                     offset_parr[2][mp->offset] += treshold;
                     offset_arr[2][mp->offset] += 1;
@@ -749,7 +751,7 @@ void optimal_dump(int level, encode_match_data emd)
     LOG(level, ("offsets (len =2): "));
     interval_node_dump(level, offset[1]);
 
-    if (data->flags & 8)
+    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
     {
         LOG(level, ("offsets (len =3): "));
         interval_node_dump(level, offset[2]);
@@ -802,7 +804,7 @@ void optimal_out(output_ctx out,        /* IN/OUT */
 
     interval_out(out, offset[0], 4);
     interval_out(out, offset[1], 16);
-    if (data->flags & 8)
+    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
     {
         interval_out(out, offset[2], 16);
     }

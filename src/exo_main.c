@@ -44,6 +44,9 @@
 
 extern struct membuf sfxdecr[];
 
+#define STR2(X) #X
+#define STR(X) STR2(X)
+
 #define DEFAULT_OUTFILE "a.out"
 
 static void load_plain_file(const char *name, struct membuf *mb)
@@ -953,15 +956,26 @@ void sfx(const char *appl, int argc, char *argv[])
         }
     }
 
-    if (flags->options->flags & 0x71)
     {
-        LOG(LOG_ERROR,
-            ("Warning: -S bits 0, 4, 5 and 6 are not not supported by sfx, "
-             "ignoring them\n"));
-        options->flags &= ~0x71;
+        int unsupported = FLAG_PROTO_BITS_ORDER_LE |
+            FLAG_PROTO_BITS_SHIFT_GT_7 |
+            FLAG_PROTO_BITS_PAD_END |
+            FLAG_PROTO_NO_IMPL_1LIT;
+
+        if (flags->options->flags_proto & unsupported)
+        {
+            LOG(LOG_ERROR,
+                ("Warning: -S bits " STR(BIT_PROTO_BITS_ORDER_LE)
+                 ", " STR(BIT_PROTO_BITS_SHIFT_GT_7)
+                 ", " STR(BIT_PROTO_BITS_PAD_END)
+                 " and " STR(BIT_PROTO_NO_IMPL_1LIT)
+                 " are not not supported by sfx, ignoring them\n"));
+            options->flags_proto &= ~unsupported;
+        }
+        options->flags_avoid |= FLAG_AVOID_LEN123_SEQ_MIRRORS;
     }
 
-    if (flags->options->flags & 8)
+    if (flags->options->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
     {
         set_initial_symbol("i_fourth_len_part", 1);
     }
@@ -1346,7 +1360,7 @@ void raw(const char *appl, int argc, char *argv[])
         int outlen;
         struct decrunch_options dopts;
         dopts.direction = !backwards_mode;
-        dopts.flags = options->flags;
+        dopts.flags_proto = options->flags_proto;
 
         inlen = membuf_memlen(inbuf);
         decrunch(LOG_NORMAL, inbuf, outbuf, &dopts);

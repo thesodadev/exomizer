@@ -32,8 +32,9 @@
 #include "membuf.h"
 #include "search.h"
 #include "optimal.h"
+#include "flags.h"
 
-#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 1, 0, 1, 0, \
+#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 0, 1, 0, 0, \
                                 optimal_encode}
 
 struct common_flags
@@ -42,7 +43,7 @@ struct common_flags
     const char *outfile;
 };
 
-#define CRUNCH_FLAGS "cCe:Em:M:p:S:o:qBv"
+#define CRUNCH_FLAGS "cCe:Em:M:p:PA:o:qBv"
 #define BASE_FLAGS "o:qBv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
@@ -64,15 +65,6 @@ void handle_base_flags(int flag_char, /* IN */
                        const char *appl, /* IN */
                        const char **default_outfilep); /* OUT */
 
-struct crunch_options
-{
-    const char *exported_encoding;
-    int max_passes;
-    int max_len;
-    int max_offset;
-    int use_literal_sequences;
-    int favor_speed;
-    int output_header;
     /*
      * bit 0  Controls bit bit orientation: 0=normal (new), 1=reversed (old)
      * bit 1  Sequences with length 1: 0=enable,1=disable
@@ -85,7 +77,32 @@ struct crunch_options
      * bit 5  Align bit stream towards start without flag: 1=enable, 0=disable
      * bit 6  Implicit first literal byte: 0=enable, 1=disable
      */
-    int flags;
+
+struct crunch_options
+{
+    const char *exported_encoding;
+    int max_passes;
+    int max_len;
+    int max_offset;
+    int favor_speed;
+    int output_header;
+    /*
+     * bit 0  Controls bit bit orientation: 0=normal (new), 1=reversed (old)
+     * bit 3  Decides if we are to have two lengths (1 and 2) or three lengths
+     *        (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three
+     * bit 4  Contols how more than 7 bits are shifted 0=split into a shift of
+     *        of less than 8 bits + a byte (new), 1=all bits are shifted (old)
+     * bit 5  Align bit stream towards start without flag: 1=enable, 0=disable
+     * bit 6  Implicit first literal byte: 0=enable, 1=disable
+     */
+    int flags_proto;
+    /*
+     * bit 1  Sequences with length 1: 0=enable,1=disable
+     * bit 2  Sequences with length > 255 where (length & 255) would have been
+     *        using its own decrunch table: 0=enable, 1=disable
+     * bit 3  Literal sequences: 0=enable,1=disable
+     */
+    int flags_avoid;
     encode_match_f *encode;
 };
 
@@ -111,7 +128,7 @@ void crunch(struct membuf *inbuf,
 struct decrunch_options
 {
     /* see crunch_options flags field */
-    int flags;
+    int flags_proto;
     /* 0 backward, 1 forward */
     int direction;
 };

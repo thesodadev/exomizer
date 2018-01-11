@@ -29,7 +29,7 @@
 static int bitbuf_rotate(struct dec_ctx *ctx, int carry)
 {
     int carry_out;
-    if ((ctx->flags & 1) == 0)
+    if ((ctx->flags_proto & FLAG_PROTO_BITS_ORDER_LE) == 0)
     {
         /* rol (new) */
         carry_out = (ctx->bitbuf & 0x80) != 0;
@@ -79,7 +79,7 @@ get_bits(struct dec_ctx *ctx, int count)
     int val;
 
     val = 0;
-    if ((ctx->flags & 16) == 0)
+    if ((ctx->flags_proto & FLAG_PROTO_BITS_SHIFT_GT_7) == 0)
     {
         byte_count = count >> 3;
         count &= 7;
@@ -147,7 +147,7 @@ table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
     tp->table_bit[0] = 2;
     tp->table_bit[1] = 4;
     tp->table_bit[2] = 4;
-    if (ctx->flags & 8)
+    if (ctx->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
     {
         end = 68;
         tp->table_bit[3] = 4;
@@ -214,7 +214,7 @@ table_dump(struct dec_table *tp, struct membuf *target)
 
 void
 dec_ctx_init(struct dec_ctx ctx[1],
-             struct membuf *inbuf, struct membuf *outbuf, int flags,
+             struct membuf *inbuf, struct membuf *outbuf, int flags_proto,
              struct membuf *enc_out)
 {
     ctx->bits_read = 0;
@@ -222,11 +222,11 @@ dec_ctx_init(struct dec_ctx ctx[1],
     ctx->inbuf = membuf_get(inbuf);
     ctx->inend = membuf_memlen(inbuf);
     ctx->inpos = 0;
-    ctx->flags = flags;
+    ctx->flags_proto = flags_proto;
 
     ctx->outbuf = outbuf;
 
-    if (flags & 32)
+    if (flags_proto & FLAG_PROTO_NO_IMPL_1LIT)
     {
         ctx->bitbuf = 0;
     }
@@ -253,9 +253,9 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
     int len;
     int offset;
     int src = 0;
-    int treshold = (ctx->flags & 8)? 4: 3;
+    int treshold = (ctx->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)? 4: 3;
 
-    if (!(ctx->flags & 64))
+    if (!(ctx->flags_proto & FLAG_PROTO_NO_IMPL_1LIT))
     {
         goto literal_start;
     }
@@ -320,7 +320,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             membuf_append_char(ctx->outbuf, val);
         } while (--len > 0);
 
-        if (ctx->flags & 8)
+        if (ctx->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
         {
             LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
                             ctx->bits_read - bits, ctx->bits_read - 280));

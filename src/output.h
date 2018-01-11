@@ -29,6 +29,7 @@
  */
 
 #include "membuf.h"
+#include "flags.h"
 #include <stdio.h>
 
 struct _output_ctx {
@@ -37,14 +38,14 @@ struct _output_ctx {
     int pos;
     int start;
     struct membuf *buf;
-    int flags;
+    int flags_proto;
 };
 
 typedef struct _output_ctx output_ctx[1];
 typedef struct _output_ctx *output_ctxp;
 
 void output_ctx_init(output_ctx ctx,    /* IN/OUT */
-                     int flags, /* IN */
+                     int flags_proto, /* IN */
                      struct membuf *out);       /* IN/OUT */
 
 unsigned int output_get_pos(output_ctx ctx);    /* IN */
