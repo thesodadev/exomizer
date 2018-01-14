@@ -29,30 +29,50 @@
 #include "6502emu.h"
 #include "log.h"
 
+struct mem_ctx
+{
+    u8 *mem;
+    u16 start;
+    u16 end;
+};
+
 static void mem_access_write(struct mem_access *this, u16 address, u8 value)
 {
-    u8 *mem = this->ctx;
-    mem[address] = value;
+    struct mem_ctx *ctx = this->ctx;
+    ctx->mem[address] = value;
+
+    if (address > ctx->end)
+    {
+        ctx->end = address + 1;
+        ctx->start = address;
+    }
+    else if (address + 1 == ctx->start)
+    {
+        ctx->start = address;
+    }
 }
 
 static u8 mem_access_read(struct mem_access *this, u16 address)
 {
-    u8 *mem = this->ctx;
-    return mem[address];
+    struct mem_ctx *ctx = this->ctx;
+    return ctx->mem[address];
 }
 
 u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *startp, u16 *endp, u32 *cyclesp)
 {
+    struct mem_ctx m;
     struct cpu_ctx r;
-    u16 start;
-    u16 end;
     r.cycles = 0;
-    r.mem.ctx = mem;
+    r.mem.ctx = &m;
     r.mem.read = mem_access_read;
     r.mem.write = mem_access_write;
     r.pc = run;
     r.sp = '\xf6';
     r.flags = 0;
+
+    m.start = 0xffff;
+    m.end = 0;
+    m.mem = mem;
 
     LOG(LOG_DEBUG, ("run %04x\n", run));
 
@@ -61,9 +81,8 @@ u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *startp, u16 *endp, u32 *cyclesp)
     {
         next_inst(&r);
     }
-    end = mem_access_read_u16le(&r.mem, 0xfe);
 
-    LOG(LOG_DEBUG, ("end %04x @%u\n", end, r.cycles));
+    LOG(LOG_DEBUG, ("end %04x @%u\n", m.end, r.cycles));
     hex_dump(LOG_DEBUG, mem + 0x334, 156);
 
     /* decrunching */
@@ -84,16 +103,15 @@ u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *startp, u16 *endp, u32 *cyclesp)
 
         next_inst(&r);
     }
-    start = mem_access_read_u16le(&r.mem, 0xfe);
-    LOG(LOG_DEBUG, ("start %04x @%u\n", start, r.cycles));
+    LOG(LOG_DEBUG, ("start %04x @%u\n", m.start, r.cycles));
 
     if(startp != NULL)
     {
-        *startp = start;
+        *startp = m.start;
     }
     if(endp != NULL)
     {
-        *endp = end;
+        *endp = m.end;
     }
     if(cyclesp != NULL)
     {
