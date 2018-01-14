@@ -52,9 +52,10 @@ static unsigned char read_byte(const char **inp)
 static unsigned short int
 read_bits(const char **inp, int bit_count)
 {
+    unsigned short int bits = 0;
     int byte_count = bit_count >> 3;
     bit_count &= 7;
-    unsigned short int bits = 0;
+
     while(bit_count-- > 0)
     {
         int carry = bitbuffer_rotate(0);

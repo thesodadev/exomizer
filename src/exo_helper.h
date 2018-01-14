@@ -34,8 +34,16 @@
 #include "optimal.h"
 #include "flags.h"
 
-#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 0, 1, 0, 0, \
-                                optimal_encode}
+#define DECRUNCH_OPTIONS_DEFAULT {PFLAG_BITS_ORDER_BE | \
+                                  PFLAG_BITS_COPY_GT_7 | \
+                                  PFLAG_IMPL_1LITERAL, \
+                                  1}
+
+#define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 0, 1, \
+                                PFLAG_BITS_ORDER_BE | \
+                                PFLAG_BITS_COPY_GT_7 | \
+                                PFLAG_IMPL_1LITERAL, \
+                                0, optimal_encode}
 
 struct common_flags
 {
@@ -43,7 +51,7 @@ struct common_flags
     const char *outfile;
 };
 
-#define CRUNCH_FLAGS "cCe:Em:M:p:PA:o:qBv"
+#define CRUNCH_FLAGS "cCe:Em:M:p:P:T:o:qBv"
 #define BASE_FLAGS "o:qBv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
@@ -102,7 +110,7 @@ struct crunch_options
      *        using its own decrunch table: 0=enable, 1=disable
      * bit 3  Literal sequences: 0=enable,1=disable
      */
-    int flags_avoid;
+    int flags_trait;
     encode_match_f *encode;
 };
 

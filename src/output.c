@@ -31,7 +31,7 @@
 
 static void bitbuf_bit(output_ctx ctx, int bit)
 {
-    if ((ctx->flags_proto & FLAG_PROTO_BITS_ORDER_LE) == 0)
+    if (ctx->flags_proto & PFLAG_BITS_ORDER_BE)
     {
         /* ror (new) */
         ctx->bitbuf >>= 1;
@@ -109,7 +109,7 @@ void output_bits_flush(output_ctx ctx,  /* IN/OUT */
 {
     if (add_marker_bit)
     {
-        if ((ctx->flags_proto & FLAG_PROTO_BITS_ORDER_LE) == 0)
+        if (ctx->flags_proto & PFLAG_BITS_ORDER_BE)
         {
             ctx->bitbuf |= (0x80 >> ctx->bitcount);
         }
@@ -141,7 +141,7 @@ static void output_bits_int(output_ctx ctx,        /* IN/OUT */
                             int count,     /* IN */
                             int val)       /* IN */
 {
-    if ((ctx->flags_proto & FLAG_PROTO_BITS_SHIFT_GT_7) == 0)
+    if (ctx->flags_proto & PFLAG_BITS_COPY_GT_7)
     {
         while (count > 7)
         {

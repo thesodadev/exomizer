@@ -78,8 +78,8 @@ static int
 read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
 {
     int byte_count = bit_count >> 3;
-    bit_count &= 7;
     int bits = 0;
+    bit_count &= 7;
     while(bit_count-- > 0)
     {
         int carry = bitbuffer_rotate(ctx, 0);
@@ -208,6 +208,7 @@ exo_read_decrunched_byte(struct exo_decrunch_ctx *ctx)
             /* end of data marker, we're done. */
             ctx->state = STATE_EOF;
     case STATE_EOF:
+    default:
             return -1;
         }
         /* sequence */

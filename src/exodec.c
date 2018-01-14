@@ -29,7 +29,7 @@
 static int bitbuf_rotate(struct dec_ctx *ctx, int carry)
 {
     int carry_out;
-    if ((ctx->flags_proto & FLAG_PROTO_BITS_ORDER_LE) == 0)
+    if (ctx->flags_proto & PFLAG_BITS_ORDER_BE)
     {
         /* rol (new) */
         carry_out = (ctx->bitbuf & 0x80) != 0;
@@ -79,7 +79,7 @@ get_bits(struct dec_ctx *ctx, int count)
     int val;
 
     val = 0;
-    if ((ctx->flags_proto & FLAG_PROTO_BITS_SHIFT_GT_7) == 0)
+    if (ctx->flags_proto & PFLAG_BITS_COPY_GT_7)
     {
         byte_count = count >> 3;
         count &= 7;
@@ -147,7 +147,7 @@ table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
     tp->table_bit[0] = 2;
     tp->table_bit[1] = 4;
     tp->table_bit[2] = 4;
-    if (ctx->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+    if (ctx->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
         end = 68;
         tp->table_bit[3] = 4;
@@ -226,7 +226,7 @@ dec_ctx_init(struct dec_ctx ctx[1],
 
     ctx->outbuf = outbuf;
 
-    if (flags_proto & FLAG_PROTO_NO_IMPL_1LIT)
+    if (flags_proto & PFLAG_BITS_ALIGN_START)
     {
         ctx->bitbuf = 0;
     }
@@ -253,9 +253,9 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
     int len;
     int offset;
     int src = 0;
-    int treshold = (ctx->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)? 4: 3;
+    int treshold = (ctx->flags_proto & PFLAG_4_OFFSET_TABLES)? 4: 3;
 
-    if (!(ctx->flags_proto & FLAG_PROTO_NO_IMPL_1LIT))
+    if (ctx->flags_proto & PFLAG_IMPL_1LITERAL)
     {
         goto literal_start;
     }
@@ -272,8 +272,8 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             len = 1;
 
             LOG(LOG_DEBUG, ("[%d] literal $%02X\n",
-                             membuf_memlen(ctx->outbuf),
-                             ctx->inbuf[ctx->inpos]));
+                            membuf_memlen(ctx->outbuf),
+                            ctx->inbuf[ctx->inpos]));
 
             literal = 1;
             goto literal;
@@ -320,7 +320,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             membuf_append_char(ctx->outbuf, val);
         } while (--len > 0);
 
-        if (ctx->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+        if (ctx->flags_proto & PFLAG_4_OFFSET_TABLES)
         {
             LOG(LOG_DEBUG, ("bits read for this iteration %d, total %d.\n",
                             ctx->bits_read - bits, ctx->bits_read - 280));

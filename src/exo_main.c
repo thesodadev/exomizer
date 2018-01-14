@@ -423,7 +423,7 @@ void print_desfx_usage(const char *appl, enum log_level level,
 static
 void level(const char *appl, int argc, char *argv[])
 {
-    char flags_arr[32];
+    char flags_arr[64];
     int forward_mode = 0;
     int literal_sequences_used = 0;
     int max_safety = 0;
@@ -526,7 +526,7 @@ void level(const char *appl, int argc, char *argv[])
 static
 void mem(const char *appl, int argc, char *argv[])
 {
-    char flags_arr[32];
+    char flags_arr[64];
     int forward_mode = 0;
     int load_addr = -1;
     int prepend_load_addr = 1;
@@ -789,7 +789,7 @@ void sfx(const char *appl, int argc, char *argv[])
     char *slow = NULL;
     char *enter_custom = NULL;
     char *exit_custom = NULL;
-    char flags_arr[32];
+    char flags_arr[64];
     int c;
     int infilec;
     char **infilev;
@@ -957,25 +957,22 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     {
-        int unsupported = FLAG_PROTO_BITS_ORDER_LE |
-            FLAG_PROTO_BITS_SHIFT_GT_7 |
-            FLAG_PROTO_BITS_PAD_END |
-            FLAG_PROTO_NO_IMPL_1LIT;
+        int required = PFLAG_BITS_ORDER_BE | PFLAG_BITS_COPY_GT_7 |
+            PFLAG_IMPL_1LITERAL;
 
-        if (flags->options->flags_proto & unsupported)
+        if ((options->flags_proto & required) != required)
         {
             LOG(LOG_ERROR,
-                ("Warning: -S bits " STR(BIT_PROTO_BITS_ORDER_LE)
-                 ", " STR(BIT_PROTO_BITS_SHIFT_GT_7)
-                 ", " STR(BIT_PROTO_BITS_PAD_END)
-                 " and " STR(BIT_PROTO_NO_IMPL_1LIT)
-                 " are not not supported by sfx, ignoring them\n"));
-            options->flags_proto &= ~unsupported;
+                ("Warning: -P bits " STR(PBIT_BITS_ORDER_BE)
+                 ", " STR(PBIT_BITS_COPY_GT_7)
+                 " and " STR(PBIT_IMPL_1LITERAL)
+                 " are required by sfx, setting them\n"));
+            options->flags_proto |= required;
         }
-        options->flags_avoid |= FLAG_AVOID_LEN123_SEQ_MIRRORS;
+        options->flags_trait |= TFLAG_NO_LEN123_SEQ_MIRRORS;
     }
 
-    if (flags->options->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+    if (options->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
         set_initial_symbol("i_fourth_len_part", 1);
     }
@@ -1169,7 +1166,7 @@ void sfx(const char *appl, int argc, char *argv[])
     {
         /* add decruncher */
         /* version neo and forward direction */
-        struct decrunch_options dopts = {0, 1};
+        struct decrunch_options dopts = DECRUNCH_OPTIONS_DEFAULT;
         struct membuf source;
 
         membuf_init(&source);
@@ -1303,7 +1300,7 @@ void sfx(const char *appl, int argc, char *argv[])
 static
 void raw(const char *appl, int argc, char *argv[])
 {
-    char flags_arr[32];
+    char flags_arr[64];
     int decrunch_mode = 0;
     int backwards_mode = 0;
     int reverse_mode = 0;
@@ -1404,7 +1401,7 @@ void raw(const char *appl, int argc, char *argv[])
 static
 void desfx(const char *appl, int argc, char *argv[])
 {
-    char flags_arr[32];
+    char flags_arr[64];
     struct load_info info[1];
     struct membuf mem[1];
     const char *outfile = DEFAULT_OUTFILE;

@@ -54,7 +54,7 @@ void print_usage(const char *appl, enum log_level level,
 int
 main(int argc, char *argv[])
 {
-    char flags_arr[32];
+    char flags_arr[64];
     int decrunch_mode = 0;
     int backwards_mode = 0;
     int reverse_mode = 0;

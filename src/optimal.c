@@ -198,7 +198,7 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
             exit(1);
             break;
         case 1:
-            if (data->flags_avoid & FLAG_AVOID_LEN1_SEQ)
+            if (data->flags_trait & TFLAG_NO_LEN1_SEQ)
             {
                 bits += 100000000.0;
             }
@@ -213,16 +213,16 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
                                    eib_offset);
             break;
         case 3:
-            if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+            if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
             {
                 bits += data->offset_f(mp->offset, offset[2], emd->out,
                                        eib_offset);
                 break;
             }
         default:
-            if ((data->flags_avoid & FLAG_AVOID_LEN123_SEQ_MIRRORS) &&
-                (mp->len & 255) < ((data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS) ?
-                                   4 : 3))
+            if ((data->flags_trait & TFLAG_NO_LEN123_SEQ_MIRRORS) &&
+                (mp->len & 255) < ((data->flags_proto & PFLAG_4_OFFSET_TABLES)
+                                   ? 4 : 3))
             {
                 bits += 100000000.0;
             }
@@ -436,7 +436,7 @@ void optimal_encoding_export(encode_match_data emd,
     export_helper(offsets[0], 4, target);
     membuf_append_char(target, ',');
     export_helper(offsets[1], 16, target);
-    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+    if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
         membuf_append_char(target, ',');
         export_helper(offsets[2], 16, target);
@@ -496,7 +496,7 @@ void optimal_encoding_import(encode_match_data emd,
     data = emd->priv;
 
     optimal_free(emd);
-    optimal_init(emd, data->flags_avoid, data->flags_proto);
+    optimal_init(emd, data->flags_trait, data->flags_proto);
 
     data = emd->priv;
     offsets = (interval_nodep*)data->offset_f_priv;
@@ -513,7 +513,7 @@ void optimal_encoding_import(encode_match_data emd,
     npp = &offsets[1];
     import_helper(npp, &encoding, 4);
 
-    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+    if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
         /* offsets, len = 3 */
         npp = &offsets[2];
@@ -528,7 +528,9 @@ void optimal_encoding_import(encode_match_data emd,
     optimal_dump(LOG_DEBUG, emd);
 }
 
-void optimal_init(encode_match_data emd, int flags_avoid, int flags_proto)  /* IN/OUT */
+void optimal_init(encode_match_data emd,/* IN/OUT */
+                  int flags_trait,      /* IN */
+                  int flags_proto)      /* IN */
 {
     encode_match_privp data;
     interval_nodep *inpp;
@@ -551,7 +553,7 @@ void optimal_init(encode_match_data emd, int flags_avoid, int flags_proto)  /* I
     inpp[7] = NULL;
     data->offset_f_priv = inpp;
     data->len_f_priv = NULL;
-    data->flags_avoid = flags_avoid;
+    data->flags_trait = flags_trait;
     data->flags_proto = flags_proto;
 }
 
@@ -685,7 +687,7 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
                 }
                 break;
             case 3:
-                if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+                if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
                 {
                     offset_parr[2][mp->offset] += treshold;
                     offset_arr[2][mp->offset] += 1;
@@ -751,7 +753,7 @@ void optimal_dump(int level, encode_match_data emd)
     LOG(level, ("offsets (len =2): "));
     interval_node_dump(level, offset[1]);
 
-    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+    if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
         LOG(level, ("offsets (len =3): "));
         interval_node_dump(level, offset[2]);
@@ -804,7 +806,7 @@ void optimal_out(output_ctx out,        /* IN/OUT */
 
     interval_out(out, offset[0], 4);
     interval_out(out, offset[1], 16);
-    if (data->flags_proto & FLAG_PROTO_4_OFFSET_PARTS)
+    if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
         interval_out(out, offset[2], 16);
     }

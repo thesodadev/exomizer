@@ -35,7 +35,7 @@ float optimal_encode(const_matchp mp,   /* IN */
                      encode_match_data emp,     /* IN */
                      struct encode_match_buckets *embp);/* OUT */
 
-void optimal_init(encode_match_data emp, int flags_avoid, int flags_proto);      /* IN/OUT */
+void optimal_init(encode_match_data emp, int flags_trait, int flags_proto);      /* IN/OUT */
 
 void optimal_free(encode_match_data emd);       /* IN */
 

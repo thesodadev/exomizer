@@ -65,7 +65,7 @@ int do_output(match_ctx ctx,
 
     initial_len = membuf_memlen(outbuf);
     initial_snp = snp;
-    measure_alignment = options->flags_proto & FLAG_PROTO_BITS_PAD_END;
+    measure_alignment = options->flags_proto & PFLAG_BITS_ALIGN_START;
     for (;;)
     {
         membuf_truncate(outbuf, initial_len);
@@ -103,7 +103,7 @@ int do_output(match_ctx ctx,
                 {
                     int splitLitSeq =
                         snp->prev->match->len == 0 &&
-                        !(options->flags_proto & FLAG_PROTO_NO_IMPL_1LIT);
+                        (options->flags_proto & PFLAG_IMPL_1LITERAL);
                     int i = 0;
                     if (mp->len > 1)
                     {
@@ -169,8 +169,7 @@ int do_output(match_ctx ctx,
         alignment = output_bits_alignment(out);
         measure_alignment = 0;
     }
-    output_bits_flush(out,
-                      (options->flags_proto & FLAG_PROTO_BITS_PAD_END) == 0);
+    output_bits_flush(out, !(options->flags_proto & PFLAG_BITS_ALIGN_START));
 
     emd->out = old;
 
@@ -221,7 +220,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
     {
         snp = NULL;
         search_buffer(ctx, options->encode, emd,
-                      options->flags_avoid & FLAG_AVOID_LIT_SEQ,
+                      options->flags_trait & TFLAG_NO_LIT_SEQ,
                       options->max_len,
                       &snp);
         if (snp == NULL)
@@ -254,7 +253,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
         }
 
         optimal_free(emd);
-        optimal_init(emd, options->flags_avoid, options->flags_proto);
+        optimal_init(emd, options->flags_trait, options->flags_proto);
 
         LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
@@ -294,7 +293,7 @@ void crunch_backwards(struct membuf *inbuf,
     inlen = membuf_memlen(inbuf);
     outlen = membuf_memlen(outbuf);
     emd->out = NULL;
-    optimal_init(emd, options->flags_avoid, options->flags_proto);
+    optimal_init(emd, options->flags_trait, options->flags_proto);
 
     LOG(LOG_NORMAL,
         ("\nPhase 1: Instrumenting file"
@@ -307,7 +306,7 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
 
     emd->out = NULL;
-    optimal_init(emd, options->flags_avoid, options->flags_proto);
+    optimal_init(emd, options->flags_trait, options->flags_proto);
 
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
@@ -456,8 +455,8 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
         ("  -m <offset>   sets the maximum sequence offset, default is 65535\n"
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"
-         "  -S <options>  bitfield that that modifies the bit stream protocol. [0-127]\n"
-            ));
+         "  -T <options>  bitfield that deactivates bit stream traits. [0-7]\n"
+         "  -P <options>  bitfield that disables bit stream modifications. [0-31]\n"));
     print_base_flags(level, default_outfile);
 }
 
@@ -507,7 +506,7 @@ void handle_crunch_flags(int flag_char, /* IN */
     switch(flag_char)
     {
     case 'c':
-        options->flags_avoid |= FLAG_AVOID_LIT_SEQ;
+        options->flags_trait |= TFLAG_NO_LIT_SEQ;
         break;
     case 'C':
         options->favor_speed = 1;
@@ -551,12 +550,12 @@ void handle_crunch_flags(int flag_char, /* IN */
             exit(1);
         }
         break;
-    case 'A':
-        if (str_to_int(flag_arg, &options->flags_avoid) != 0 ||
-            options->flags_avoid < 0 || options->flags_avoid > 7)
+    case 'T':
+        if (str_to_int(flag_arg, &options->flags_trait) != 0 ||
+            options->flags_trait < 0 || options->flags_trait > 7)
         {
             LOG(LOG_ERROR,
-                ("Error: invalid value for -A option, "
+                ("Error: invalid value for -T option, "
                  "must be in the range of [0 - 7]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(1);

@@ -244,7 +244,7 @@ void search_buffer(match_ctx ctx,       /* IN */
             {
                 float total_score;
                 unsigned int total_offset;
-                struct encode_match_buckets match_buckets;
+                struct encode_match_buckets match_buckets = {{0, 0}, {0, 0}};
 
                 LOG(LOG_DUMP, ("mp[%d, %d], tmp[%d, %d]\n",
                                mp->offset, mp->len,
