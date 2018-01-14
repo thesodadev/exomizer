@@ -41,18 +41,19 @@
 
 static struct crunch_options default_options[1] = { CRUNCH_OPTIONS_DEFAULT };
 
-int do_output(match_ctx ctx,
-              struct search_node *snp,
-              encode_match_data emd,
-              const struct crunch_options *options,
-              struct membuf *outbuf,
-              int *literal_sequences_used)
+void do_output(match_ctx ctx,
+               struct search_node *snp,
+               encode_match_data emd,
+               const struct crunch_options *options,
+               struct membuf *outbuf,
+               struct crunch_info *infop)
 {
     int pos;
     int pos_diff;
     int max_diff;
     int diff;
-    int copy_used = 0;
+    int traits_used = 0;
+    int max_len = 0;
     output_ctxp old;
     output_ctx out;
     struct search_node *initial_snp;
@@ -119,10 +120,14 @@ int do_output(match_ctx ctx,
                         output_bits(out, 16, len);
                         output_gamma_code(out, 17);
                         output_bits(out, 1, 0);
-                        copy_used = 1;
                         /* literal sequence */
                         LOG(LOG_DUMP, ("literal sequence for %d bytes\n",
                                        len));
+                        traits_used |= TFLAG_NO_LIT_SEQ;
+                        if (len > max_len)
+                        {
+                            max_len = len;
+                        }
                     }
                     if (i < mp->len)
                     {
@@ -141,6 +146,23 @@ int do_output(match_ctx ctx,
                                    mp->len, mp->offset));
                     options->encode(mp, emd, NULL);
                     output_bits(out, 1, 0);
+                    if (mp->len == 1)
+                    {
+                        traits_used |= TFLAG_NO_LEN1_SEQ;
+                    }
+                    else
+                    {
+                        int lo = mp->len & 255;
+                        int hi = mp->len & ~255;
+                        if (hi > 0 && (lo == 1 || lo == 2 || lo == 3))
+                        {
+                            traits_used |= TFLAG_NO_LEN123_SEQ_MIRRORS;
+                        }
+                    }
+                    if (mp->len > max_len)
+                    {
+                        max_len = mp->len;
+                    }
                 }
 
                 pos_diff += mp->len;
@@ -173,12 +195,12 @@ int do_output(match_ctx ctx,
 
     emd->out = old;
 
-    if(literal_sequences_used != NULL)
+    if(infop != NULL)
     {
-        *literal_sequences_used = copy_used;
+        infop->traits_used = traits_used;
+        infop->max_len = max_len;
+        infop->needed_safety_offset = max_diff;
     }
-
-    return max_diff;
 }
 
 struct search_node*
@@ -274,15 +296,14 @@ do_compress(match_ctx ctx, encode_match_data emd,
 void crunch_backwards(struct membuf *inbuf,
                       struct membuf *outbuf,
                       const struct crunch_options *options, /* IN */
-                      struct crunch_info *info) /* OUT */
+                      struct crunch_info *infop) /* OUT */
 {
     match_ctx ctx;
     encode_match_data emd;
     struct search_node *snp;
+    struct crunch_info info;
     int outlen;
     int inlen;
-    int safety;
-    int copy_used;
     struct membuf exported_enc = STATIC_MEMBUF_INIT;
 
     if(options == NULL)
@@ -318,8 +339,7 @@ void crunch_backwards(struct membuf *inbuf,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
     LOG(LOG_NORMAL, (" Encoding: %s\n", (char*)membuf_get(&exported_enc)));
-    safety = do_output(ctx, snp, emd, options, outbuf,
-                       &copy_used);
+    do_output(ctx, snp, emd, options, outbuf, &info);
     outlen = membuf_memlen(outbuf) - outlen;
     LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));
 
@@ -331,10 +351,9 @@ void crunch_backwards(struct membuf *inbuf,
     match_ctx_free(ctx);
     membuf_free(&exported_enc);
 
-    if(info != NULL)
+    if(infop != NULL)
     {
-        info->literal_sequences_used = copy_used;
-        info->needed_safety_offset = safety;
+        *infop = info;
     }
 }
 

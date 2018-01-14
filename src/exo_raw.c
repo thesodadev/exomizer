@@ -131,25 +131,29 @@ main(int argc, char *argv[])
     }
     else
     {
-        struct crunch_info info[1] = {STATIC_CRUNCH_INFO_INIT};
+        struct crunch_info info = STATIC_CRUNCH_INFO_INIT;
         if(backwards_mode)
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\" "
                              "backwards.\n", infilev[0], flags->outfile));
-            crunch_backwards(inbuf, outbuf, options, info);
+            crunch_backwards(inbuf, outbuf, options, &info);
         }
         else
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
                              infilev[0], flags->outfile));
-            crunch(inbuf, outbuf, options, info);
+            crunch(inbuf, outbuf, options, &info);
         }
 
-        LOG(LOG_NORMAL, (" Literal sequences are %sused and",
-                         info->literal_sequences_used ? "" : "not "));
-        LOG(LOG_NORMAL, (" the safety offset is %d.\n",
-                         info->needed_safety_offset));
-
+        LOG(LOG_NORMAL, (" Literal sequences are %sused",
+                         info.traits_used & TFLAG_NO_LIT_SEQ ? "" : "not "));
+        LOG(LOG_NORMAL, (", length 1 sequences are %sused",
+                         info.traits_used & TFLAG_NO_LEN1_SEQ ? "" : "not "));
+        LOG(LOG_NORMAL, (", length 123 mirrors are %sused",
+                         info.traits_used & TFLAG_NO_LEN123_SEQ_MIRRORS ?
+                         "" : "not "));
+        LOG(LOG_NORMAL, (" and the safety offset is %d.\n",
+                         info.needed_safety_offset));
     }
 
     if(reverse_mode)

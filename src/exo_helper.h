@@ -114,10 +114,11 @@ struct crunch_options
     encode_match_f *encode;
 };
 
-#define STATIC_CRUNCH_INFO_INIT {0, 0}
+#define STATIC_CRUNCH_INFO_INIT {0, 0, 0}
 struct crunch_info
 {
-    int literal_sequences_used;
+    int traits_used;
+    int max_len;
     int needed_safety_offset;
 };
 

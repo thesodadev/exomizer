@@ -420,13 +420,25 @@ void print_desfx_usage(const char *appl, enum log_level level,
     print_base_flags(level, default_outfile);
 }
 
+static void output_crunch_info(struct crunch_info *info)
+{
+        LOG(LOG_NORMAL, ("  Literal sequences are %sused",
+                         info->traits_used & TFLAG_NO_LIT_SEQ ? "" : "not "));
+        LOG(LOG_NORMAL, (", length 1 sequences are %sused",
+                         info->traits_used & TFLAG_NO_LEN1_SEQ ? "" : "not "));
+        LOG(LOG_NORMAL, (",\n  length 123 mirrors are %sused",
+                         info->traits_used & TFLAG_NO_LEN123_SEQ_MIRRORS ?
+                         "" : "not "));
+        LOG(LOG_NORMAL, (" and the safety offset is %d.\n",
+                         info->needed_safety_offset));
+}
+
 static
 void level(const char *appl, int argc, char *argv[])
 {
     char flags_arr[64];
     int forward_mode = 0;
-    int literal_sequences_used = 0;
-    int max_safety = 0;
+    struct crunch_info total = STATIC_CRUNCH_INFO_INIT;
     int c;
     int infilec;
     char **infilev;
@@ -470,7 +482,7 @@ void level(const char *appl, int argc, char *argv[])
     /* append the files instead of merging them */
     for(c = 0; c < infilec; ++c)
     {
-        struct crunch_info info[1];
+        struct crunch_info info;
         int in_load;
         int in_len;
         int out_pos;
@@ -485,11 +497,11 @@ void level(const char *appl, int argc, char *argv[])
             membuf_append_char(out, in_load >> 8);
             membuf_append_char(out, in_load & 255);
 
-            crunch(in, out, options, info);
+            crunch(in, out, options, &info);
         }
         else
         {
-            crunch_backwards(in, out, options, info);
+            crunch_backwards(in, out, options, &info);
 
             /* append the starting address of decrunching */
             membuf_append_char(out, (in_load + in_len) & 255);
@@ -500,20 +512,18 @@ void level(const char *appl, int argc, char *argv[])
                            membuf_memlen(out) - out_pos);
         }
 
-        if(info->literal_sequences_used)
+        total.traits_used |= info.traits_used;
+        if (info.max_len > total.max_len)
         {
-            literal_sequences_used = 1;
+            total.max_len = info.max_len;
         }
-        if(info->needed_safety_offset > max_safety)
+        if(info.needed_safety_offset > total.needed_safety_offset)
         {
-            max_safety = info->needed_safety_offset;
+            total.needed_safety_offset = info.needed_safety_offset;
         }
     }
 
-    LOG(LOG_NORMAL, (" Literal sequences are %sused and",
-                     literal_sequences_used ? "" : "not "));
-    LOG(LOG_NORMAL, (" the largest safety offset is %d.\n",
-                     max_safety));
+    output_crunch_info(&total);
 
     LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
                     membuf_memlen(out), flags->outfile));
@@ -586,7 +596,7 @@ void mem(const char *appl, int argc, char *argv[])
     }
 
     {
-        struct crunch_info info[1];
+        struct crunch_info info;
         int in_load;
         int in_len;
         int safety;
@@ -609,13 +619,13 @@ void mem(const char *appl, int argc, char *argv[])
             membuf_append_char(out, in_load >> 8);
             membuf_append_char(out, in_load & 255);
 
-            crunch(in, out, options, info);
-            safety = info->needed_safety_offset;
+            crunch(in, out, options, &info);
+            safety = info.needed_safety_offset;
         }
         else
         {
-            crunch_backwards(in, out, options, info);
-            safety = info->needed_safety_offset;
+            crunch_backwards(in, out, options, &info);
+            safety = info.needed_safety_offset;
 
             /* append the in_loading address of decrunching */
             membuf_append_char(out, (in_load + in_len) & 255);
@@ -651,10 +661,7 @@ void mem(const char *appl, int argc, char *argv[])
                              membuf_memlen(out)));
         }
 
-        LOG(LOG_NORMAL, (" Literal sequences are %sused and",
-                         info->literal_sequences_used ? "" : "not "));
-        LOG(LOG_NORMAL, (" the safety offset is %d.\n",
-                         info->needed_safety_offset));
+        output_crunch_info(&info);
     }
 
     if (prepend_load_addr)
@@ -794,7 +801,7 @@ void sfx(const char *appl, int argc, char *argv[])
     int infilec;
     char **infilev;
 
-    struct crunch_info info[1];
+    struct crunch_info info;
 
     struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
     struct common_flags flags[1] = {{NULL, DEFAULT_OUTFILE}};
@@ -1128,8 +1135,11 @@ void sfx(const char *appl, int argc, char *argv[])
         /* make room for load addr */
         membuf_append(out, NULL, 2);
 
-        crunch_backwards(in, out, options, info);
-        safety = info->needed_safety_offset;
+        crunch_backwards(in, out, options, &info);
+
+        output_crunch_info(&info);
+
+        safety = info.needed_safety_offset;
 
         /* append the in_loading address of decrunching */
         membuf_append_char(out, (in_load + in_len) & 255);
@@ -1207,12 +1217,12 @@ void sfx(const char *appl, int argc, char *argv[])
             }
         }
 
-        if(info->literal_sequences_used)
+        if(info.traits_used & TFLAG_NO_LIT_SEQ)
         {
             set_initial_symbol("i_literal_sequences_used", 1);
             initial_symbol_dump(LOG_DEBUG, "i_literal_sequences_used");
         }
-        if(flags->options->max_len <= 256)
+        if(info.max_len <= 256)
         {
             set_initial_symbol("i_max_sequence_length_256", 1);
             initial_symbol_dump(LOG_DEBUG, "i_max_sequence_length_256");
@@ -1368,21 +1378,17 @@ void raw(const char *appl, int argc, char *argv[])
     }
     else
     {
-        struct crunch_info info[1];
+        struct crunch_info info;
         if(backwards_mode)
         {
-            crunch_backwards(inbuf, outbuf, options, info);
+            crunch_backwards(inbuf, outbuf, options, &info);
         }
         else
         {
-            crunch(inbuf, outbuf, options, info);
+            crunch(inbuf, outbuf, options, &info);
         }
 
-        LOG(LOG_NORMAL, (" Literal sequences are %sused and",
-                         info->literal_sequences_used ? "" : "not "));
-        LOG(LOG_NORMAL, (" the safety offset is %d.\n",
-                         info->needed_safety_offset));
-
+        output_crunch_info(&info);
     }
 
     if(reverse_mode)
