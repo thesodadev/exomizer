@@ -338,7 +338,7 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 3: Generating output file"
          "\n------------------------------\n"));
-    LOG(LOG_NORMAL, (" Encoding: %s\n", (char*)membuf_get(&exported_enc)));
+    LOG(LOG_NORMAL, (" Enc: %s\n", (char*)membuf_get(&exported_enc)));
     do_output(ctx, snp, emd, options, outbuf, &info);
     outlen = membuf_memlen(outbuf) - outlen;
     LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));

@@ -973,15 +973,22 @@ void sfx(const char *appl, int argc, char *argv[])
                 ("Warning: -P bits " STR(PBIT_BITS_ORDER_BE)
                  ", " STR(PBIT_BITS_COPY_GT_7)
                  " and " STR(PBIT_IMPL_1LITERAL)
-                 " are required by sfx, setting them\n"));
+                 " are required by sfx, setting them.\n"));
             options->flags_proto |= required;
+        }
+        if ((options->flags_proto & PFLAG_BITS_ALIGN_START) != 0)
+        {
+            LOG(LOG_ERROR,
+                ("Warning: -P bit " STR(PBIT_BITS_ALIGN_START)
+                 " is not supported by sfx, clearing it.\n"));
+            options->flags_proto &= ~PFLAG_BITS_ALIGN_START;
         }
         options->flags_notrait |= TFLAG_LEN123_SEQ_MIRRORS;
     }
 
     if (options->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
-        set_initial_symbol("i_fourth_len_part", 1);
+        set_initial_symbol("i_fourth_offset_table", 1);
     }
 
     do_effect(appl, no_effect, fast, slow);
@@ -1175,7 +1182,6 @@ void sfx(const char *appl, int argc, char *argv[])
 
     {
         /* add decruncher */
-        /* version neo and forward direction */
         struct decrunch_options dopts = DECRUNCH_OPTIONS_DEFAULT;
         struct membuf source;
 
@@ -1235,6 +1241,7 @@ void sfx(const char *appl, int argc, char *argv[])
         }
         else
         {
+            int table_size = (16+4+16+16)*3;
             i32 lowest_addr;
             i32 max_transfer_len;
             i32 lowest_addr_out;
@@ -1245,6 +1252,11 @@ void sfx(const char *appl, int argc, char *argv[])
             i32 i_irq_enter, i_irq_during, i_irq_exit;
             i32 i_nmi_enter, i_nmi_during, i_nmi_exit;
             i32 c_effect_color;
+
+            if (options->flags_proto & PFLAG_4_OFFSET_TABLES)
+            {
+                table_size = (16+4+16+16+16)*3;
+            }
 
             resolve_symbol("lowest_addr", NULL, &lowest_addr);
             resolve_symbol("max_transfer_len", NULL, &max_transfer_len);
@@ -1267,7 +1279,7 @@ void sfx(const char *appl, int argc, char *argv[])
             LOG(LOG_NORMAL, (" Decrunched data | $%04X| $%04X|\n",
                  in_load, in_load + in_len));
             LOG(LOG_NORMAL, (" Decrunch table  | $%04X| $%04X|\n",
-                             i_table_addr, i_table_addr + 156));
+                             i_table_addr, i_table_addr + table_size));
             LOG(LOG_NORMAL, (" Decruncher      | $00FC| $01SP|\n"));
             if(i_effect == 0 && !resolve_symbol("i_effect_custom", NULL, NULL))
             {

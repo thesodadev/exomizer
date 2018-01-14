@@ -42,6 +42,7 @@
 ; -- i_effect, done /* -1=none, 0(default)=lower right, 1-3=border */
 ; -- i_fast_effect, done /* defined if true, otherwise not */
 ; -- i_table_addr, done /* undef=$0334 or if(r_target == 128) $0b00 */
+; -- i_fourth_offset_table, done /* defined if true, otherwise not */
 ; -- i_load_addr, done /* optional, if set skips the basic line and loads
 ; -- the crunched file to it.
 ; -------------------------------------------------------------------
@@ -320,19 +321,6 @@ transfer_len ?= 0
 ; -- convert $0 to $10000 but leave $1 - $ffff ----------------------
 ; -------------------------------------------------------------------
 v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
-
-; .IF(i_effect2 == 0 &&
-;     .DEFINED(c_effect_color) &&
-;           c_effect_color < v_safety_addr &&
-;           c_effect_color > i_table_addr + 156)
-; v_start_of_decrunchable_mem = c_effect_color
-; .ELSE
-; v_start_of_decrunchable_mem = i_table_addr + 156
-; .ENDIF
-
-; .IF(v_safety_addr < v_start_of_decrunchable_mem)
-;         .ERROR("This target can't support the memory demands of the data.")
-; .ENDIF
 
 ; -------------------------------------------------------------------
 ; -- file2_start_hook and stage2_exit_hook --------------------------
@@ -1116,7 +1104,7 @@ stage2start:
         bne copy2_loop2
 .ENDIF
 ; -------------------------------------------------------------------
-.IF(.DEFINED(i_fourth_len_part))
+.IF(.DEFINED(i_fourth_offset_table))
 encoded_entries = 68
 .ELSE
 encoded_entries = 52
@@ -1308,14 +1296,14 @@ sequence_start:
 .ELSE
         tax
 .ENDIF
-.IF(.DEFINED(i_fourth_len_part))
+.IF(.DEFINED(i_fourth_offset_table))
         cpx #$05
 .ELSE
         cpx #$04
 .ENDIF
         bcc size123
 nots123:
-.IF(.DEFINED(i_fourth_len_part))
+.IF(.DEFINED(i_fourth_offset_table))
         ldx #$04
 .ELSE
         ldx #$03
@@ -1388,7 +1376,7 @@ literal_byte_gotten:
 decr_exit:
           .INCLUDE("exit_hook")
         .ENDIF
-.IF(.DEFINED(i_fourth_len_part))
+.IF(.DEFINED(i_fourth_offset_table))
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset for lens 1,2,3 and 4+ (4 bytes)
 ; bits 2,4,4,4 and offs 64,48,32,16 corresponding to
