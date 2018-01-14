@@ -28,6 +28,15 @@
  *
  */
 
+/*
+ * bit 0  Controls bit bit orientation
+ * bit 1  Contols how more than 7 bits are shifted 0=split into a shift of
+ *        of less than 8 bits + a byte (new), 1=all bits are shifted (old)
+ * bit 2  Implicit first literal byte: 0=enable, 1=disable
+ * bit 3  Align bit stream towards start without flag: 1=enable, 0=disable
+ * bit 4  Decides if we are to have two lengths (1 and 2) or three lengths
+ *        (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three
+ */
 #define PBIT_BITS_ORDER_BE     0
 #define PBIT_BITS_COPY_GT_7    1
 #define PBIT_IMPL_1LITERAL     2
@@ -40,12 +49,18 @@
 #define PFLAG_BITS_ALIGN_START (1 << PBIT_BITS_ALIGN_START)
 #define PFLAG_4_OFFSET_TABLES  (1 << PBIT_4_OFFSET_TABLES)
 
-#define TBIT_NO_LIT_SEQ 0
-#define TBIT_NO_LEN1_SEQ 1
-#define TBIT_NO_LEN123_SEQ_MIRRORS 2
+/*
+ * bit 0  Sequences with length 1
+ * bit 1  Literal sequences
+ * bit 2  Sequences with length > 255 where (length & 255) would have been
+ *        using its own decrunch table
+ */
+#define TBIT_LIT_SEQ 0
+#define TBIT_LEN1_SEQ 1
+#define TBIT_LEN123_SEQ_MIRRORS 2
 
-#define TFLAG_NO_LIT_SEQ            (1 << TBIT_NO_LIT_SEQ)
-#define TFLAG_NO_LEN1_SEQ           (1 << TBIT_NO_LEN1_SEQ)
-#define TFLAG_NO_LEN123_SEQ_MIRRORS (1 << TBIT_NO_LEN123_SEQ_MIRRORS)
+#define TFLAG_LIT_SEQ            (1 << TBIT_LIT_SEQ)
+#define TFLAG_LEN1_SEQ           (1 << TBIT_LEN1_SEQ)
+#define TFLAG_LEN123_SEQ_MIRRORS (1 << TBIT_LEN123_SEQ_MIRRORS)
 
 #endif

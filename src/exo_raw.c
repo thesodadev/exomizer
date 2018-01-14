@@ -146,11 +146,11 @@ main(int argc, char *argv[])
         }
 
         LOG(LOG_NORMAL, (" Literal sequences are %sused",
-                         info.traits_used & TFLAG_NO_LIT_SEQ ? "" : "not "));
+                         info.traits_used & TFLAG_LIT_SEQ ? "" : "not "));
         LOG(LOG_NORMAL, (", length 1 sequences are %sused",
-                         info.traits_used & TFLAG_NO_LEN1_SEQ ? "" : "not "));
+                         info.traits_used & TFLAG_LEN1_SEQ ? "" : "not "));
         LOG(LOG_NORMAL, (", length 123 mirrors are %sused",
-                         info.traits_used & TFLAG_NO_LEN123_SEQ_MIRRORS ?
+                         info.traits_used & TFLAG_LEN123_SEQ_MIRRORS ?
                          "" : "not "));
         LOG(LOG_NORMAL, (" and the safety offset is %d.\n",
                          info.needed_safety_offset));

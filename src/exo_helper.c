@@ -123,7 +123,7 @@ void do_output(match_ctx ctx,
                         /* literal sequence */
                         LOG(LOG_DUMP, ("literal sequence for %d bytes\n",
                                        len));
-                        traits_used |= TFLAG_NO_LIT_SEQ;
+                        traits_used |= TFLAG_LIT_SEQ;
                         if (len > max_len)
                         {
                             max_len = len;
@@ -148,7 +148,7 @@ void do_output(match_ctx ctx,
                     output_bits(out, 1, 0);
                     if (mp->len == 1)
                     {
-                        traits_used |= TFLAG_NO_LEN1_SEQ;
+                        traits_used |= TFLAG_LEN1_SEQ;
                     }
                     else
                     {
@@ -156,7 +156,7 @@ void do_output(match_ctx ctx,
                         int hi = mp->len & ~255;
                         if (hi > 0 && (lo == 1 || lo == 2 || lo == 3))
                         {
-                            traits_used |= TFLAG_NO_LEN123_SEQ_MIRRORS;
+                            traits_used |= TFLAG_LEN123_SEQ_MIRRORS;
                         }
                     }
                     if (mp->len > max_len)
@@ -242,7 +242,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
     {
         snp = NULL;
         search_buffer(ctx, options->encode, emd,
-                      !(options->flags_trait & TFLAG_NO_LIT_SEQ),
+                      !(options->flags_notrait & TFLAG_LIT_SEQ),
                       options->max_len,
                       &snp);
         if (snp == NULL)
@@ -275,7 +275,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
         }
 
         optimal_free(emd);
-        optimal_init(emd, options->flags_trait, options->flags_proto);
+        optimal_init(emd, options->flags_notrait, options->flags_proto);
 
         LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
@@ -314,7 +314,7 @@ void crunch_backwards(struct membuf *inbuf,
     inlen = membuf_memlen(inbuf);
     outlen = membuf_memlen(outbuf);
     emd->out = NULL;
-    optimal_init(emd, options->flags_trait, options->flags_proto);
+    optimal_init(emd, options->flags_notrait, options->flags_proto);
 
     LOG(LOG_NORMAL,
         ("\nPhase 1: Instrumenting file"
@@ -327,7 +327,7 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
 
     emd->out = NULL;
-    optimal_init(emd, options->flags_trait, options->flags_proto);
+    optimal_init(emd, options->flags_notrait, options->flags_proto);
 
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
@@ -525,7 +525,7 @@ void handle_crunch_flags(int flag_char, /* IN */
     switch(flag_char)
     {
     case 'c':
-        options->flags_trait |= TFLAG_NO_LIT_SEQ;
+        options->flags_notrait |= TFLAG_LIT_SEQ;
         break;
     case 'C':
         options->favor_speed = 1;
@@ -570,8 +570,8 @@ void handle_crunch_flags(int flag_char, /* IN */
         }
         break;
     case 'T':
-        if (str_to_int(flag_arg, &options->flags_trait) != 0 ||
-            options->flags_trait < 0 || options->flags_trait > 7)
+        if (str_to_int(flag_arg, &options->flags_notrait) != 0 ||
+            options->flags_notrait < 0 || options->flags_notrait > 7)
         {
             LOG(LOG_ERROR,
                 ("Error: invalid value for -T option, "

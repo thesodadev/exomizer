@@ -65,7 +65,7 @@ float encode_int_f(int val, void *priv, output_ctxp out,
 
 struct _encode_match_priv {
     int flags_proto;
-    int flags_trait;
+    int flags_notrait;
     int lit_num;
     int seq_num;
     int rle_num;

@@ -423,11 +423,11 @@ void print_desfx_usage(const char *appl, enum log_level level,
 static void output_crunch_info(struct crunch_info *info)
 {
         LOG(LOG_NORMAL, ("  Literal sequences are %sused",
-                         info->traits_used & TFLAG_NO_LIT_SEQ ? "" : "not "));
+                         info->traits_used & TFLAG_LIT_SEQ ? "" : "not "));
         LOG(LOG_NORMAL, (", length 1 sequences are %sused",
-                         info->traits_used & TFLAG_NO_LEN1_SEQ ? "" : "not "));
+                         info->traits_used & TFLAG_LEN1_SEQ ? "" : "not "));
         LOG(LOG_NORMAL, (",\n  length 123 mirrors are %sused",
-                         info->traits_used & TFLAG_NO_LEN123_SEQ_MIRRORS ?
+                         info->traits_used & TFLAG_LEN123_SEQ_MIRRORS ?
                          "" : "not "));
         LOG(LOG_NORMAL, (" and the safety offset is %d.\n",
                          info->needed_safety_offset));
@@ -976,7 +976,7 @@ void sfx(const char *appl, int argc, char *argv[])
                  " are required by sfx, setting them\n"));
             options->flags_proto |= required;
         }
-        options->flags_trait |= TFLAG_NO_LEN123_SEQ_MIRRORS;
+        options->flags_notrait |= TFLAG_LEN123_SEQ_MIRRORS;
     }
 
     if (options->flags_proto & PFLAG_4_OFFSET_TABLES)
@@ -1217,7 +1217,7 @@ void sfx(const char *appl, int argc, char *argv[])
             }
         }
 
-        if(info.traits_used & TFLAG_NO_LIT_SEQ)
+        if(info.traits_used & TFLAG_LIT_SEQ)
         {
             set_initial_symbol("i_literal_sequences_used", 1);
             initial_symbol_dump(LOG_DEBUG, "i_literal_sequences_used");

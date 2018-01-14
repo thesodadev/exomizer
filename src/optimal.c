@@ -198,7 +198,7 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
             exit(1);
             break;
         case 1:
-            if (data->flags_trait & TFLAG_NO_LEN1_SEQ)
+            if (data->flags_notrait & TFLAG_LEN1_SEQ)
             {
                 bits += 100000000.0;
             }
@@ -220,7 +220,7 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
                 break;
             }
         default:
-            if ((data->flags_trait & TFLAG_NO_LEN123_SEQ_MIRRORS) &&
+            if ((data->flags_notrait & TFLAG_LEN123_SEQ_MIRRORS) &&
                 (mp->len & 255) < ((data->flags_proto & PFLAG_4_OFFSET_TABLES)
                                    ? 4 : 3))
             {
@@ -496,7 +496,7 @@ void optimal_encoding_import(encode_match_data emd,
     data = emd->priv;
 
     optimal_free(emd);
-    optimal_init(emd, data->flags_trait, data->flags_proto);
+    optimal_init(emd, data->flags_notrait, data->flags_proto);
 
     data = emd->priv;
     offsets = (interval_nodep*)data->offset_f_priv;
@@ -529,7 +529,7 @@ void optimal_encoding_import(encode_match_data emd,
 }
 
 void optimal_init(encode_match_data emd,/* IN/OUT */
-                  int flags_trait,      /* IN */
+                  int flags_notrait,      /* IN */
                   int flags_proto)      /* IN */
 {
     encode_match_privp data;
@@ -553,7 +553,7 @@ void optimal_init(encode_match_data emd,/* IN/OUT */
     inpp[7] = NULL;
     data->offset_f_priv = inpp;
     data->len_f_priv = NULL;
-    data->flags_trait = flags_trait;
+    data->flags_notrait = flags_notrait;
     data->flags_proto = flags_proto;
 }
 
