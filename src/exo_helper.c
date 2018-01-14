@@ -242,7 +242,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
     {
         snp = NULL;
         search_buffer(ctx, options->encode, emd,
-                      options->flags_trait & TFLAG_NO_LIT_SEQ,
+                      !(options->flags_trait & TFLAG_NO_LIT_SEQ),
                       options->max_len,
                       &snp);
         if (snp == NULL)
