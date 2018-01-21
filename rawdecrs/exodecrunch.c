@@ -110,7 +110,8 @@ generate_table(struct exo_decrunch_ctx *ctx, int size)
     for(i = 0; i < size; ++i)
     {
         table[i].base = base;
-        table[i].bits = (unsigned char)read_bits(ctx, 4);
+        table[i].bits = (unsigned char)read_bits(ctx, 3);
+        table[i].bits |= (unsigned char)read_bits(ctx, 1) << 3;
         base += 1 << table[i].bits;
     }
     return table;

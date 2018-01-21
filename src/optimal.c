@@ -763,7 +763,8 @@ void optimal_dump(int level, encode_match_data emd)
 }
 
 static
-void interval_out(output_ctx out, interval_nodep inp1, int size)
+void interval_out(output_ctx out, interval_nodep inp1, int size,
+    int flags_proto)
 {
     unsigned char buffer[256];
     unsigned char count;
@@ -787,7 +788,15 @@ void interval_out(output_ctx out, interval_nodep inp1, int size)
         int b;
         b = buffer[sizeof(buffer) - size];
         LOG(LOG_DUMP, ("outputting nibble %d\n", b));
-        output_bits(out, 4, b);
+        if (flags_proto & PFLAG_BITS_COPY_GT_7)
+        {
+            output_bits(out, 1, b >> 3);
+            output_bits(out, 3, b & 7);
+        }
+        else
+        {
+            output_bits(out, 4, b);
+        }
         size--;
     }
 }
@@ -804,12 +813,12 @@ void optimal_out(output_ctx out,        /* IN/OUT */
     offset = data->offset_f_priv;
     len = data->len_f_priv;
 
-    interval_out(out, offset[0], 4);
-    interval_out(out, offset[1], 16);
+    interval_out(out, offset[0], 4, data->flags_proto);
+    interval_out(out, offset[1], 16, data->flags_proto);
     if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
-        interval_out(out, offset[2], 16);
+        interval_out(out, offset[2], 16, data->flags_proto);
     }
-    interval_out(out, offset[7], 16);
-    interval_out(out, len, 16);
+    interval_out(out, offset[7], 16, data->flags_proto);
+    interval_out(out, len, 16, data->flags_proto);
 }

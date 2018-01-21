@@ -178,10 +178,16 @@ table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
         tp->table_lo[i] = a & 0xFF;
         tp->table_hi[i] = a >> 8;
 
-        b = get_bits(ctx, 4);
-
+        if (ctx->flags_proto & PFLAG_BITS_COPY_GT_7)
+        {
+            b = get_bits(ctx, 3);
+            b |= get_bits(ctx, 1) << 3;
+        }
+        else
+        {
+            b = get_bits(ctx, 4);
+        }
         tp->table_bi[i] = b;
-
     }
 }
 

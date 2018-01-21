@@ -1129,18 +1129,30 @@ shortcut:
 ; -------------------------------------------------------------------
         lda #$f0                ; %11110000
         jsr gb_next
-        tax
-        lda tabl_mask,x
-        sta tabl_bi,y
 ; -------------------------------------------------------------------
-        lda #0
+        lsr
+        php
+        tax
+        lda #$00
         sta <zp_len_hi
+        sec
 rolle:
-        rol
         rol <zp_len_hi
+        sec
+        ror
         dex
         bpl rolle
+        plp
+        bcs no_fixup_bi
+        and #$7f
+no_fixup_bi:
+        sta tabl_bi,y
         inx
+        txa
+        bcs no_fixup_lohi
+        lda <zp_len_hi
+        stx <zp_len_hi
+no_fixup_lohi:
 ; -------------------------------------------------------------------
         iny
         cpy #encoded_entries
@@ -1148,17 +1160,8 @@ rolle:
         .IF(.DEFINED(stage2_exit_hook))
           .INCLUDE("stage2_exit_hook")
         .ENDIF
-	.BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
+        .BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
         jmp literal_start1
-; -------------------------------------------------------------------
-; The used static mask table (16 bytes)
-; the values are %00000000, %01000000, %01100000, %01110000
-;                %01111000, %01111100, %01111110, %01111111
-;                %10000000, %11000000, %11100000, %11110000
-;                %11111000, %11111100, %11111110, %11111111
-tabl_mask:
-        .BYTE($00, $40, $60, $70, $78, $7c, $7e, $7f)
-        .BYTE($80, $c0, $e0, $f0, $f8, $fc, $fe, $ff)
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------

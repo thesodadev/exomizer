@@ -83,11 +83,11 @@ tabl_hi = decrunch_table + 104
 .IFDEF INLINE_GET_BITS
 .MACRO mac_get_bits
 .SCOPE
-        adc #$80		; needs c=0, affects v
+        adc #$80                ; needs c=0, affects v
         asl
         bpl gb_skip
 gb_next:
-        asl <zp_bitbuf
+        asl zp_bitbuf
         bne gb_ok
         mac_refill_bits
 gb_ok:
@@ -96,7 +96,7 @@ gb_ok:
 gb_skip:
         bvc skip
         sec
-        sta <zp_bits_hi
+        sta zp_bits_hi
         jsr get_crunched_byte
 skip:
 .ENDSCOPE
@@ -106,11 +106,11 @@ skip:
         jsr get_bits
 .ENDMACRO
 get_bits:
-        adc #$80		; needs c=0, affects v
+        adc #$80                ; needs c=0, affects v
         asl
         bpl gb_skip
 gb_next:
-        asl <zp_bitbuf
+        asl zp_bitbuf
         bne gb_ok
         mac_refill_bits
 gb_ok:
@@ -119,7 +119,7 @@ gb_ok:
 gb_skip:
         bvc return
         sec
-        sta <zp_bits_hi
+        sta zp_bits_hi
         jmp get_crunched_byte
 .ENDIF
 ; -------------------------------------------------------------------
@@ -159,25 +159,37 @@ table_gen:
         txa
         adc tabl_lo - 1,y
         sta tabl_lo,y
-        lda <zp_bits_hi
+        lda zp_len_hi
         adc tabl_hi - 1,y
 shortcut:
         sta tabl_hi,y
 ; -------------------------------------------------------------------
         lda #$78                ; %01111000
         mac_get_bits
-        tax
-        lda tabl_mask,x
-        sta tabl_bi,y
 ; -------------------------------------------------------------------
-        lda #0
-        sta <zp_bits_hi
+        lsr
+        php
+        tax
+        lda #$00
+        sta zp_len_hi
+        sec
 rolle:
-        rol
-        rol <zp_bits_hi
+        rol zp_len_hi
+        sec
+        ror
         dex
         bpl rolle
+        plp
+        bcs no_fixup_bi
+        and #$7f
+no_fixup_bi:
+        sta tabl_bi,y
         inx
+        txa
+        bcs no_fixup_lohi
+        lda zp_len_hi
+        stx zp_len_hi
+no_fixup_lohi:
 ; -------------------------------------------------------------------
         iny
         cpy #52
@@ -188,49 +200,8 @@ rolle:
         stx zp_dest_lo
         bcs literal_start1
 ; -------------------------------------------------------------------
-; The used static mask table (16 bytes)
-tabl_mask:
-        .BYTE %00000000, %01000000, %01100000, %01110000
-        .BYTE %01111000, %01111100, %01111110, %01111111
-        .BYTE %10000000, %11000000, %11100000, %11110000
-        .BYTE %11111000, %11111100, %11111110, %11111111
 return:
         rts
-; -------------------------------------------------------------------
-; main copy loop (30 bytes)
-; entry point is at the copy_start label
-; y must contain low byte of dest zp pointer
-; x must contain copy length + 1 % 256,
-; zp_len_hi must contain copy length / 256
-;
-.IFNDEF MAX_SEQUENCE_LENGTH_256
-copy_next_hi:
-        dec zp_len_hi
-.ENDIF
-copy_next:
-        tya
-        bne copy_skip_hi
-        dec zp_dest_hi
-        dec zp_src_hi
-copy_skip_hi:
-        dey
-.IFNDEF LITERAL_SEQUENCES_NOT_USED
-        bcc skip_literal_byte
-        jsr get_crunched_byte
-        bcs literal_byte_gotten
-skip_literal_byte:
-.ENDIF
-        lda (zp_src_lo),y
-literal_byte_gotten:
-        sta (zp_dest_lo),y
-copy_start:
-        dex
-        bne copy_next
-.IFNDEF MAX_SEQUENCE_LENGTH_256
-        lda zp_len_hi
-        bne copy_next_hi
-.ENDIF
-        beq next_round
 ; -------------------------------------------------------------------
 ; copy one literal byte to destination (11 bytes)
 ;
@@ -277,10 +248,9 @@ nofetch8:
         jsr get_crunched_byte
         tax
 .IFNDEF MAX_SEQUENCE_LENGTH_256
-        inx
-        bcs copy_start
+        jmp copy_next_256
 .ELSE
-        bcs copy_next
+        jmp copy_next
 .ENDIF
 .ENDIF
 ; -------------------------------------------------------------------
@@ -309,16 +279,15 @@ sequence_start:
         ldx zp_len_lo
 .ELSE
         tax
-        beq nots123
 .ENDIF
-        cpx #$04
+        cpx #$03
         bcc size123
 nots123:
-        ldx #$03
+        ldx #$00
 size123:
-        lda tabl_bit - 1,x
+        lda tabl_bit,x
 gbnc2_next:
-        asl <zp_bitbuf
+        asl zp_bitbuf
         bne gbnc2_ok
         mac_refill_bits
 gbnc2_ok:
@@ -340,19 +309,51 @@ gbnc2_ok:
 ; prepare for copy loop (8 bytes)
 ;
 pre_copy:
-        ldx zp_len_lo
         ldy zp_dest_y
+        ldx zp_len_lo
 .IFNDEF MAX_SEQUENCE_LENGTH_256
-        inx
-        jmp copy_start
-.ELSE
-        jmp copy_next
+copy_next_256:
+        bne copy_next
 .ENDIF
 ; -------------------------------------------------------------------
-; the static stable used for bits+offset 1,2 and 3+ (3 bytes)
-; bits 2,4,4 and offs 48,32,16.
+; main copy loop (30 bytes)
+; entry point is at the copy_start label
+; y must contain low byte of dest zp pointer
+; x must contain copy length + 1 % 256,
+; zp_len_hi must contain copy length / 256
+;
+.IFNDEF MAX_SEQUENCE_LENGTH_256
+copy_next_hi:
+        dec zp_len_hi
+.ENDIF
+copy_next:
+        tya
+        bne copy_skip_hi
+        dec zp_dest_hi
+        dec zp_src_hi
+copy_skip_hi:
+        dey
+.IFNDEF LITERAL_SEQUENCES_NOT_USED
+        bcc skip_literal_byte
+        jsr get_crunched_byte
+        bcs literal_byte_gotten
+skip_literal_byte:
+.ENDIF
+        lda (zp_src_lo),y
+literal_byte_gotten:
+        sta (zp_dest_lo),y
+        dex
+        bne copy_next
+.IFNDEF MAX_SEQUENCE_LENGTH_256
+        lda zp_len_hi
+        bne copy_next_hi
+.ENDIF
+        jmp next_round
+; -------------------------------------------------------------------
+; the static stable used for bits+offset 3+, 1 and 2 (3 bytes)
+; bits 4,2,4 and offs 16,48,32.
 tabl_bit:
-        .BYTE %10001100, %11100010, %11100001
+        .BYTE %11100001, %10001100, %11100010
 ; -------------------------------------------------------------------
 ; end of decruncher
 ; -------------------------------------------------------------------

@@ -90,7 +90,8 @@ init_table(const char **inp)
         }
         base[i] = b2;
 
-        b1 = read_bits(inp, 4);
+        b1 = read_bits(inp, 3);
+        b1 |= read_bits(inp, 1) << 3;
         bits[i] = b1;
 
         b2 += 1 << b1;
