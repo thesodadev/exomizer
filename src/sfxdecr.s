@@ -1122,22 +1122,22 @@ table_gen:
         txa
         adc tabl_lo - 1,y
         sta tabl_lo,y
-        lda <zp_bits_hi
+        lda <zp_len_hi
         adc tabl_hi - 1,y
 shortcut:
         sta tabl_hi,y
 ; -------------------------------------------------------------------
-        lda #$78                ; %01111000
-        jsr get_bits
+        lda #$f0                ; %11110000
+        jsr gb_next
         tax
         lda tabl_mask,x
         sta tabl_bi,y
 ; -------------------------------------------------------------------
         lda #0
-        sta <zp_bits_hi
+        sta <zp_len_hi
 rolle:
         rol
-        rol <zp_bits_hi
+        rol <zp_len_hi
         dex
         bpl rolle
         inx
@@ -1145,11 +1145,10 @@ rolle:
         iny
         cpy #encoded_entries
         bne table_gen
-        ldy <zp_dest_lo
-        stx <zp_dest_lo
         .IF(.DEFINED(stage2_exit_hook))
           .INCLUDE("stage2_exit_hook")
         .ENDIF
+	.BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
         jmp literal_start1
 ; -------------------------------------------------------------------
 ; The used static mask table (16 bytes)
@@ -1164,34 +1163,13 @@ tabl_mask:
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1)
-        .WORD(v_highest_addr % 65536)
+        .WORD(((v_highest_addr % 65536) / 256) * 256)
 stage2end:
         .ORG($0100)
 ; -------------------------------------------------------------------
 ; -- start of stage 3 -----------------------------------------------
 ; -------------------------------------------------------------------
 stage3start:
-; -------------------------------------------------------------------
-; get crunched byte (15 bytes) + hooks
-;
-get_crunched_byte:
-        .IF(.DEFINED(fast_effect_hook))
-          .INCLUDE("effect_hook")
-        .ENDIF
-        lda get_byte_fixup + 1
-        bne get_byte_skip_hi
-        dec get_byte_fixup + 2
-        .IF(.DEFINED(slow_effect_hook))
-          .INCLUDE("effect_hook")
-        .ENDIF
-get_byte_skip_hi:
-        dec get_byte_fixup + 1
-get_byte_fixup:
-        lda lowest_addr + max_transfer_len
-        .IF(!.DEFINED(exit_hook))
-decr_exit:
-        .ENDIF
-        rts
 ; -------------------------------------------------------------------
 ; get bits (24 bytes)
 ;
@@ -1217,7 +1195,27 @@ gb_skip:
 gb_get_hi:
         sec
         sta <zp_bits_hi
-        bcs get_crunched_byte
+; -------------------------------------------------------------------
+; get crunched byte (15 bytes) + hooks
+;
+get_crunched_byte:
+        .IF(.DEFINED(fast_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+        lda get_byte_fixup + 1
+        bne get_byte_skip_hi
+        dec get_byte_fixup + 2
+        .IF(.DEFINED(slow_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+get_byte_skip_hi:
+        dec get_byte_fixup + 1
+get_byte_fixup:
+        lda lowest_addr + max_transfer_len
+        .IF(!.DEFINED(exit_hook))
+decr_exit:
+        .ENDIF
+        rts
 ; -------------------------------------------------------------------
 ; copy one literal byte to destination (11 bytes)
 ;
@@ -1297,17 +1295,13 @@ sequence_start:
         tax
 .ENDIF
 .IF(.DEFINED(i_fourth_offset_table))
-        cpx #$05
-.ELSE
         cpx #$04
+.ELSE
+        cpx #$03
 .ENDIF
         bcc size123
 nots123:
-.IF(.DEFINED(i_fourth_offset_table))
-        ldx #$04
-.ELSE
-        ldx #$03
-.ENDIF
+        ldx #$00
 size123:
         lda tabl_bit,x
 gbnc2_next:
@@ -1378,18 +1372,18 @@ decr_exit:
         .ENDIF
 .IF(.DEFINED(i_fourth_offset_table))
 ; -------------------------------------------------------------------
-; the static stable used for bits+offset for lens 1,2,3 and 4+ (4 bytes)
-; bits 2,4,4,4 and offs 64,48,32,16 corresponding to
-; %10010000, %11100011, %11100010, %11100001
+; the static stable used for bits+offset for lens 4+, 1, 2 and 3 (4 bytes)
+; bits 4, 2, 4, 4 and offs 16, 64, 48, 32 corresponding to
+; %11100001, %10010000, %11100011, %11100010
 tabl_bit:
-        .BYTE($e1, $90, $e3, $e2, $e1)
+        .BYTE($e1, $90, $e3, $e2)
 .ELSE
 ; -------------------------------------------------------------------
-; the static stable used for bits+offset 1,2 and 3+ (3 bytes)
-; bits 2,4,4 and offs 48,32,16 corresponding to
-; %10001100, %11100010, %11100001
+; the static stable used for bits+offset 3+, 1 and 2 (3 bytes)
+; bits 4, 2, 4 and offs 16, 48, 32 corresponding to
+; %11100001, %10001100, %11100010
 tabl_bit:
-        .BYTE($e1, $8c, $e2, $e1)
+        .BYTE($e1, $8c, $e2)
 .ENDIF
 ; -------------------------------------------------------------------
 stage3end:
