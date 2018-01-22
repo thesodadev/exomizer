@@ -1502,12 +1502,14 @@ void desfx(const char *appl, int argc, char *argv[])
 
     entry = decrunch_sfx(p, entry, &start, &end, &cycles);
 
+    /* change 0x0 into 0x10000 */
+    cookedend = ((end - 1) & 0xffff) + 1;
+
     LOG(LOG_NORMAL,
         (" Crunched file entry point $%04X, decrunch took %u cycles.\n",
          entry, cycles));
-
-    /* change 0x0 into 0x10000 */
-    cookedend = ((end - 1) & 0xffff) + 1;
+    LOG(LOG_NORMAL, (" Decruncher pace was %0.2f cycles per output byte.\n",
+                     (float)cycles / (end - start)));
 
     membuf_truncate(mem, cookedend);
     membuf_trim(mem, start);
