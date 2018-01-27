@@ -429,7 +429,9 @@ static void output_crunch_info(struct crunch_info *info)
         LOG(LOG_NORMAL, (",\n  length 123 mirrors are %sused",
                          info->traits_used & TFLAG_LEN123_SEQ_MIRRORS ?
                          "" : "not "));
-        LOG(LOG_NORMAL, (" and the safety offset is %d.\n",
+        LOG(LOG_NORMAL, (", max length used is %d",
+                         info->max_len));
+        LOG(LOG_NORMAL, (" and\n  the safety offset is %d.\n",
                          info->needed_safety_offset));
 }
 
@@ -966,6 +968,7 @@ void sfx(const char *appl, int argc, char *argv[])
     {
         int required = PFLAG_BITS_ORDER_BE | PFLAG_BITS_COPY_GT_7 |
             PFLAG_IMPL_1LITERAL;
+        int unsupported = PFLAG_BITS_ALIGN_START;
 
         if ((options->flags_proto & required) != required)
         {
@@ -976,12 +979,12 @@ void sfx(const char *appl, int argc, char *argv[])
                  " are required by sfx, setting them.\n"));
             options->flags_proto |= required;
         }
-        if ((options->flags_proto & PFLAG_BITS_ALIGN_START) != 0)
+        if ((options->flags_proto & unsupported) != 0)
         {
             LOG(LOG_ERROR,
                 ("Warning: -P bit " STR(PBIT_BITS_ALIGN_START)
                  " is not supported by sfx, clearing it.\n"));
-            options->flags_proto &= ~PFLAG_BITS_ALIGN_START;
+            options->flags_proto &= ~unsupported;
         }
         options->flags_notrait |= TFLAG_LEN123_SEQ_MIRRORS;
     }
