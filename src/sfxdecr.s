@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 - 2017 Magnus Lind.
+; Copyright (c) 2002 - 2018 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -1127,24 +1127,23 @@ table_gen:
 shortcut:
         sta tabl_hi,y
 ; -------------------------------------------------------------------
+        lda #$01
+        sta <zp_len_hi
         lda #$f0                ; %11110000
         jsr gb_next
 ; -------------------------------------------------------------------
         lsr
-        php
         tax
-        lda #$01
-        sta <zp_len_hi
-	bne rolled
+        beq rolled
+        php
 rolle:
         asl <zp_len_hi
         sec
         ror
-rolled:
         dex
-        bpl rolle
-        inx
+        bne rolle
         plp
+rolled:
         ror
         sta tabl_bi,y
         bmi no_fixup_lohi
@@ -1165,8 +1164,8 @@ no_fixup_lohi:
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
-        .INCBIN("crunched_data", max_transfer_len + 2, 1)
-        .WORD(((v_highest_addr % 65536) / 256) * 256)
+        .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
+        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
 stage2end:
         .ORG($0100)
 ; -------------------------------------------------------------------
