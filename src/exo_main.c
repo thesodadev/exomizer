@@ -971,24 +971,23 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     {
-        int required = PFLAG_BITS_ORDER_BE | PFLAG_BITS_COPY_GT_7 |
-            PFLAG_IMPL_1LITERAL;
-        int unsupported = PFLAG_BITS_ALIGN_START;
+        int required = PFLAG_BITS_ORDER_BE | PFLAG_BITS_COPY_GT_7;
+        int unsupported = PFLAG_BITS_ALIGN_START | PFLAG_IMPL_1LITERAL;
 
         if ((options->flags_proto & required) != required)
         {
             LOG(LOG_ERROR,
                 ("Warning: -P bits " STR(PBIT_BITS_ORDER_BE)
-                 ", " STR(PBIT_BITS_COPY_GT_7)
-                 " and " STR(PBIT_IMPL_1LITERAL)
+                 " and " STR(PBIT_BITS_COPY_GT_7)
                  " are required by sfx, setting them.\n"));
             options->flags_proto |= required;
         }
         if ((options->flags_proto & unsupported) != 0)
         {
             LOG(LOG_ERROR,
-                ("Warning: -P bit " STR(PBIT_BITS_ALIGN_START)
-                 " is not supported by sfx, clearing it.\n"));
+                ("Warning: -P bits " STR(PBIT_BITS_ALIGN_START)
+                 " and " STR(PBIT_IMPL_1LITERAL)
+                 " are not supported by sfx, clearing them.\n"));
             options->flags_proto &= ~unsupported;
         }
         options->flags_notrait |= TFLAG_LEN123_SEQ_MIRRORS;
