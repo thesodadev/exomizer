@@ -1133,26 +1133,26 @@ shortcut:
         lsr
         php
         tax
-        lda #$00
+        lda #$01
         sta <zp_len_hi
-        sec
+	bne rolled
 rolle:
-        rol <zp_len_hi
+        asl <zp_len_hi
         sec
         ror
+rolled:
         dex
         bpl rolle
-        plp
-        bcs no_fixup_bi
-        and #$7f
-no_fixup_bi:
-        sta tabl_bi,y
         inx
-        txa
-        bcs no_fixup_lohi
+        plp
+        ror
+        sta tabl_bi,y
+        bmi no_fixup_lohi
         lda <zp_len_hi
         stx <zp_len_hi
+        .BYTE($24)
 no_fixup_lohi:
+        txa
 ; -------------------------------------------------------------------
         iny
         cpy #encoded_entries
