@@ -90,6 +90,9 @@ void yyerror(const char *s);
 %token CLC
 %token SEC
 %token RTS
+%token CLV
+%token CLD
+%token SED
 
 %token JSR
 %token JMP
@@ -320,7 +323,10 @@ op:	TXS { $$ = new_op0(0x9A); } |
 	TAX { $$ = new_op0(0xaa); } |
 	CLC { $$ = new_op0(0x18); } |
 	SEC { $$ = new_op0(0x38); } |
-	RTS { $$ = new_op0(0x60); };
+	RTS { $$ = new_op0(0x60); } |
+	CLV { $$ = new_op0(0xb8); } |
+	CLD { $$ = new_op0(0xd8); } |
+	SED { $$ = new_op0(0xf0); };
 
 op:	JSR am_a   { $$ = new_op(0x20, ATOM_TYPE_OP_ARG_U16, $2); } |
 	JMP am_a   { $$ = new_op(0x4c, ATOM_TYPE_OP_ARG_U16, $2); } |

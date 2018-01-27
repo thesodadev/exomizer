@@ -118,6 +118,9 @@ tax		return TAX;
 clc		return CLC;
 sec		return SEC;
 rts		return RTS;
+clv		return CLV;
+cld		return CLD;
+sed		return SED;
 
 jsr		return JSR;
 jmp		return JMP;
