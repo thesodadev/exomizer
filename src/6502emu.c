@@ -326,7 +326,8 @@ static void op_beq(struct cpu_ctx *r, int mode, union inst_arg *arg)
 
 static void op_bit(struct cpu_ctx *r, int mode, union inst_arg *arg)
 {
-    u8 value = MEM_ACCESS_READ(&r->mem, arg->ea.value);
+    u8 value;
+    value = read_op_arg(r, mode, arg);
     r->flags &= ~(FLAG_N | FLAG_V | FLAG_Z);
     r->flags |= value & (FLAG_N | FLAG_V);
     r->flags |= (value & r->a) == 0 ? FLAG_Z : 0;
