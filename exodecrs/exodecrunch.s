@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 - 2017 Magnus Lind.
+; Copyright (c) 2002 - 2018 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -164,32 +164,31 @@ table_gen:
 shortcut:
         sta tabl_hi,y
 ; -------------------------------------------------------------------
+        lda #$01
+        sta <zp_len_hi
         lda #$78                ; %01111000
         mac_get_bits
 ; -------------------------------------------------------------------
         lsr
-        php
         tax
-        lda #$00
-        sta zp_len_hi
-        sec
+        beq rolled
+        php
 rolle:
-        rol zp_len_hi
+        asl zp_len_hi
         sec
         ror
         dex
-        bpl rolle
+        bne rolle
         plp
-        bcs no_fixup_bi
-        and #$7f
-no_fixup_bi:
+rolled:
+        ror
         sta tabl_bi,y
-        inx
-        txa
-        bcs no_fixup_lohi
+        bmi no_fixup_lohi
         lda zp_len_hi
         stx zp_len_hi
+        .BYTE $24
 no_fixup_lohi:
+        txa
 ; -------------------------------------------------------------------
         iny
         cpy #52
