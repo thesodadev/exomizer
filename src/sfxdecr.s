@@ -1309,11 +1309,11 @@ size123:
 gbnc2_next:
         asl <zp_bitbuf
         bne gbnc2_ok
-        pha
+        tax
         jsr get_crunched_byte
         rol
         sta <zp_bitbuf
-        pla
+        txa
 gbnc2_ok:
         rol
         bcs gbnc2_next
@@ -1348,32 +1348,50 @@ copy_next_hi:
 copy_next:
         tya
         bne copy_skip_hi
+copy_decr_hi:
         dec <zp_dest_hi
         dec <zp_src_hi
 copy_skip_hi:
         dey
+        beq tya_loop
 .IF(.DEFINED(i_literal_sequences_used))
-        bcs get_literal_byte
+        bcs get_literal_byte1
 .ENDIF
         lda (zp_src_lo),y
-literal_byte_gotten:
+literal_byte_gotten1:
         sta (zp_dest_lo),y
         dex
-        bne copy_next
+        bne copy_skip_hi
+after_len_lo:
 .IF(!.DEFINED(i_max_sequence_length_256))
         lda <zp_len_hi
         bne copy_next_hi
 .ENDIF
         jmp begin
 .IF(.DEFINED(i_literal_sequences_used))
-get_literal_byte:
+get_literal_byte1:
         jsr get_crunched_byte
-        bcs literal_byte_gotten
+        bcs literal_byte_gotten1
 .ENDIF
         .IF(.DEFINED(exit_hook))
 decr_exit:
           .INCLUDE("exit_hook")
         .ENDIF
+tya_loop:
+.IF(.DEFINED(i_literal_sequences_used))
+        bcs get_literal_byte2
+.ENDIF
+        lda (zp_src_lo),y
+literal_byte_gotten2:
+        sta (zp_dest_lo),y
+        dex
+        bne copy_decr_hi
+        beq after_len_lo
+.IF(.DEFINED(i_literal_sequences_used))
+get_literal_byte2:
+        jsr get_crunched_byte
+        bcs literal_byte_gotten2
+.ENDIF
 .IF(.DEFINED(i_fourth_offset_table))
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset for lens 4+, 1, 2 and 3 (4 bytes)
