@@ -1353,10 +1353,7 @@ copy_next:
 copy_skip_hi:
         dey
 .IF(.DEFINED(i_literal_sequences_used))
-        bcc skip_literal_byte
-        jsr get_crunched_byte
-        bcs literal_byte_gotten
-skip_literal_byte:
+        bcs get_literal_byte
 .ENDIF
         lda (zp_src_lo),y
 literal_byte_gotten:
@@ -1368,6 +1365,11 @@ literal_byte_gotten:
         bne copy_next_hi
 .ENDIF
         jmp begin
+.IF(.DEFINED(i_literal_sequences_used))
+get_literal_byte:
+        jsr get_crunched_byte
+        bcs literal_byte_gotten
+.ENDIF
         .IF(.DEFINED(exit_hook))
 decr_exit:
           .INCLUDE("exit_hook")
