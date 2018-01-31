@@ -1192,7 +1192,6 @@ gb_no_refill:
         bmi gb_next
 gb_skip:
         bvs gb_get_hi
-        sty <zp_bits_hi
         rts
 gb_get_hi:
         sec
@@ -1214,9 +1213,6 @@ get_byte_skip_hi:
         dec get_byte_fixup + 1
 get_byte_fixup:
         lda lowest_addr + max_transfer_len
-        .IF(!.DEFINED(exit_hook))
-decr_exit:
-        .ENDIF
         rts
 ; -------------------------------------------------------------------
 ; copy one literal byte to destination (11 bytes)
@@ -1253,31 +1249,12 @@ nofetch8:
 ; check for decrunch done and literal sequences (6 bytes)
 ;
         cpx #$11
-        bcc sequence_start
-        beq decr_exit
-.IF(.DEFINED(i_literal_sequences_used))
-; -------------------------------------------------------------------
-; literal sequence handling (12 bytes)
-;
-        jsr get_crunched_byte
-.IF(!.DEFINED(i_max_sequence_length_256))
-        sta <zp_len_hi
-.ENDIF
-        jsr get_crunched_byte
-        tax
-.IF(!.DEFINED(i_max_sequence_length_256))
-        bne copy_next
-        bcs copy_next_hi
-.ELSE
-        bcs copy_next
-.ENDIF
-.ENDIF
+        bcs exit_or_lit_seq
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (17 bytes)
 ;
-sequence_start:
-        sty <zp_dest_y
-        ldy #0
+        lda #0
+        sta <zp_bits_hi
         lda tabl_bi - 1,x
         jsr get_bits
         adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
@@ -1321,6 +1298,8 @@ gbnc2_ok:
 ; -------------------------------------------------------------------
 ; calulate absolute offset (zp_src) (20 bytes)
 ;
+        lda #0
+        sta <zp_bits_hi
         lda tabl_bi,x
         jsr get_bits
         adc tabl_lo,x
@@ -1333,7 +1312,6 @@ gbnc2_ok:
 ; prepare for copy loop (8 bytes)
 ;
 pre_copy:
-        ldy <zp_dest_y
         ldx <zp_len_lo
 .IF(!.DEFINED(i_max_sequence_length_256))
         bne copy_next
@@ -1373,10 +1351,31 @@ get_literal_byte1:
         jsr get_crunched_byte
         bcs literal_byte_gotten1
 .ENDIF
-        .IF(.DEFINED(exit_hook))
+exit_or_lit_seq:
+.IF(.DEFINED(i_literal_sequences_used))
+; -------------------------------------------------------------------
+; literal sequence handling (12 bytes)
+                                ;
+        beq decr_exit
+        jsr get_crunched_byte
+  .IF(!.DEFINED(i_max_sequence_length_256))
+        sta <zp_len_hi
+  .ENDIF
+        jsr get_crunched_byte
+        tax
+  .IF(!.DEFINED(i_max_sequence_length_256))
+        bne copy_next
+        bcs copy_next_hi
+  .ELSE
+        bcs copy_next
+  .ENDIF
+.ENDIF
 decr_exit:
-          .INCLUDE("exit_hook")
-        .ENDIF
+.IF(.DEFINED(exit_hook))
+  .INCLUDE("exit_hook")
+.ELSE
+        rts
+.ENDIF
 tya_loop:
 .IF(.DEFINED(i_literal_sequences_used))
         bcs get_literal_byte2
