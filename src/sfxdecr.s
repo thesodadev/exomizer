@@ -1273,16 +1273,14 @@ nofetch8:
 .ELSE
         tax
 .ENDIF
+        lda #$e1
 .IF(.DEFINED(i_fourth_offset_table))
         cpx #$04
 .ELSE
         cpx #$03
 .ENDIF
-        bcc size123
-nots123:
-        ldx #$00
-size123:
-        lda tabl_bit,x
+        bcs gbnc2_next
+        lda tabl_bit - 1,x
 gbnc2_next:
         asl <zp_bitbuf
         bne gbnc2_ok
@@ -1393,18 +1391,17 @@ get_literal_byte2:
 .ENDIF
 .IF(.DEFINED(i_fourth_offset_table))
 ; -------------------------------------------------------------------
-; the static stable used for bits+offset for lens 4+, 1, 2 and 3 (4 bytes)
-; bits 4, 2, 4, 4 and offs 16, 64, 48, 32 corresponding to
-; %11100001, %10010000, %11100011, %11100010
+; the static stable used for bits+offset for lengths 1, 2 and 3 (3 bytes)
+; bits 2, 4, 4 and offsets 64, 48, 32 corresponding to
+; %10010000, %11100011, %11100010
 tabl_bit:
-        .BYTE($e1, $90, $e3, $e2)
+        .BYTE($90, $e3, $e2)
 .ELSE
 ; -------------------------------------------------------------------
-; the static stable used for bits+offset 3+, 1 and 2 (3 bytes)
-; bits 4, 2, 4 and offs 16, 48, 32 corresponding to
-; %11100001, %10001100, %11100010
+; the static stable used for bits+offset for lengths 1 and 2 (2 bytes)
+; bits 2, 4 and offsets 48, 32 corresponding to %10001100, %11100010
 tabl_bit:
-        .BYTE($e1, $8c, $e2)
+        .BYTE($8c, $e2)
 .ENDIF
 ; -------------------------------------------------------------------
 stage3end:
