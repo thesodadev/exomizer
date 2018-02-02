@@ -848,8 +848,7 @@ zp_len_lo = $80
 zp_len_hi = $81
 zp_src_lo = $82
 zp_src_hi = zp_src_lo + 1
-zp_dest_y = $84
-zp_bits_hi = $85
+zp_bits_hi = $84
 
   .IF(r_start_addr == -2)
         .BYTE($16,$16,$16,$24,$00,$00,$00,$c7)
@@ -888,14 +887,12 @@ zp_src_lo = $9d
 zp_src_hi = zp_src_lo + 1
 zp_bits_hi = $2d
 zp_len_hi = $2e
-zp_dest_y = $fc
   .ELSE
 zp_len_lo = $a7
 zp_src_lo = $ae
 zp_src_hi = zp_src_lo + 1
 zp_bits_hi = $9f
 zp_len_hi = $9e
-zp_dest_y = $fc
   .ENDIF
 
   .IF(.DEFINED(i_load_addr))
@@ -929,7 +926,6 @@ zp_len_lo = $f7
 zp_src_lo = $f9
 zp_src_hi = zp_src_lo + 1
 zp_bits_hi = $f8
-zp_dest_y = $fb
 zp_len_hi = $fc
 
         .WORD($FFFF, a8_start, a8_end - 1)
@@ -949,7 +945,6 @@ zp_src_lo = $ae
 zp_src_hi = zp_src_lo + 1
 zp_bits_hi = $9f
 zp_len_hi = $9e
-zp_dest_y = $fc
 
   .IF(.DEFINED(i_load_addr))
         ;; binary file, cc65 header
