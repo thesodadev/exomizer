@@ -98,6 +98,7 @@ void search_buffer(match_ctx ctx,       /* IN */
                    encode_match_data emd,       /* IN */
                    int use_literal_sequences,   /* IN */
                    int max_sequence_length,
+                   int pass,   /* IN */
                    struct search_node **result);       /* IN */
 
 struct _matchp_snp_enum {

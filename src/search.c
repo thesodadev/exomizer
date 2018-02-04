@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 - 2005 Magnus Lind.
+ * Copyright (c) 2002 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -38,6 +38,7 @@ void search_buffer(match_ctx ctx,       /* IN */
                    encode_match_data emd,       /* IN */
                    int use_literal_sequences,   /* IN */
                    int max_sequence_length,     /* IN */
+                   int pass,   /* IN */
                    struct search_node **result)/* OUT */
 {
     struct progress prog[1];
@@ -269,10 +270,9 @@ void search_buffer(match_ctx ctx,       /* IN */
                 if ((total_score < 100000000.0) &&
                     (snp->match->len == 0 ||
                      total_score < snp->total_score ||
-                     (total_score == snp->total_score &&
-                      (tmp->offset == 0 ||
-                       (snp->match->len == tmp->len &&
-                        (total_offset <= snp->total_offset))))))
+                     ((pass & 1) == 0 && total_score == snp->total_score &&
+                      (total_offset < snp->total_offset ||
+                       (mp->offset == 0 && snp->match->len == 1)))))
                 {
                     LOG(LOG_DUMP, (", replaced"));
                     snp->index = len - tmp->len;

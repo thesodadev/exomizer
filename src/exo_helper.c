@@ -243,8 +243,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
         snp = NULL;
         search_buffer(ctx, options->encode, emd,
                       !(options->flags_notrait & TFLAG_LIT_SEQ),
-                      options->max_len,
-                      &snp);
+                      options->max_len, pass, &snp);
         if (snp == NULL)
         {
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
