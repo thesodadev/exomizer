@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 - 2013 Magnus Lind.
+; Copyright (c) 2002 - 2018 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -39,9 +39,10 @@
 ; -- i_nmi_enter
 ; -- i_nmi_exit
 ; -- i_effect, done /* -1=none, 0(default)=lower right, 1-3=border */
-; -- i_fast_effect, done /* defined if true, otherwise not */
+; -- i_effect_speed, done /* undef or 0=slow, otherwise fast */
 ; -- i_table_addr, done /* undef=$0334 or if(r_target == 128) $0b00 */
-; -- i_load_addr, done /* optional, if set skips the basic line and loads
+; -- i_load_addr, done /* optional, if set no basic stub, loads to value */
+; -- i_raw, done /* optional, if defined and != 0 outfile is raw */
 ; -- the crunched file to it.
 ; -------------------------------------------------------------------
 ; - if basic start --------------------------------------------------
@@ -74,6 +75,10 @@
 .ENDIF
 
 .IF(r_target == 1)
+  zp_lo_len = $80
+  zp_src_addr = $81
+  zp_hi_bits = $83
+
   c_basic_start    = $0501
   c_end_of_mem_rom = $c000
   c_effect_char    = $bfdf
@@ -84,7 +89,13 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $b800
-.ELIF(r_target == 20)
+.ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
+      r_target == 64 || r_target == 128 || r_target == 4032)
+  zp_lo_len = $a7
+  zp_src_addr = $ae
+  zp_hi_bits = $9f
+
+  .IF(r_target == 20)
   c_basic_start    = $1001
   c_end_of_mem_rom = $2000
   c_effect_char    = $1ff9
@@ -95,7 +106,7 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0334
-.ELIF(r_target == 23)
+  .ELIF(r_target == 23)
   c_basic_start    = $0401
   c_end_of_mem_rom = $2000
   c_effect_char    = $1ff9
@@ -106,7 +117,7 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0334
-.ELIF(r_target == 52)
+  .ELIF(r_target == 52)
   c_basic_start    = $1201
   c_end_of_mem_rom = $8000
   c_effect_char    = $11f9
@@ -117,7 +128,7 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0334
-.ELIF(r_target == 55)
+  .ELIF(r_target == 55)
   c_basic_start    = $1201
   c_end_of_mem_rom = $8000
   c_effect_char    = $11f9
@@ -128,29 +139,7 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0334
-.ELIF(r_target == 16)
-  c_basic_start    = $1001
-  c_end_of_mem_rom = $8000
-  c_effect_char    = $0fe7
-  c_effect_color   = $0be7
-  c_border_color   = $ff19
-  c_rom_config_value = 0
-  c_ram_config_value = 1
-  c_rom_nmi_value = 0
-  c_ram_nmi_value = 0
-  c_default_table = $0334
-.ELIF(r_target == 4)
-  c_basic_start    = $1001
-  c_end_of_mem_rom = $8000
-  c_effect_char    = $0fe7
-  c_effect_color   = $0be7
-  c_border_color   = $ff19
-  c_rom_config_value = 0
-  c_ram_config_value = 1
-  c_rom_nmi_value = 0
-  c_ram_nmi_value = 0
-  c_default_table = $0334
-.ELIF(r_target == 64)
+  .ELIF(r_target == 64)
   c_basic_start    = $0801
   c_end_of_mem_rom = $a000
   c_effect_char    = $07e7
@@ -161,7 +150,7 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0334
-.ELIF(r_target == 128)
+  .ELIF(r_target == 128)
   c_basic_start    = $1c01
   c_end_of_mem_rom = $4000
   c_effect_char    = $07e7
@@ -172,7 +161,49 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0b00
+  .ELIF(r_target == 4032)
+  c_basic_start = $0401
+  c_end_of_mem_rom = $8000
+  c_rom_config_value = 0
+  c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
+  c_default_table = $027a
+  .ENDIF
+.ELIF(r_target == 16 || r_target == 4)
+  zp_lo_len = $a7
+  zp_src_addr = $9d
+  zp_hi_bits = $2d
+
+  .IF(r_target == 16)
+  c_basic_start    = $1001
+  c_end_of_mem_rom = $8000
+  c_effect_char    = $0fe7
+  c_effect_color   = $0be7
+  c_border_color   = $ff19
+  c_rom_config_value = 0
+  c_ram_config_value = 1
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
+  c_default_table = $0334
+  .ELIF(r_target == 4)
+  c_basic_start    = $1001
+  c_end_of_mem_rom = $8000
+  c_effect_char    = $0fe7
+  c_effect_color   = $0be7
+  c_border_color   = $ff19
+  c_rom_config_value = 0
+  c_ram_config_value = 1
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
+  c_default_table = $0334
+  .ENDIF
 .ELIF(r_target == $a2)
+  ; http://apple2.org.za/gswv/a2zine/faqs/csa2pfaq.html#017
+  zp_lo_len = $eb
+  zp_src_addr = $ec
+  zp_hi_bits = $ee
+
   c_basic_start    = $0801
   c_end_of_mem_rom = $9600
   c_effect_color   = $07f7
@@ -183,6 +214,10 @@
   c_ram_nmi_value = 0
   c_default_table = $0334
 .ELIF(r_target == $a8)
+  zp_lo_len = $f7
+  zp_src_addr = $f9
+  zp_hi_bits = $f8
+
   c_end_of_mem_rom = $a000
   c_effect_color   = $d017
   c_border_color   = $d01a
@@ -191,14 +226,6 @@
   c_rom_nmi_value = $40
   c_ram_nmi_value = 0
   c_default_table = $0600
-.ELIF(r_target == 4032)
-  c_basic_start = $0401
-  c_end_of_mem_rom = $8000
-  c_rom_config_value = 0
-  c_ram_config_value = 0
-  c_rom_nmi_value = 0
-  c_ram_nmi_value = 0
-  c_default_table = $027a
 .ELSE
   .ERROR("Symbol r_target_addr has an invalid value.")
 .ENDIF
@@ -319,19 +346,6 @@ transfer_len ?= 0
 ; -- convert $0 to $10000 but leave $1 - $ffff ----------------------
 ; -------------------------------------------------------------------
 v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
-
-; .IF(i_effect2 == 0 &&
-;     .DEFINED(c_effect_color) &&
-;           c_effect_color < v_safety_addr &&
-;           c_effect_color > i_table_addr + 156)
-; v_start_of_decrunchable_mem = c_effect_color
-; .ELSE
-; v_start_of_decrunchable_mem = i_table_addr + 156
-; .ENDIF
-
-; .IF(v_safety_addr < v_start_of_decrunchable_mem)
-;         .ERROR("This target can't support the memory demands of the data.")
-; .ENDIF
 
 ; -------------------------------------------------------------------
 ; -- file2_start_hook and stage2_exit_hook --------------------------
@@ -855,15 +869,13 @@ oric_ROM11:
 ; -------------------------------------------------------------------
 ; -- Oric-1 file header stuff ---------------------------------------
 ; -------------------------------------------------------------------
-zp_lo_len = $80
-zp_src_addr = $82
-zp_hi_bits = $81
-
   .IF(r_start_addr == -2)
+.IF(!.DEFINED(i_raw) || i_raw == 0)
         .BYTE($16,$16,$16,$24,$00,$00,$00,$c7)
         .BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
         .BYTE(c_basic_start / 256, c_basic_start % 256)
         .BYTE(0, 0)
+.ENDIF
         .ORG(c_basic_start)
 lowest_addr_out:
         .WORD(basic_end, i_line_number)
@@ -872,10 +884,12 @@ lowest_addr_out:
 basic_end:
         .BYTE(0,0)
   .ELSE
+.IF(!.DEFINED(i_raw) || i_raw == 0)
         .BYTE($16,$16,$16,$24,$00,$00,$80,$c7)
         .BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
         .BYTE(o1_start / 256, o1_start % 256)
         .BYTE(0, 0)
+.ENDIF
     .IF(!.DEFINED(i_load_addr))
         .ORG($0500)
     .ELSE
@@ -884,28 +898,22 @@ basic_end:
 lowest_addr_out:
   .ENDIF
 o1_start:
-; -------------------------------------------------------------------
-; -- Commodore file header stuff ------------------------------------
-; -------------------------------------------------------------------
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
       r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128 ||
       r_target == 4032)
-  .IF(r_target == 16 || r_target == 4)
-zp_lo_len = $a7
-zp_src_addr = $9d
-zp_hi_bits = $2d
-  .ELSE
-zp_lo_len = $a7
-zp_src_addr = $ae
-zp_hi_bits = $9f
-  .ENDIF
-
+; -------------------------------------------------------------------
+; -- Commodore file header stuff ------------------------------------
+; -------------------------------------------------------------------
   .IF(.DEFINED(i_load_addr))
+.IF(!.DEFINED(i_raw) || i_raw == 0)
         .WORD(i_load_addr)
+.ENDIF
         .ORG(i_load_addr)
 lowest_addr_out:
   .ELSE
+.IF(!.DEFINED(i_raw) || i_raw == 0)
         .WORD(c_basic_start)
+.ENDIF
         .ORG(c_basic_start)
 lowest_addr_out:
         .WORD(basic_end, i_line_number)
@@ -927,11 +935,9 @@ cbm_start:
 ; -------------------------------------------------------------------
 ; -- Atari file header stuff ------------------------------------
 ; -------------------------------------------------------------------
-zp_lo_len = $f7
-zp_src_addr = $f9
-zp_hi_bits = $f8
-
+.IF(!.DEFINED(i_raw) || i_raw == 0)
         .WORD($FFFF, a8_start, a8_end - 1)
+.ENDIF
   .IF(!.DEFINED(i_load_addr))
         .ORG($2000)
   .ELSE
@@ -943,14 +949,12 @@ a8_start:
 ; -------------------------------------------------------------------
 ; -- Apple file header stuff ------------------------------------
 ; -------------------------------------------------------------------
-zp_lo_len = $a7
-zp_src_addr = $ae
-zp_hi_bits = $9f
-
   .IF(.DEFINED(i_load_addr))
+.IF(!.DEFINED(i_raw) || i_raw == 0)
         ;; binary file, cc65 header
         .WORD(i_load_addr)
         .WORD(a2_end - a2_load)
+.ENDIF
         .ORG(i_load_addr)
 lowest_addr_out:
 a2_load:
@@ -1387,7 +1391,9 @@ o1_end:
 ; -- Start of Atari file footer stuff -------------------------------
 ; -------------------------------------------------------------------
 a8_end:
+.IF(!.DEFINED(i_raw) || i_raw == 0)
         .WORD($02e0, $02e1, a8_start)
+.ENDIF
 .ELIF(r_target == $a2)
 ; -------------------------------------------------------------------
 ; -- Start of Apple file footer stuff -------------------------------

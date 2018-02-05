@@ -122,7 +122,8 @@ The mem, level and sfx command all crunches files backwards. The files are
 loaded into a 16-bit address space and are also limited in size to that 16-bit
 address space. The format of the input files can be prg files, Atari xex
 files, Oric tap files or located plain files (plain files that are given an
-address to load to.)
+address to load to.) Please note that all input file formats is valid for all
+sfx targets which can be a bit unexpected.
 
  To load a prg file to the address contained in its prg-header you simply add
 the file name to the command line. However it is also possible to give an
@@ -463,6 +464,12 @@ My name is Magnus Lind and my email address is magli143@gmail.com
 
 The sfx decruncher is tweaked by defining optional symbols to the assembler on
 the command line using the -D<symbol>=<value> flag:
+
+The following symbol controls if headers are written to the sfx file:
+ i_raw
+
+ If it is set to anything but 0 then no headers will be written to the sfx file
+regardless of what the documentation of other optional symbols say.
 
 The following symbol controls the sfx load address:
  i_load_addr
