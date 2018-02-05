@@ -113,21 +113,22 @@ static int get_be_word(FILE *in)
 /**
  * if the file is detected to be xex then load_addr will be set to -1
  * if the file is detected to be oric tap then load_addr will be set to -2
- * if the name contains no len info then len will be set to NULL
- * if the name contains offset info then the FILE* will be skipped offset
- * bytes.
+ * if the name contains no len info then *lenp will be set to -1. If the name
+ * contains negative len then *lenp will be set to len - 1.
+ * if the name contains no offset info then *offsetp will be set to 0.
+ * if the file is detected as a prg then the prg header will be read.
  */
 static
 FILE *
 open_file(char *name, int *load_addr, int *offsetp, int *lenp)
 {
-    FILE * in;
+    FILE *in;
     int is_plain = 0;
     int is_relocated = 0;
 
-    int tries = 0;
-    int tries_arr[3];
-    for (;;)
+    int tries;
+    char *tries_arr[3];
+    for (tries = 0;; ++tries)
     {
         char *load_str;
         char *at_str;
@@ -160,13 +161,7 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         ++load_str;
 
         /* relocation was requested */
-        if (str_to_int(load_str, &tries_arr[tries++]) != 0)
-        {
-            /* we fail */
-            LOG(LOG_ERROR,
-                (" can't parse load address from \"%s\"\n", load_str));
-            exit(1);
-        }
+        tries_arr[tries] = load_str;
     }
     if (in == NULL)
     {
@@ -181,22 +176,50 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         int len = -1;
         if (--tries >= 0)
         {
-            load = tries_arr[tries];
+            char *p = tries_arr[tries];
+            if (p[0] != '\0' && str_to_int(p, &load) != 0)
+            {
+                /* we fail */
+                LOG(LOG_ERROR, (" can't parse load address from \"%s\"\n", p));
+                exit(1);
+            }
         }
         if (--tries >= 0)
         {
-            offset = tries_arr[tries];
+            char *p = tries_arr[tries];
+            if (p[0] != '\0' && str_to_int(p, &offset) != 0)
+            {
+                /* we fail */
+                LOG(LOG_ERROR, (" can't parse offset from \"%s\"\n", p));
+                exit(1);
+            }
         }
         if (--tries >= 0)
         {
-            len = tries_arr[tries];
+            int val;
+            char *p = tries_arr[tries];
+            if (p[0] != '\0')
+            {
+                if (str_to_int(p, &val) != 0)
+                {
+                    /* we fail */
+                    LOG(LOG_ERROR, (" can't parse length from \"%s\"\n", p));
+                    exit(1);
+                }
+                if (val < 0)
+                {
+                    /* make room for -1 to mean no explicit len */
+                    val -= 1;
+                }
+                len = val;
+            }
         }
 
         if(!is_plain)
         {
             /* read the prg load address */
             int prg_load = get_le_word(in);
-            if(!is_relocated)
+            if(!is_relocated || load == -3)
             {
                 load = prg_load;
                 /* unrelocated prg loading to $ffff is xex */
@@ -229,104 +252,6 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
     }
     return in;
 }
-
-#if 0
-/**
- * if the file is detected to be xex then load_addr will be set to -1
- * if the file is detected to be oric tap then load_addr will be set to -2
- * if the name contains no len info then len will be set to NULL
- * if the name contains offset info then the FILE* will be skipped offset
- * bytes.
- */
-static
-FILE *
-open_file(char *name, int *load_addr)
-{
-    FILE * in;
-    int is_plain = 0;
-    int is_relocated = 0;
-    int load = -3;
-
-    do
-    {
-        char *load_str;
-        char *at_str;
-
-        in = fopen(name, "rb");
-        if (in != NULL)
-        {
-            /* We have succeded in opening the file.
-             * There's no address suffix. */
-            break;
-        }
-
-        /* hmm, let's see if the user is trying to relocate it */
-        load_str = strrchr(name, ',');
-        at_str = strrchr(name, '@');
-        if(at_str != NULL && (load_str == NULL || at_str > load_str))
-        {
-            is_plain = 1;
-            load_str = at_str;
-        }
-
-        if (load_str == NULL)
-        {
-            /* nope, */
-            break;
-        }
-
-        *load_str = '\0';
-        ++load_str;
-        is_relocated = 1;
-
-        /* relocation was requested */
-        if (str_to_int(load_str, &load) != 0)
-        {
-            /* we fail */
-            LOG(LOG_ERROR,
-                (" can't parse load address from \"%s\"\n", load_str));
-            exit(1);
-        }
-
-        in = fopen(name, "rb");
-
-    } while (0);
-    if (in == NULL)
-    {
-        LOG(LOG_ERROR,
-            (" can't open file \"%s\" for input\n", name));
-        exit(1);
-    }
-
-    if(!is_plain)
-    {
-        /* read the prg load address */
-        int prg_load = get_le_word(in);
-        if(!is_relocated)
-        {
-            load = prg_load;
-            /* unrelocated prg loading to $ffff is xex */
-            if(prg_load == 0xffff)
-            {
-                /* differentiate this from relocated $ffff files so it is
-                 * possible to override the xex auto-detection. */
-                load = -1;
-            }
-            /* unrelocated prg loading to $1616 is Oric tap */
-            else if(prg_load == 0x1616)
-            {
-                load = -2;
-            }
-        }
-    }
-
-    if(load_addr != NULL)
-    {
-        *load_addr = load;
-    }
-    return in;
-}
-#endif
 
 static void load_xex(unsigned char mem[65536], FILE *in,
                      struct load_info *info)
@@ -467,21 +392,49 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
     }
 }
 
+/* (len == -1) => no length was given
+ * (len >= 0) => given length == len
+ * (len < -1) => given length == len + 1 */
 static void load_prg(unsigned char mem[65536], FILE *in,
                      int offset, int len,
                      struct load_info *info)
 {
-    if (offset != 0)
+    int header_offset;
+    int file_len;
+
+    header_offset = ftell(in);
+    /* get the real length of the file and validate the offset*/
+    if(fseek(in, 0, SEEK_END))
     {
-        int origin = SEEK_CUR;
-        if (offset < 0)
-        {
-            origin = SEEK_END;
-        }
-        fseek(in, offset, origin);
+        LOG(LOG_ERROR, ("Error: can't seek to EOF.\n"));
+        fclose(in);
+        exit(1);
     }
-    if (len < 0 || len  > 65536 - info->start)
+    file_len = ftell(in) - header_offset;
+    if(offset < 0)
     {
+        offset += file_len;
+    }
+    if(fseek(in, offset + header_offset, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
+        fclose(in);
+        exit(1);
+    }
+    if(len < 0)
+    {
+        len += file_len - offset + 1; /* + 1 convert back to given length */
+    }
+    if(len < 0)
+    {
+        LOG(LOG_ERROR, ("Error: can't read %d bytes from offset %d.\n",
+                        len, offset));
+        fclose(in);
+        exit(1);
+    }
+    if (len == 0 || len > 65536 - info->start)
+    {
+        /* limit len to available buffer space */
         len = 65536 - info->start;
     }
 

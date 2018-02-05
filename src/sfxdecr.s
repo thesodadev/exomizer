@@ -81,7 +81,6 @@
 
   c_basic_start    = $0501
   c_end_of_mem_rom = $c000
-  c_effect_char    = $bfdf
   c_effect_color   = $bfdf
   c_border_color   = $bfdf
   c_rom_config_value = 0
