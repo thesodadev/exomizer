@@ -159,7 +159,7 @@ do_load(char *file_name, struct membuf *mem)
 
     info->basic_txt_start = -1;
 
-    load_located(file_name, p, info);
+    load_located(file_name, p, 0, info);
 
     /* move memory to beginning of buffer */
     membuf_truncate(mem, info->end);
@@ -184,7 +184,7 @@ static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
          int basic_txt_start, int sys_token,
-         int *basic_var_startp, int *runp, int trim_sys)
+         int *basic_var_startp, int *runp, int trim_sys, int prg_is_a2cc65)
 {
     int run = -1;
     int min_start = 65537;
@@ -202,7 +202,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     for (i = 0; i < filec; ++i)
     {
         info->basic_txt_start = basic_txt_start;
-        load_located(filev[i], p, info);
+        load_located(filev[i], p, prg_is_a2cc65, info);
         run = info->run;
         if(run != -1 && runp != NULL)
         {
@@ -589,7 +589,7 @@ void mem(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
 
-        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0);
+        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0, 0);
         in_len = membuf_memlen(in);
 
         LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
@@ -1025,7 +1025,8 @@ void sfx(const char *appl, int argc, char *argv[])
 
         in_load = do_loads(infilec, infilev, in,
                            basic_start, targetp->sys_token,
-                           basic_var_startp, entry_addrp, trim_sys);
+                           basic_var_startp, entry_addrp, trim_sys,
+                           decr_target == 0xa2);
         if (entry_addr == -3)
         {
             entry_addr = in_load;
@@ -1452,7 +1453,7 @@ void desfx(const char *appl, int argc, char *argv[])
 
     /* load file, don't care about tracking basic*/
     info->basic_txt_start = -1;
-    load_located(infilev[0], p, info);
+    load_located(infilev[0], p, 0, info);
 
     if(entry == -1)
     {

@@ -116,14 +116,19 @@ static int get_be_word(FILE *in)
  * if the name contains no len info then *lenp will be set to -1. If the name
  * contains negative len then *lenp will be set to len - 1.
  * if the name contains no offset info then *offsetp will be set to 0.
- * if the file is detected as a prg then the prg header will be read.
+ * if the file is not detected as a xex or a tap and the name doesn't contain
+ * a @<addr> to indicate a located raw file, then defaults to prg and the prg
+ * header will read.
+ * if the file is detected as a xex or tap file the first two bytes will
+ * be read.
  */
 static
 FILE *
-open_file(char *name, int *load_addr, int *offsetp, int *lenp)
+open_file(char *name, int prg_is_a2cc65,
+          int *load_addr, int *offsetp, int *lenp)
 {
     FILE *in;
-    int is_plain = 0;
+    int is_raw = 0;
     int is_relocated = 0;
 
     int tries;
@@ -134,7 +139,7 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         char *at_str;
 
         in = fopen(name, "rb");
-        if (in != NULL || is_plain == 1 || tries == 3)
+        if (in != NULL || is_raw == 1 || tries == 3)
         {
             /* We have succeded in opening the file.
              * There's no address suffix. */
@@ -146,7 +151,7 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         at_str = strrchr(name, '@');
         if(at_str != NULL && (load_str == NULL || at_str > load_str))
         {
-            is_plain = 1;
+            is_raw = 1;
             load_str = at_str;
         }
 
@@ -215,10 +220,15 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
             }
         }
 
-        if(!is_plain)
+        if(!is_raw)
         {
             /* read the prg load address */
             int prg_load = get_le_word(in);
+            if (prg_is_a2cc65)
+            {
+                /* The a2 cc65 header contains 16 bits length too */
+                get_le_word(in);
+            }
             if(!is_relocated || load == -3)
             {
                 load = prg_load;
@@ -253,6 +263,7 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
     return in;
 }
 
+/* Handles xex files where the first two bytes has been skipped too. */
 static void load_xex(unsigned char mem[65536], FILE *in,
                      struct load_info *info)
 {
@@ -325,6 +336,7 @@ static void load_xex(unsigned char mem[65536], FILE *in,
     }
 }
 
+/* Handles tap files where the first two bytes has been skipped too. */
 static void load_oric_tap(unsigned char mem[65536], FILE *in,
                           struct load_info *info)
 {
@@ -395,7 +407,7 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
 /* (len == -1) => no length was given
  * (len >= 0) => given length == len
  * (len < -1) => given length == len + 1 */
-static void load_prg(unsigned char mem[65536], FILE *in,
+static void load_raw(unsigned char mem[65536], FILE *in,
                      int offset, int len,
                      struct load_info *info)
 {
@@ -451,12 +463,13 @@ static void load_prg(unsigned char mem[65536], FILE *in,
 }
 
 void load_located(char *filename, unsigned char mem[65536],
+                  int prg_is_a2cc65,
                   struct load_info *info)
 {
     int load, offset, len;
     FILE *in;
 
-    in = open_file(filename, &load, &offset, &len);
+    in = open_file(filename, prg_is_a2cc65, &load, &offset, &len);
     if(load == -1)
     {
         /* file is an xex file */
@@ -469,9 +482,10 @@ void load_located(char *filename, unsigned char mem[65536],
     }
     else
     {
-        /* file is a located plain file or a prg file */
+        /* file is a located raw file or a prg file
+         * with it's header already read */
         info->start = load;
-        load_prg(mem, in, offset, len, info);
+        load_raw(mem, in, offset, len, info);
     }
     fclose(in);
 
