@@ -110,6 +110,36 @@ static int get_be_word(FILE *in)
     return word;
 }
 
+static int tell_remaining(FILE *in, int offset)
+{
+    int position;
+    int remaining;
+
+    position = ftell(in);
+    /* get the real length of the file and validate the offset*/
+    if(fseek(in, 0, SEEK_END))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to EOF.\n"));
+        fclose(in);
+        exit(1);
+    }
+    remaining = ftell(in) - position;
+
+    if(offset < 0)
+    {
+        offset += remaining;
+    }
+    position += offset;
+
+    if(fseek(in, position, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
+        fclose(in);
+        exit(1);
+    }
+    return remaining;
+}
+
 /**
  * if the file is detected to be xex then load_addr will be set to -1
  * if the file is detected to be oric tap then load_addr will be set to -2
@@ -226,8 +256,19 @@ open_file(char *name, int prg_is_a2cc65,
             int prg_load = get_le_word(in);
             if (prg_is_a2cc65)
             {
+                int a2_cc65_len;
+                int actual_len;
                 /* The a2 cc65 header contains 16 bits length too */
-                get_le_word(in);
+                a2_cc65_len = get_le_word(in);
+                actual_len = tell_remaining(in, 0);
+                if (actual_len != a2_cc65_len)
+                {
+                    /* Nope, not a a2_cc65_len */
+                    LOG(LOG_ERROR, ("Error: cc65 header of \"%s\" is corrupt.",
+                                    name));
+                    fclose(in);
+                    exit(1);
+                }
             }
             if(!is_relocated || load == -3)
             {
@@ -411,27 +452,12 @@ static void load_raw(unsigned char mem[65536], FILE *in,
                      int offset, int len,
                      struct load_info *info)
 {
-    int header_offset;
     int file_len;
 
-    header_offset = ftell(in);
-    /* get the real length of the file and validate the offset*/
-    if(fseek(in, 0, SEEK_END))
-    {
-        LOG(LOG_ERROR, ("Error: can't seek to EOF.\n"));
-        fclose(in);
-        exit(1);
-    }
-    file_len = ftell(in) - header_offset;
+    file_len = tell_remaining(in, offset);
     if(offset < 0)
     {
         offset += file_len;
-    }
-    if(fseek(in, offset + header_offset, SEEK_SET))
-    {
-        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
-        fclose(in);
-        exit(1);
     }
     if(len < 0)
     {
