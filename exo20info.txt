@@ -153,14 +153,16 @@ Here too, you can give an optional offset and length.
 
  When given multiple input files the sfx and mem commands loads all files to
 where they are located and then crunch the covered memory area. Any unused
-space between files will be zero-filled. The level command loads each input
-file separately, crunches it and then appends the crunched data to the output
-file.
+space between files will be zero-filled. Data segments in xex-files are loaded
+sequentially in the same way. INITAD segments in xex-files are ignored.
 
-The auto detection of xex or Oric tap files is not perfect. Prg files that load
-at $ffff or $1616 will be wrongly detected as xex or Oric tap. To disable the
-auto detection relocate the prg files to the same address they normally load
-to.
+ The level command, on the other hand, loads each input file separately,
+crunches it and then appends the crunched data to the output file.
+
+ The auto detection of xex or Oric tap files is not perfect. Prg files that
+load at $ffff or $1616 will be wrongly detected as xex or Oric tap. To disable
+the auto detection relocate the prg files to the same address they normally
+load to.
 
 -------------------------------------------------------------------------------
 -- The mem sub command --------------------------------------------------------
