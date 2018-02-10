@@ -51,7 +51,7 @@ static void load_plain_file(const char *name, struct membuf *mb)
     int file_len;
     int read_len;
     int offset = 0;
-    int len = -1;
+    int len = 0;
     FILE *in;
 
     in = fopen(name, "rb");
@@ -75,10 +75,10 @@ static void load_plain_file(const char *name, struct membuf *mb)
         {
             p = strrchr(name, ',');
             len = offset;
-            if(len < 0)
+            if(len == 0)
             {
                 LOG(LOG_ERROR, ("Error, value for plain file "
-                                "len must not be negative.\n"));
+                                "len must not be zero.\n"));
                 exit(1);
             }
             *p = '\0';
@@ -109,17 +109,17 @@ static void load_plain_file(const char *name, struct membuf *mb)
     {
         offset += file_len;
     }
-    if(len < 0)
-    {
-        len = file_len - offset;
-    }
     if(fseek(in, offset, SEEK_SET))
     {
         LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
         fclose(in);
         exit(1);
     }
-    if(offset + len > file_len)
+    if(len <= 0)
+    {
+        len += file_len - offset;
+    }
+    if(len < 0 || offset + len > file_len)
     {
         LOG(LOG_ERROR, ("Error: can't read %d bytes from offset %d.\n",
                         len, offset));
@@ -358,7 +358,7 @@ void print_raw_usage(const char *appl, enum log_level level,
 {
     LOG(level, ("usage: %s [option]... infile\n", appl));
     LOG(level,
-        ("  -b            crunch/decrunch backwards\n"
+        ("  -b            crunch/decrunch backwards instead of forward\n"
          "  -r            write outfile in reverse order\n"
          "  -d            decrunch (instead of crunch)\n"));
     print_crunch_flags(level, default_out_name);
@@ -1202,6 +1202,7 @@ void sfx(const char *appl, int argc, char *argv[])
             i32 lowest_addr_out;
             i32 highest_addr_out;
             i32 i_table_addr;
+            i32 stage3end, zp_lo_len, zp_src_addr, zp_hi_bits;
             i32 i_effect;
             i32 i_ram_enter, i_ram_during, i_ram_exit;
             i32 i_irq_enter, i_irq_during, i_irq_exit;
@@ -1213,6 +1214,10 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("lowest_addr_out", NULL, &lowest_addr_out);
             resolve_symbol("highest_addr_out", NULL, &highest_addr_out);
             resolve_symbol("i_table_addr", NULL, &i_table_addr);
+            resolve_symbol("stage3end", NULL, &stage3end);
+            resolve_symbol("zp_lo_len", NULL, &zp_lo_len);
+            resolve_symbol("zp_src_addr", NULL, &zp_src_addr);
+            resolve_symbol("zp_hi_bits", NULL, &zp_hi_bits);
             resolve_symbol("i_effect2", NULL, &i_effect);
             resolve_symbol("i_irq_enter", NULL, &i_irq_enter);
             resolve_symbol("i_irq_during", NULL, &i_irq_during);
@@ -1225,12 +1230,15 @@ void sfx(const char *appl, int argc, char *argv[])
 
             LOG(LOG_NORMAL, ("Memory layout:   |Start |End   |\n"));
             LOG(LOG_NORMAL, (" Crunched data   | $%04X| $%04X|\n",
-                                 lowest_addr, lowest_addr + max_transfer_len));
+                             lowest_addr, lowest_addr + max_transfer_len));
             LOG(LOG_NORMAL, (" Decrunched data | $%04X| $%04X|\n",
                  in_load, in_load + in_len));
             LOG(LOG_NORMAL, (" Decrunch table  | $%04X| $%04X|\n",
                              i_table_addr, i_table_addr + 156));
-            LOG(LOG_NORMAL, (" Decruncher      | $00FC| $01SP|\n"));
+            LOG(LOG_NORMAL, (" Decruncher      | $00FD| $%04X| and ",
+                             stage3end));
+            LOG(LOG_NORMAL, ("$%02X,$%02X,$%02X-$%02X\n", zp_hi_bits,
+                             zp_lo_len, zp_src_addr, zp_src_addr + 1));
             if(i_effect == 0 && !resolve_symbol("i_effect_custom", NULL, NULL))
             {
                 resolve_symbol("c_effect_color", NULL, &c_effect_color);
