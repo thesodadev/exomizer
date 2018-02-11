@@ -224,6 +224,12 @@ has a memory hole that will overlap with the crunched data. By using systrim,
 the start of decrunched data will be moved a few bytes and by that also move
 the crunched data out of the memory hole.
 
+ If the run address is the string bin then the run address will be set to A
+where A is the start address of the combined memory area of the loaded in-
+files. An implicit -Di_load_addr=<A> will be used as well so the load and run
+addresses of the generated file will be A too. The generated file will not
+contain any basic stub.
+
  If the run address is the string basic then the computer will run a BASIC
 program after decrunch. This is not yet implemented for the Atari target.
 The Oric target support BASIC start for the Oric 1 and Atmos computers but not
