@@ -138,7 +138,8 @@ The mem, level and sfx command all crunches files backwards. The files are
 loaded into a 16-bit address space and are also limited in size to that 16-bit
 address space. The format of the input files can be prg files, Atari xex
 files, Oric tap files or located plain files (plain files that are given an
-address to load to.)
+address to load to.) Please note that all input file formats is valid for all
+sfx targets which can be a bit unexpected.
 
  To load a prg file to the address contained in its prg-header you simply add
 the file name to the command line. However it is also possible to give an
@@ -170,14 +171,16 @@ Here too, you can give an optional offset and length.
 
  When given multiple input files the sfx and mem commands loads all files to
 where they are located and then crunch the covered memory area. Any unused
-space between files will be zero-filled. The level command loads each input
-file separately, crunches it and then appends the crunched data to the output
-file.
+space between files will be zero-filled. Data segments in xex-files are loaded
+sequentially in the same way. INITAD segments in xex-files are ignored.
 
-The auto detection of xex or Oric tap files is not perfect. Prg files that load
-at $ffff or $1616 will be wrongly detected as xex or Oric tap. To disable the
-auto detection relocate the prg files to the same address they normally load
-to.
+ The level command, on the other hand, loads each input file separately,
+crunches it and then appends the crunched data to the output file.
+
+ The auto detection of xex or Oric tap files is not perfect. Prg files that
+load at $ffff or $1616 will be wrongly detected as xex or Oric tap. To disable
+the auto detection relocate the prg files to the same address they normally
+load to.
 
 -------------------------------------------------------------------------------
 -- The mem sub command --------------------------------------------------------
@@ -238,6 +241,12 @@ normally can't decrunch sfx-ed programs residing at the BASIC start since it
 has a memory hole that will overlap with the crunched data. By using systrim,
 the start of decrunched data will be moved a few bytes and by that also move
 the crunched data out of the memory hole.
+
+ If the run address is the string bin then the run address will be set to A
+where A is the start address of the combined memory area of the loaded in-
+files. An implicit -Di_load_addr=<A> will be used as well so the load and run
+addresses of the generated file will be A too. The generated file will not
+contain any basic stub.
 
  If the run address is the string basic then the computer will run a BASIC
 program after decrunch. This is not yet implemented for the Atari target.
@@ -484,6 +493,12 @@ My name is Magnus Lind and my email address is magli143@gmail.com
 
 The sfx decruncher is tweaked by defining optional symbols to the assembler on
 the command line using the -D<symbol>=<value> flag:
+
+The following symbol controls if headers are written to the sfx file:
+ i_raw
+
+ If it is set to anything but 0 then no headers will be written to the sfx file
+regardless of what the documentation of other optional symbols say.
 
 The following symbol controls the sfx load address:
  i_load_addr

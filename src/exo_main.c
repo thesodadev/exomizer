@@ -162,7 +162,7 @@ do_load(char *file_name, struct membuf *mem)
 
     info->basic_txt_start = -1;
 
-    load_located(file_name, p, info);
+    load_located(file_name, p, 0, info);
 
     /* move memory to beginning of buffer */
     membuf_truncate(mem, info->end);
@@ -187,7 +187,7 @@ static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
          int basic_txt_start, int sys_token,
-         int *basic_var_startp, int *runp, int trim_sys)
+         int *basic_var_startp, int *runp, int trim_sys, int prg_is_a2cc65)
 {
     int run = -1;
     int min_start = 65537;
@@ -205,7 +205,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     for (i = 0; i < filec; ++i)
     {
         info->basic_txt_start = basic_txt_start;
-        load_located(filev[i], p, info);
+        load_located(filev[i], p, prg_is_a2cc65, info);
         run = info->run;
         if(run != -1 && runp != NULL)
         {
@@ -373,7 +373,7 @@ void print_sfx_usage(const char *appl, enum log_level level,
 {
     /* done */
     LOG(level,
-        ("usage: %s sfx basic[,<start>[,<end>[,<high>]]]|sys[trim][,<start>]|<jmpaddress> [option]... infile[,<address>]...\n"
+        ("usage: %s sfx basic[,<start>[,<end>[,<high>]]]|sys[trim][,<start>]|bin|<jmpaddress> [option]... infile[,<address>]...\n"
          "  The sfx command generates outfiles that are intended to decrunch themselves.\n"
          "  The basic start argument will start a basic program.\n"
          "  The sys start argument will auto detect the start address by searching the\n"
@@ -383,7 +383,8 @@ void print_sfx_usage(const char *appl, enum log_level level,
          , appl));
     LOG(level,
         ("  the <jmpaddress> start argument will jmp to the given address.\n"
-         "  -t<target>    sets the decruncher target, must be one of 1, 20, 23, 52, 55\n""                16, 4, 64, 128, 162 or 168, default is 64\n"
+         "  -t<target>    sets the decruncher target, must be one of 1, 20, 23, 52, 55\n"
+         "                16, 4, 64, 128, 162 or 168, default is 64\n"
          "  -X<custom slow effect assembler fragment>\n"
          "  -x[1-3]|<custom fast effect assembler fragment>\n"
          "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
@@ -603,7 +604,7 @@ void mem(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
 
-        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0);
+        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0, 0);
         in_len = membuf_memlen(in);
 
         LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
@@ -700,8 +701,8 @@ get_target_info(int target)
             {128, 0x9e, 0x1c01, 0xff00,  "C128", "prg"},
             {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "bas"},
             {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},
-            {4032, 0x9e, 0x0401, 0x8000,  "PET CBM 4032"},
-            {0,   -1,   -1,     -1,  NULL}
+            {4032, 0x9e, 0x0401, 0x8000,  "PET CBM 4032", "prg"},
+            {0,   -1,   -1,     -1,  NULL, NULL}
         };
     const struct target_info *targetp;
     for(targetp = targets; targetp->id != 0; ++targetp)
@@ -791,7 +792,7 @@ void sfx(const char *appl, int argc, char *argv[])
     int basic_var_start = -1;
     int basic_highest_addr = -1;
     int decr_target = 64;
-    int sys_addr = -1;
+    int entry_addr = -1;
     int trim_sys = 0;
     int no_effect = 0;
     char *fast = NULL;
@@ -836,7 +837,7 @@ void sfx(const char *appl, int argc, char *argv[])
                 trim_sys = 1;
             }
             /* we should look for a basic sys command. */
-            sys_addr = -1;
+            entry_addr = -1;
             p = strtok(NULL, ",");
             /* look for an optional basic start address */
             if(p == NULL) break;
@@ -852,7 +853,7 @@ void sfx(const char *appl, int argc, char *argv[])
         else if(strcmp(p, "basic") == 0)
         {
             /* we should start a basic program. */
-            sys_addr = -2;
+            entry_addr = -2;
             p = strtok(NULL, ",");
             /* look for an optional basic start address */
             if(p == NULL) break;
@@ -887,8 +888,12 @@ void sfx(const char *appl, int argc, char *argv[])
                 exit(1);
             }
         }
-        else if(str_to_int(p, &sys_addr) != 0 ||
-                sys_addr < 0 || sys_addr >= 65536)
+        if (strcmp(p, "bin") == 0)
+        {
+            entry_addr = -3;
+        }
+        else if(str_to_int(p, &entry_addr) != 0 ||
+                entry_addr < 0 || entry_addr >= 65536)
         {
             /* we got an address we should jmp to. */
             LOG(LOG_ERROR,
@@ -1023,19 +1028,11 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     targetp = get_target_info(decr_target);
-    if(sys_addr == -2 && targetp->id == 168)
+    if(entry_addr == -2 && targetp->id == 0xa8)
     {
-        /* basic start not implemented for Apple and Atari targets */
+        /* basic start not implemented for Atari targets */
         LOG(LOG_ERROR, ("Start address \"basic\" is not supported for "
                         "the %s target.\n", targetp->model));
-        print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
-        exit(1);
-    }
-    if(sys_addr == -1 && targetp->id == 162)
-    {
-        /* auto detecting of start address not implemented for Apple target */
-        LOG(LOG_ERROR, ("Start address \"sys\" is not supported for "
-                        "the %s target\n", targetp->model));
         print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
         exit(1);
     }
@@ -1048,28 +1045,34 @@ void sfx(const char *appl, int argc, char *argv[])
     {
         int safety;
         int *basic_var_startp;
-        int *sys_addrp;
+        int *entry_addrp;
         int basic_start;
 
-        sys_addrp = NULL;
+        entry_addrp = NULL;
         basic_var_startp = NULL;
-        if(sys_addr == -2 && basic_var_start == -1)
+        if(entry_addr == -2 && basic_var_start == -1)
         {
             basic_var_startp = &basic_var_start;
         }
         basic_start = -1;
-        if(sys_addr < 0)
+        if(entry_addr == -1 || entry_addr == -2)
         {
             basic_start = basic_txt_start;
-            if(sys_addr == -1)
+            if(entry_addr == -1)
             {
-                sys_addrp = &sys_addr;
+                entry_addrp = &entry_addr;
             }
         }
 
         in_load = do_loads(infilec, infilev, in,
                            basic_start, targetp->sys_token,
-                           basic_var_startp, sys_addrp, trim_sys);
+                           basic_var_startp, entry_addrp, trim_sys,
+                           decr_target == 0xa2);
+        if (entry_addr == -3)
+        {
+            entry_addr = in_load;
+            set_initial_symbol("i_load_addr", in_load);
+        }
         in_len = membuf_memlen(in);
 
         if(in_load + in_len > targetp->end_of_ram)
@@ -1166,16 +1169,16 @@ void sfx(const char *appl, int argc, char *argv[])
 
     LOG(LOG_NORMAL, (" Target is self-decrunching %s executable",
                      targetp->model));
-    if(sys_addr == -1)
+    if(entry_addr == -1)
     {
         LOG(LOG_ERROR, ("\nError: can't find sys address (token $%02X)"
                         " at basic text start ($%04X).\n",
                         targetp->sys_token, basic_txt_start));
         exit(1);
     }
-    if(sys_addr != -2)
+    if(entry_addr != -2)
     {
-        LOG(LOG_NORMAL, (",\n jmp address $%04X.\n", sys_addr));
+        LOG(LOG_NORMAL, (",\n jmp address $%04X.\n", entry_addr));
     }
     else
     {
@@ -1195,7 +1198,7 @@ void sfx(const char *appl, int argc, char *argv[])
         out = buf1;
         membuf_clear(out);
 
-        set_initial_symbol("r_start_addr", sys_addr);
+        set_initial_symbol("r_start_addr", entry_addr);
         /*initial_symbol_dump( LOG_NORMAL, "r_start_addr");*/
         set_initial_symbol("r_target", decr_target);
         /*initial_symbol_dump( LOG_NORMAL, "r_target");*/
@@ -1204,7 +1207,7 @@ void sfx(const char *appl, int argc, char *argv[])
         set_initial_symbol("r_in_len", in_len);
         /*initial_symbol_dump( LOG_NORMAL, "r_in_len");*/
 
-        if(sys_addr == -2)
+        if(entry_addr == -2)
         {
             /* only set this if its changed from the default. */
             if(basic_txt_start != targetp->basic_txt_start)
@@ -1250,6 +1253,7 @@ void sfx(const char *appl, int argc, char *argv[])
             i32 lowest_addr_out;
             i32 highest_addr_out;
             i32 i_table_addr;
+            i32 stage3end, zp_len_lo, zp_len_hi, zp_src_lo, zp_bits_hi;
             i32 i_effect;
             i32 i_ram_enter, i_ram_during, i_ram_exit;
             i32 i_irq_enter, i_irq_during, i_irq_exit;
@@ -1266,6 +1270,11 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("lowest_addr_out", NULL, &lowest_addr_out);
             resolve_symbol("highest_addr_out", NULL, &highest_addr_out);
             resolve_symbol("i_table_addr", NULL, &i_table_addr);
+            resolve_symbol("stage3end", NULL, &stage3end);
+            resolve_symbol("zp_len_lo", NULL, &zp_len_lo);
+            resolve_symbol("zp_len_hi", NULL, &zp_len_hi);
+            resolve_symbol("zp_src_lo", NULL, &zp_src_lo);
+            resolve_symbol("zp_bits_hi", NULL, &zp_bits_hi);
             resolve_symbol("i_effect2", NULL, &i_effect);
             resolve_symbol("i_irq_enter", NULL, &i_irq_enter);
             resolve_symbol("i_irq_during", NULL, &i_irq_during);
@@ -1278,12 +1287,15 @@ void sfx(const char *appl, int argc, char *argv[])
 
             LOG(LOG_NORMAL, ("Memory layout:   |Start |End   |\n"));
             LOG(LOG_NORMAL, (" Crunched data   | $%04X| $%04X|\n",
-                                 lowest_addr, lowest_addr + max_transfer_len));
+                             lowest_addr, lowest_addr + max_transfer_len));
             LOG(LOG_NORMAL, (" Decrunched data | $%04X| $%04X|\n",
                  in_load, in_load + in_len));
             LOG(LOG_NORMAL, (" Decrunch table  | $%04X| $%04X|\n",
                              i_table_addr, i_table_addr + table_size));
-            LOG(LOG_NORMAL, (" Decruncher      | $00FC| $01SP|\n"));
+            LOG(LOG_NORMAL, (" Decruncher      | $00FD| $%04X| and ",
+                             stage3end));
+            LOG(LOG_NORMAL, ("$%02X,$%02X,$%02X,$%02X-$%02X\n", zp_bits_hi,
+                             zp_len_lo, zp_len_hi, zp_src_lo, zp_src_lo + 1));
             if(i_effect == 0 && !resolve_symbol("i_effect_custom", NULL, NULL))
             {
                 resolve_symbol("c_effect_color", NULL, &c_effect_color);
@@ -1478,7 +1490,7 @@ void desfx(const char *appl, int argc, char *argv[])
 
     /* load file, don't care about tracking basic*/
     info->basic_txt_start = -1;
-    load_located(infilev[0], p, info);
+    load_located(infilev[0], p, 0, info);
 
     if(entry == -1)
     {

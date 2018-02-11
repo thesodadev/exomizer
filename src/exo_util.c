@@ -110,31 +110,66 @@ static int get_be_word(FILE *in)
     return word;
 }
 
+static int tell_remaining(FILE *in, int offset)
+{
+    int position;
+    int remaining;
+
+    position = ftell(in);
+    /* get the real length of the file and validate the offset*/
+    if(fseek(in, 0, SEEK_END))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to EOF.\n"));
+        fclose(in);
+        exit(1);
+    }
+    remaining = ftell(in) - position;
+
+    if(offset < 0)
+    {
+        offset += remaining;
+    }
+    position += offset;
+
+    if(fseek(in, position, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
+        fclose(in);
+        exit(1);
+    }
+    return remaining;
+}
+
 /**
  * if the file is detected to be xex then load_addr will be set to -1
  * if the file is detected to be oric tap then load_addr will be set to -2
  * if the name contains no len info then *lenp will be set to -1. If the name
  * contains negative len then *lenp will be set to len - 1.
  * if the name contains no offset info then *offsetp will be set to 0.
- * if the file is detected as a prg then the prg header will be read.
+ * if the file is not detected as a xex or a tap and the name doesn't contain
+ * a @<addr> to indicate a located raw file, then defaults to prg and the prg
+ * header will read.
+ * if the file is detected as a xex or tap file the first two bytes will
+ * be read.
  */
 static
 FILE *
-open_file(char *name, int *load_addr, int *offsetp, int *lenp)
+open_file(char *name, int prg_is_a2cc65,
+          int *load_addr, int *offsetp, int *lenp)
 {
-    FILE * in;
-    int is_plain = 0;
+    FILE *in;
+    int is_raw = 0;
     int is_relocated = 0;
 
-    int tries = 0;
-    int tries_arr[3];
-    for (;;)
+    int tries;
+    char *tries_arr[3];
+    for (tries = 0;; ++tries)
     {
         char *load_str;
         char *at_str;
 
         in = fopen(name, "rb");
-        if (in != NULL || is_plain == 1 || tries == 3)
+        if (in != NULL || is_raw == 1 || tries == 3)
         {
             /* We have succeded in opening the file.
              * There's no address suffix. */
@@ -146,7 +181,7 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         at_str = strrchr(name, '@');
         if(at_str != NULL && (load_str == NULL || at_str > load_str))
         {
-            is_plain = 1;
+            is_raw = 1;
             load_str = at_str;
         }
 
@@ -161,13 +196,7 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         ++load_str;
 
         /* relocation was requested */
-        if (str_to_int(load_str, &tries_arr[tries++]) != 0)
-        {
-            /* we fail */
-            LOG(LOG_ERROR,
-                (" can't parse load address from \"%s\"\n", load_str));
-            exit(1);
-        }
+        tries_arr[tries] = load_str;
     }
     if (in == NULL)
     {
@@ -182,28 +211,66 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
         int len = -1;
         if (--tries >= 0)
         {
-            load = tries_arr[tries];
-        }
-        if (--tries >= 0)
-        {
-            offset = tries_arr[tries];
-        }
-        if (--tries >= 0)
-        {
-            int val = tries_arr[tries];
-            if (val < 0)
+            char *p = tries_arr[tries];
+            if (p[0] != '\0' && str_to_int(p, &load) != 0)
             {
-                /* make room for -1 to mean no explicit len */
-                val -= 1;
+                /* we fail */
+                LOG(LOG_ERROR, (" can't parse load address from \"%s\"\n", p));
+                exit(1);
             }
-            len = val;
+        }
+        if (--tries >= 0)
+        {
+            char *p = tries_arr[tries];
+            if (p[0] != '\0' && str_to_int(p, &offset) != 0)
+            {
+                /* we fail */
+                LOG(LOG_ERROR, (" can't parse offset from \"%s\"\n", p));
+                exit(1);
+            }
+        }
+        if (--tries >= 0)
+        {
+            int val;
+            char *p = tries_arr[tries];
+            if (p[0] != '\0')
+            {
+                if (str_to_int(p, &val) != 0)
+                {
+                    /* we fail */
+                    LOG(LOG_ERROR, (" can't parse length from \"%s\"\n", p));
+                    exit(1);
+                }
+                if (val < 0)
+                {
+                    /* make room for -1 to mean no explicit len */
+                    val -= 1;
+                }
+                len = val;
+            }
         }
 
-        if(!is_plain)
+        if(!is_raw)
         {
             /* read the prg load address */
             int prg_load = get_le_word(in);
-            if(!is_relocated)
+            if (prg_is_a2cc65)
+            {
+                int a2_cc65_len;
+                int actual_len;
+                /* The a2 cc65 header contains 16 bits length too */
+                a2_cc65_len = get_le_word(in);
+                actual_len = tell_remaining(in, 0);
+                if (actual_len != a2_cc65_len)
+                {
+                    /* Nope, not a a2_cc65_len */
+                    LOG(LOG_ERROR, ("Error: cc65 header of \"%s\" is corrupt.",
+                                    name));
+                    fclose(in);
+                    exit(1);
+                }
+            }
+            if(!is_relocated || load == -3)
             {
                 load = prg_load;
                 /* unrelocated prg loading to $ffff is xex */
@@ -237,6 +304,7 @@ open_file(char *name, int *load_addr, int *offsetp, int *lenp)
     return in;
 }
 
+/* Handles xex files where the first two bytes has been skipped too. */
 static void load_xex(unsigned char mem[65536], FILE *in,
                      struct load_info *info)
 {
@@ -309,6 +377,7 @@ static void load_xex(unsigned char mem[65536], FILE *in,
     }
 }
 
+/* Handles tap files where the first two bytes has been skipped too. */
 static void load_oric_tap(unsigned char mem[65536], FILE *in,
                           struct load_info *info)
 {
@@ -379,31 +448,16 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
 /* (len == -1) => no length was given
  * (len >= 0) => given length == len
  * (len < -1) => given length == len + 1 */
-static void load_prg(unsigned char mem[65536], FILE *in,
+static void load_raw(unsigned char mem[65536], FILE *in,
                      int offset, int len,
                      struct load_info *info)
 {
-    int header_offset;
     int file_len;
 
-    header_offset = ftell(in);
-    /* get the real length of the file and validate the offset*/
-    if(fseek(in, 0, SEEK_END))
-    {
-        LOG(LOG_ERROR, ("Error: can't seek to EOF.\n"));
-        fclose(in);
-        exit(1);
-    }
-    file_len = ftell(in) - header_offset;
+    file_len = tell_remaining(in, offset);
     if(offset < 0)
     {
         offset += file_len;
-    }
-    if(fseek(in, offset + header_offset, SEEK_SET))
-    {
-        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
-        fclose(in);
-        exit(1);
     }
     if(len < 0)
     {
@@ -435,12 +489,13 @@ static void load_prg(unsigned char mem[65536], FILE *in,
 }
 
 void load_located(char *filename, unsigned char mem[65536],
+                  int prg_is_a2cc65,
                   struct load_info *info)
 {
     int load, offset, len;
     FILE *in;
 
-    in = open_file(filename, &load, &offset, &len);
+    in = open_file(filename, prg_is_a2cc65, &load, &offset, &len);
     if(load == -1)
     {
         /* file is an xex file */
@@ -453,9 +508,10 @@ void load_located(char *filename, unsigned char mem[65536],
     }
     else
     {
-        /* file is a located plain file or a prg file */
+        /* file is a located raw file or a prg file
+         * with it's header already read */
         info->start = load;
-        load_prg(mem, in, offset, len, info);
+        load_raw(mem, in, offset, len, info);
     }
     fclose(in);
 
