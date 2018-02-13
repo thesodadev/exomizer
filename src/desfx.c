@@ -39,16 +39,33 @@ struct mem_ctx
 static void mem_access_write(struct mem_access *this, u16 address, u8 value)
 {
     struct mem_ctx *ctx = this->ctx;
+
+    if ((ctx->mem[1] & 4) == 4 && (ctx->mem[1] & 3) != 0 &&
+        address >= 0xd000 && address < 0xe000)
+    {
+        /* IO-area written and visible */
+        return;
+    }
+
     ctx->mem[address] = value;
 
-    if (address > ctx->end)
+    if (address < 0x334)
     {
-        ctx->end = address + 1;
+        return;
+    }
+
+    if (address < ctx->start - 1 || address > ctx->end)
+    {
         ctx->start = address;
+        ctx->end = address + 1;
     }
     else if (address + 1 == ctx->start)
     {
         ctx->start = address;
+    }
+    else if (address == ctx->end)
+    {
+        ctx->end = address + 1;
     }
 }
 
@@ -73,6 +90,7 @@ u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *startp, u16 *endp, u32 *cyclesp)
     m.start = 0xffff;
     m.end = 0;
     m.mem = mem;
+    m.mem[1] = 0x37;
 
     LOG(LOG_DEBUG, ("run %04x\n", run));
 
@@ -88,19 +106,6 @@ u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *startp, u16 *endp, u32 *cyclesp)
     /* decrunching */
     while(r.pc < 0x400)
     {
-        /* is this an absolute sta, stx or sty to the IO-area? */
-        int op_code = MEM_ACCESS_READ(&r.mem, r.pc);
-        int addr = mem_access_read_u16le(&r.mem, r.pc + 1);
-
-        if((op_code == 0x8d || op_code == 0x8e || op_code == 0x8c) &&
-           addr >= 0xd000 && addr < 0xe000)
-        {
-            /* ignore it, its probably an effect */
-            LOG(LOG_DEBUG, ("ignoring sta/stx/sty to IO %02x $%04X\n",
-                           op_code, addr));
-            r.pc += 3;
-        }
-
         next_inst(&r);
     }
     LOG(LOG_DEBUG, ("start %04x @%u\n", m.start, r.cycles));
