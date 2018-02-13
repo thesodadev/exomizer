@@ -1,3 +1,12 @@
+2017-02-11
+Release of 2.0.11 preview 1
++ Add i_raw assembler directive for sfx to generate header less output.
++ Make sfx 0xa2 fall back to 4 byte Apple II cc65 headers for in-files instead
+  of prg-headers.
++ Add sfx bin directive as a shortcut for creating sfx files with as little
+  impact on memory outside of the decrunched area as possible. Perfect for
+  crunching Apple II binary files.
+
 2017-12-25
 Release of 2.0.10 source code and Win32 binaries.
 + Fix broken things in rawdecrs folder since 2.0.9
