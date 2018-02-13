@@ -287,6 +287,14 @@ open_file(char *name, int prg_is_a2cc65,
                 }
             }
         }
+        else if (load == -3)
+        {
+            /* is_Raw && no load address given */
+            LOG(LOG_ERROR,
+                ("Error: No load address given for raw file \"%s\".", name));
+            fclose(in);
+            exit(1);
+        }
 
         if(load_addr != NULL)
         {

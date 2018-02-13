@@ -125,31 +125,38 @@ files, Oric tap files or located plain files (plain files that are given an
 address to load to.) Please note that all input file formats is valid for all
 sfx targets which can be a bit unexpected.
 
+ Plain raw files are loaded by adding an address to it using the @-character.
+It is also possible to specify an optional offset and optional length if only a
+part of the file is to be loaded. Like addresses, the offsets and the lengths
+can be given in either decimal or hexadecimal notation using either 0x or $
+prefixes. The offset can also be negative and will then be applied from the end
+of the file instead of from the start.
+
+<file name>@<load address>[,[<offset>][,[<length>]]]
+
+* To load a raw file to 0x3456, append @0x3456 to the file name.
+* To load a raw file to 0x0400 and skip the 16 first bytes and read the
+  following 37 bytes, append @0x400,16,37 to the file name.
+* To load the first 256 bytes of a raw file to 0x0900, append @$900,,256 or
+  @$900,0,256 to the file name.
+
  To load a prg file to the address contained in its prg-header you simply add
-the file name to the command line. However it is also possible to give an
-optional offset to start from in the file and a length using the full prg file
-loading syntax:
-<file name>[,<new load address>[,<offset>[,<length>]]]
+the file name to the command line. Yoy can append an optional alternative load
+address to the file name to override the load address in the header. And like
+for the raw files it is also possible to specify an optional offset to start
+from in the file and a length.
+
+<file name>[,[<new load address>][,[<offset>][,[<length>]]]]
 
 Examples:
-* To load a prg file to the address contained in its prg header
-  $ exomizer mem test.prg -o <output prg file name>
-* To load a prg file to 0x3456
-  $ exomizer mem test.prg,0x3456 -o <output prg file name>
-* To load a prg file to 0x400 and skip the 16 first bytes:
-  $ exomizer mem test.prg,0x400,16 -o <output prg file name>
-* To load the last 254 bytes of a file to 0x3450.
-  $ exomizer mem test.prg,0x3450,-0xfe -o <output prg file name>
-* To skip 123 bytes and then load 254 bytes of a file to 0x3450.
-  $ exomizer mem test.prg,0x3450,123,254 -o <output prg file name>
+* To load a prg file to 0x3456, append ,0x3456 to the file name.
+* To load a prg file to its default address and skip the 16 first bytes, append
+  ,,16 to the file name.
+* To load the last 254 bytes of a file to 0x3450, append ,0x3450,-0xfe to the
+  file name.
 
  Relocation does not work for xex or tap files. A relocated xex or tap file
 will simply be treated as if it was a relocated prg file.
-
-Plain raw files are loaded using a different but similar syntax:
-<file name>@<new load address>[,<offset>[,<length>]]
-
-Here too, you can give an optional offset and length.
 
  When given multiple input files the sfx and mem commands loads all files to
 where they are located and then crunch the covered memory area. Any unused
