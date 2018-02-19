@@ -869,12 +869,12 @@ oric_ROM11:
 ; -- Oric-1 file header stuff ---------------------------------------
 ; -------------------------------------------------------------------
   .IF(r_start_addr == -2)
-.IF(!.DEFINED(i_raw) || i_raw == 0)
+    .IF(!.DEFINED(i_raw) || i_raw == 0)
         .BYTE($16,$16,$16,$24,$00,$00,$00,$c7)
         .BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
         .BYTE(c_basic_start / 256, c_basic_start % 256)
         .BYTE(0, 0)
-.ENDIF
+    .ENDIF
         .ORG(c_basic_start)
 lowest_addr_out:
         .WORD(basic_end, i_line_number)
@@ -888,7 +888,7 @@ basic_end:
         .BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
         .BYTE(o1_start / 256, o1_start % 256)
         .BYTE(0, 0)
-.ENDIF
+    .ENDIF
     .IF(!.DEFINED(i_load_addr))
         .ORG($0500)
     .ELSE
@@ -904,15 +904,15 @@ o1_start:
 ; -- Commodore file header stuff ------------------------------------
 ; -------------------------------------------------------------------
   .IF(.DEFINED(i_load_addr))
-.IF(!.DEFINED(i_raw) || i_raw == 0)
+    .IF(!.DEFINED(i_raw) || i_raw == 0)
         .WORD(i_load_addr)
-.ENDIF
+    .ENDIF
         .ORG(i_load_addr)
 lowest_addr_out:
   .ELSE
-.IF(!.DEFINED(i_raw) || i_raw == 0)
+    .IF(!.DEFINED(i_raw) || i_raw == 0)
         .WORD(c_basic_start)
-.ENDIF
+    .ENDIF
         .ORG(c_basic_start)
 lowest_addr_out:
         .WORD(basic_end, i_line_number)
@@ -934,9 +934,9 @@ cbm_start:
 ; -------------------------------------------------------------------
 ; -- Atari file header stuff ------------------------------------
 ; -------------------------------------------------------------------
-.IF(!.DEFINED(i_raw) || i_raw == 0)
+  .IF(!.DEFINED(i_raw) || i_raw == 0)
         .WORD($FFFF, a8_start, a8_end - 1)
-.ENDIF
+  .ENDIF
   .IF(!.DEFINED(i_load_addr))
         .ORG($2000)
   .ELSE
@@ -948,17 +948,52 @@ a8_start:
 ; -------------------------------------------------------------------
 ; -- Apple file header stuff ------------------------------------
 ; -------------------------------------------------------------------
+  .IF(!.DEFINED(i_raw) || i_raw == 0)
+        .ORG(0)
+as_start:
+        ;; prodos file, AppleSingle header
+        ;; http://apple2online.com/web_documents/ft_e0.0001_applesingle.pdf
+        ;; http://kaiser-edv.de/documents/AppleSingle_AppleDouble.pdf
+        .BYTE($00, $05, $16, $00) ; magic
+        .BYTE($00, $02, $00, $00) ; version
+        .BYTE($00, $00, $00, $00, $00, $00, $00, $00) ; filler
+        .BYTE($00, $00, $00, $00, $00, $00, $00, $00)
+        .BYTE($00, $02)         ; number of entries
+        ;; PRODOS entry descriptor
+        .BYTE($00, $00, $00, $0b) ; entry ID
+        .BYTE($00, $00, $00, as_prodos_entry - as_start) ; offset
+        .BYTE($00, $00, $00, $08) ; length
+        ;; data entry descriptor
+        .BYTE($00, $00, $00, $01) ; entry ID
+        .BYTE($00, $00, $00, as_data_entry - as_start) ; offset
+        .BYTE($00, $00,
+              (a2_end - a2_load) / 256, (a2_end - a2_load) % 256) ; length
+as_prodos_entry:
+        ;; PRODOS entry
+    .IF(.DEFINED(i_load_addr))
+      .IF(i_load_addr == $2000)
+as_prodos_filetype = $ff
+      .ELSE
+as_prodos_filetype = 6
+      .ENDIF
+        .BYTE($00, $c3) ; access
+        .BYTE($00, as_prodos_filetype) ; filetype
+        .BYTE($00, $00,
+              i_load_addr / 256, i_load_addr % 256) ; aux file type
+    .ELSE
+        ;; Applesoft basic file
+        .BYTE($00, $c3) ; access
+        .BYTE($00, $fc) ; filetype
+        .BYTE($00, $00,
+              c_basic_start / 256, c_basic_start % 256) ; aux file type
+    .ENDIF
+as_data_entry:
+  .ENDIF
   .IF(.DEFINED(i_load_addr))
-.IF(!.DEFINED(i_raw) || i_raw == 0)
-        ;; binary file, cc65 header
-        .WORD(i_load_addr)
-        .WORD(a2_end - a2_load)
-.ENDIF
         .ORG(i_load_addr)
 lowest_addr_out:
 a2_load:
   .ELSE
-        ;; Applesoft basic file, no header
         .ORG(c_basic_start)
 lowest_addr_out:
 a2_load:
@@ -972,12 +1007,12 @@ basic_end:
   .ENDIF
 ; -------------------------------------------------------------------
 a2_start:
-    .IF(.DEFINED(i_a2_disable_dos))
+  .IF(.DEFINED(i_a2_disable_dos))
         lda #$00
         jsr $fe95
         lda #$00
         jsr $fe8b
-    .ENDIF
+  .ENDIF
 .ELSE
   .ERROR("Unhandled target for file header stuff")
 .ENDIF

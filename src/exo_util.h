@@ -47,7 +47,6 @@ struct load_info
 };
 
 void load_located(char *filename, unsigned char mem[65536],
-                  int prg_is_a2cc65,
                   struct load_info *info);
 
 int str_to_int(const char *str, int *value);
