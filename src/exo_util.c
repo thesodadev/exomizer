@@ -506,7 +506,8 @@ static int cb_cmp_as_descr_id(const void *a, const void *b)
  * Also validates that the file type is binary or Applesoft basic.
  */
 static int load_applesingle_prodos_entry(FILE *in,
-                                         struct as_descr *prodos)
+                                         struct as_descr *prodos,
+                                         int *file_type)
 {
     int type;
     int load_addr;
@@ -555,6 +556,10 @@ static int load_applesingle_prodos_entry(FILE *in,
         fclose(in);
         exit(1);
     }
+    if (file_type != NULL)
+    {
+        *file_type = type;
+    }
     return load_addr;
 }
 
@@ -570,6 +575,8 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
     struct as_descr *datap;
     struct as_descr key;
     int load_addr;
+    int run;
+    int file_type;
     int length;
 
     /* read oric tap header */
@@ -631,7 +638,7 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
         exit(1);
     }
 
-    load_addr = load_applesingle_prodos_entry(in, prodosp);
+    load_addr = load_applesingle_prodos_entry(in, prodosp, &file_type);
 
     if (fseek(in, datap->offset, SEEK_SET) != 0)
     {
@@ -654,16 +661,30 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
         exit(1);
     }
 
+    run = -1;
+    if (file_type != 0xfc)
+    {
+        run = load_addr;
+    }
+
     if (load_info != NULL)
     {
         load_info->start = load_addr;
         load_info->end = load_addr + datap->length;
-        load_info->run = -1;
+        load_info->run = run;
         load_info->basic_var_start = -1;
-        if(load_info->basic_txt_start >= load_info->start &&
-           load_info->basic_txt_start < load_info->end)
+
+        if (file_type != 0xff)
         {
-            load_info->basic_var_start = load_info->end;
+            if (load_info->basic_txt_start >= load_info->start &&
+                load_info->basic_txt_start < load_info->end)
+            {
+                load_info->basic_var_start = load_info->end;
+            }
+        }
+        else
+        {
+            load_info->basic_var_start = load_addr;
         }
     }
 

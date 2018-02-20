@@ -948,6 +948,13 @@ a8_start:
 ; -------------------------------------------------------------------
 ; -- Apple file header stuff ------------------------------------
 ; -------------------------------------------------------------------
+  .IF(!.DEFINED(i_a2_file_type))
+    .IF(.DEFINED(i_load_addr))
+i_a2_file_type = 6              ; binary
+    .ELSE
+i_a2_file_type = $fc            ; Applesoft basic
+    .ENDIF
+  .ENDIF
   .IF(!.DEFINED(i_raw) || i_raw == 0)
         .ORG(0)
 as_start:
@@ -970,20 +977,13 @@ as_start:
               (a2_end - a2_load) / 256, (a2_end - a2_load) % 256) ; length
 as_prodos_entry:
         ;; PRODOS entry
-    .IF(.DEFINED(i_load_addr))
-      .IF(i_load_addr == $2000)
-as_prodos_filetype = $ff
-      .ELSE
-as_prodos_filetype = 6
-      .ENDIF
         .BYTE($00, $c3) ; access
-        .BYTE($00, as_prodos_filetype) ; filetype
+        .BYTE($00, i_a2_file_type) ; filetype
+    .IF(.DEFINED(i_load_addr))
         .BYTE($00, $00,
               i_load_addr / 256, i_load_addr % 256) ; aux file type
     .ELSE
         ;; Applesoft basic file
-        .BYTE($00, $c3) ; access
-        .BYTE($00, $fc) ; filetype
         .BYTE($00, $00,
               c_basic_start / 256, c_basic_start % 256) ; aux file type
     .ENDIF

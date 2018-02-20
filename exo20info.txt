@@ -273,10 +273,10 @@ with a BASIC line.
 
  For the Atari target the output is a auto running xex-file.
 
- For the Apple target the output is an Apple Single file that almost always
-is a PRODOS bin file (filetype 6). But if the load address is $2000 then it is
-a PRODOS system file (filetype $ff). Unless the run address is the string
-basic, then it is a PRODOS Applesoft basic file. (filetype $fc)
+ For the Apple target the output is an AppleSingle file that almost always
+is a PRODOS bin file (filetype 6). But if the loaded file was a AppleSingle
+system file it will be a system file too (filetype $ff). Unless the run address
+is the string basic, then it is a PRODOS Applesoft basic file. (filetype $fc)
 
 For the Oric family the output is a Oric tap file.
 
@@ -547,7 +547,14 @@ The Apple ][+ target has an option to disconnect DOS. To do this, set the
 i_a2_disable_dos symbol to any value:
  -Di_a2_disable_dos=1
 
-Effects are no longer selected by the use of symbols. They are now chosen by
+The Apple ][+ target writes files in the AppleSingle format. This option
+overrides the PRODOS filetype of the target file to the set value. To force a
+file of system type set the i_a2_file_type symbol to the file type value.
+See http://www.easy68k.com/paulrsm/6502/PDOS8TRM.HTM#B.4.2.4 for a list of
+valid file types:
+ -Di_a2_file_type=<filetype>
+
+Decruncher effects are not selected by the use of symbols. They are chosen by
 the -x or -X flags or deactivated by -n.
 
 -------------------------------------------------------------------------------

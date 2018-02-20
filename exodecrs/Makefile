@@ -6,7 +6,7 @@ LDFLAGS = -s
 #CFLAGS = -g -mtune=i686 $(WFLAGS)
 #LDFLAGS = -g -mtune=i686
 
-TEST_OBJS = testrun.o ../src/6502emu.o ../src/exo_util.o ../src/log.o
+TEST_OBJS = testrun.o ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/vec.o ../src/membuf.o
 
 SOURCES = main.os exodecrunch.os data.os
 SOURCESF = mainf.os krilldecr.os dataf.os

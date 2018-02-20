@@ -1006,6 +1006,8 @@ void sfx(const char *appl, int argc, char *argv[])
         int *basic_var_startp;
         int *entry_addrp;
         int basic_start;
+        int bin_var_start;
+        int bin_entry_addr;
 
         entry_addrp = NULL;
         basic_var_startp = NULL;
@@ -1022,6 +1024,13 @@ void sfx(const char *appl, int argc, char *argv[])
                 entry_addrp = &entry_addr;
             }
         }
+        if (entry_addr == -3)
+        {
+            bin_var_start = -1;
+            bin_entry_addr = -1;
+            basic_var_startp = &bin_var_start;
+            entry_addrp = &bin_entry_addr;
+        }
 
         in_load = do_loads(infilec, infilev, in,
                            basic_start, targetp->sys_token,
@@ -1029,7 +1038,14 @@ void sfx(const char *appl, int argc, char *argv[])
         if (entry_addr == -3)
         {
             entry_addr = in_load;
-            set_initial_symbol("i_load_addr", in_load);
+            set_initial_symbol_soft("i_load_addr", in_load);
+            if (decr_target == 0xa2 &&
+                bin_var_start == entry_addr &&
+                bin_entry_addr == entry_addr)
+            {
+                /* magic for indicating Apple ][ PRODOS system file */
+                set_initial_symbol_soft("i_a2_file_type", 0xff);
+            }
         }
         in_len = membuf_memlen(in);
 
