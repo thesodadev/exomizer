@@ -966,15 +966,15 @@ as_start:
         .BYTE($00, $00, $00, $00, $00, $00, $00, $00) ; filler
         .BYTE($00, $00, $00, $00, $00, $00, $00, $00)
         .BYTE($00, $02)         ; number of entries
-        ;; PRODOS entry descriptor
-        .BYTE($00, $00, $00, $0b) ; entry ID
-        .BYTE($00, $00, $00, as_prodos_entry - as_start) ; offset
-        .BYTE($00, $00, $00, $08) ; length
         ;; data entry descriptor
         .BYTE($00, $00, $00, $01) ; entry ID
         .BYTE($00, $00, $00, as_data_entry - as_start) ; offset
         .BYTE($00, $00,
               (a2_end - a2_load) / 256, (a2_end - a2_load) % 256) ; length
+        ;; PRODOS entry descriptor
+        .BYTE($00, $00, $00, $0b) ; entry ID
+        .BYTE($00, $00, $00, as_prodos_entry - as_start) ; offset
+        .BYTE($00, $00, $00, $08) ; length
 as_prodos_entry:
         ;; PRODOS entry
         .BYTE($00, $c3) ; access
