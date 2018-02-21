@@ -48,7 +48,7 @@ struct open_info
     int is_raw;
     int load_addr;
     int offset;
-    int len;
+    int length;
 };
 
 int find_sys(const unsigned char *buf, int sys_token, int *stub_lenp)
@@ -140,12 +140,22 @@ static unsigned int get_be_dword(FILE *in)
     return word;
 }
 
-static int tell_remaining(FILE *in, int offset)
+/**
+ * Normalizes and validates given offsets and lengths and seeks to the
+ * normalized offset. Offsets are relative current position of the in file
+ * unless they are negative, then they are relative to eof of in.
+ * after searching to the resulting offset the length is normalised.
+ * if it is negative it is added to the remaining length of the file.
+ */
+static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
 {
-    int position;
+    int file_pos;
+    int file_len;
+    int offset;
     int remaining;
+    int length;
 
-    position = ftell(in);
+    file_pos = ftell(in);
     /* get the real length of the file and validate the offset*/
     if(fseek(in, 0, SEEK_END))
     {
@@ -153,21 +163,56 @@ static int tell_remaining(FILE *in, int offset)
         fclose(in);
         exit(1);
     }
-    remaining = ftell(in) - position;
-
-    if(offset < 0)
+    file_len = ftell(in);
+    offset = info->offset;
+    if (offset == OPEN_UNPROVIDED)
     {
-        offset += remaining;
+        offset = 0;
     }
-    position += offset;
-
-    if(fseek(in, position, SEEK_SET))
+    if (offset < 0)
     {
-        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
+        offset += file_len;
+    }
+    else
+    {
+        offset += file_pos;
+    }
+    if (offset < file_pos || offset > file_len)
+    {
+        /* bad offset */
+        LOG(LOG_ERROR, ("Error: offset %d (%d) out of range.\n",
+                        info->offset, offset));
         fclose(in);
         exit(1);
     }
-    return remaining;
+    if(fseek(in, offset, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: seek to offset %d (%d) failed.\n",
+                        info->offset, offset));
+        fclose(in);
+        exit(1);
+    }
+    remaining = file_len - offset;
+    length = info->length;
+    if (length == OPEN_UNPROVIDED)
+    {
+        length = remaining;;
+    }
+    if (length < 0)
+    {
+        length += remaining;;
+    }
+    if (length < 0 || length > remaining)
+    {
+        /* bad offset */
+        LOG(LOG_ERROR, ("Error: length %d (%d) out of range.\n",
+                        info->length, length));
+        fclose(in);
+        exit(1);
+    }
+
+    info->offset = offset;
+    info->length = length;
 }
 
 /**
@@ -270,7 +315,7 @@ open_file(char *name, struct open_info *open_info)
         open_info->is_raw = is_raw;
         open_info->load_addr = load;
         open_info->offset = offset;
-        open_info->len = len;
+        open_info->length = len;
     }
     return in;
 }
@@ -700,7 +745,6 @@ static void load_raw(unsigned char mem[65536], FILE *in,
                      struct load_info *load_info)
 {
     int len;
-    int offset = 0;
 
     if (open_info->load_addr == OPEN_UNPROVIDED)
     {
@@ -710,44 +754,8 @@ static void load_raw(unsigned char mem[65536], FILE *in,
         exit(1);
     }
 
-    if (open_info->offset != OPEN_UNPROVIDED)
-    {
-        offset = open_info->offset;
-    }
-
-    len = tell_remaining(in, offset);
-
-    if(offset < 0)
-    {
-        /* normalize negative offset*/
-        offset += len;
-    }
-    if (open_info->len != OPEN_UNPROVIDED)
-    {
-        if (open_info->len < 0)
-        {
-            /* normalize negative offset*/
-            len += open_info->len;
-        }
-        else
-        {
-            len = open_info->len;
-        }
-    }
-    if(len < 0)
-    {
-        LOG(LOG_ERROR, ("Error: can't read %d bytes from offset %d.\n",
-                        len, offset));
-        fclose(in);
-        exit(1);
-    }
-    if (len == 0 || len > 65536 - open_info->load_addr)
-    {
-        /* limit len to available buffer space */
-        len = 65536 - open_info->load_addr;
-    }
-
-    len = fread(mem + open_info->load_addr, 1, len, in);
+    seek_and_normalize_offset_and_len(in, open_info);
+    len = fread(mem + open_info->load_addr, 1, open_info->length, in);
 
     if (load_info != NULL)
     {
