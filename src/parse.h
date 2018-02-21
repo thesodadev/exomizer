@@ -88,6 +88,7 @@ void parse_init(void);
 void parse_free(void);
 
 void set_initial_symbol(const char *symbol, i32 value);
+void set_initial_symbol_soft(const char *symbol, i32 value);
 void initial_symbol_dump(int level, const char *symbol);
 
 struct membuf *new_initial_named_buffer(const char *name);

@@ -201,6 +201,15 @@ void set_initial_symbol(const char *symbol, i32 value)
     map_put(s->initial_symbols, symbol, e);
 }
 
+void set_initial_symbol_soft(const char *symbol, i32 value)
+{
+    if (!map_contains_key(s->initial_symbols, symbol))
+    {
+        struct expr *e = new_expr_number(value);
+        map_put(s->initial_symbols, symbol, e);
+    }
+}
+
 struct membuf *new_initial_named_buffer(const char *name)
 {
     return new_named_buffer(s->initial_named_buffer, name);

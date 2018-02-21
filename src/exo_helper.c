@@ -210,8 +210,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
 {
     matchp_cache_enum mpce;
     matchp_snp_enum snpe;
-    struct search_node *snp;
-    struct search_node *best_snp;
+    struct search_node *snp = NULL;
     int pass;
     float size;
     float old_size;
@@ -235,11 +234,14 @@ do_compress(match_ctx ctx, encode_match_data emd,
     optimal_encoding_export(emd, enc);
     strcpy(prev_enc, membuf_get(enc));
 
-    best_snp = NULL;
     old_size = 100000000.0;
 
     for (;;)
     {
+        if (snp != NULL)
+        {
+            free(snp);
+        }
         snp = NULL;
         search_buffer(ctx, options->encode, emd,
                       !(options->flags_notrait & TFLAG_LIT_SEQ),
@@ -256,15 +258,9 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
         if (size >= old_size)
         {
-            free(snp);
             break;
         }
 
-        if (best_snp != NULL)
-        {
-            free(best_snp);
-        }
-        best_snp = snp;
         old_size = size;
         ++pass;
 
@@ -289,7 +285,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
         strcpy(prev_enc, membuf_get(enc));
     }
 
-    return best_snp;
+    return snp;
 }
 
 void crunch_backwards(struct membuf *inbuf,

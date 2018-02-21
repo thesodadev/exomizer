@@ -162,7 +162,7 @@ do_load(char *file_name, struct membuf *mem)
 
     info->basic_txt_start = -1;
 
-    load_located(file_name, p, 0, info);
+    load_located(file_name, p, info);
 
     /* move memory to beginning of buffer */
     membuf_truncate(mem, info->end);
@@ -187,7 +187,7 @@ static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
          int basic_txt_start, int sys_token,
-         int *basic_var_startp, int *runp, int trim_sys, int prg_is_a2cc65)
+         int *basic_var_startp, int *runp, int trim_sys)
 {
     int run = -1;
     int min_start = 65537;
@@ -205,7 +205,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     for (i = 0; i < filec; ++i)
     {
         info->basic_txt_start = basic_txt_start;
-        load_located(filev[i], p, prg_is_a2cc65, info);
+        load_located(filev[i], p, info);
         run = info->run;
         if(run != -1 && runp != NULL)
         {
@@ -604,7 +604,7 @@ void mem(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
 
-        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0, 0);
+        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0);
         in_len = membuf_memlen(in);
 
         LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
@@ -669,7 +669,7 @@ void mem(const char *appl, int argc, char *argv[])
 
     if (prepend_load_addr)
     {
-        LOG(LOG_BRIEF, (" Writing prg to \"%s\", saving from $%04X to $%04X.\n",
+        LOG(LOG_BRIEF, (" Writing \"%s\" as prg, saving from $%04X to $%04X.\n",
                         flags->outfile, load_addr,
                         load_addr + membuf_memlen(out) - 2));
     }
@@ -699,7 +699,7 @@ get_target_info(int target)
             {4,   0x9e, 0x1001, 0xfd00,  "plus4", "prg"},
             {64,  0x9e, 0x0801, 0x10000, "C64", "prg"},
             {128, 0x9e, 0x1c01, 0xff00,  "C128", "prg"},
-            {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "bas"},
+            {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "AppleSingle"},
             {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},
             {4032, 0x9e, 0x0401, 0x8000,  "PET CBM 4032", "prg"},
             {0,   -1,   -1,     -1,  NULL, NULL}
@@ -1047,6 +1047,8 @@ void sfx(const char *appl, int argc, char *argv[])
         int *basic_var_startp;
         int *entry_addrp;
         int basic_start;
+        int bin_var_start;
+        int bin_entry_addr;
 
         entry_addrp = NULL;
         basic_var_startp = NULL;
@@ -1063,15 +1065,28 @@ void sfx(const char *appl, int argc, char *argv[])
                 entry_addrp = &entry_addr;
             }
         }
+        if (entry_addr == -3)
+        {
+            bin_var_start = -1;
+            bin_entry_addr = -1;
+            basic_var_startp = &bin_var_start;
+            entry_addrp = &bin_entry_addr;
+        }
 
         in_load = do_loads(infilec, infilev, in,
                            basic_start, targetp->sys_token,
-                           basic_var_startp, entry_addrp, trim_sys,
-                           decr_target == 0xa2);
+                           basic_var_startp, entry_addrp, trim_sys);
         if (entry_addr == -3)
         {
             entry_addr = in_load;
-            set_initial_symbol("i_load_addr", in_load);
+            set_initial_symbol_soft("i_load_addr", in_load);
+            if (decr_target == 0xa2 &&
+                bin_var_start == entry_addr &&
+                bin_entry_addr == entry_addr)
+            {
+                /* magic for indicating Apple ][ PRODOS system file */
+                set_initial_symbol_soft("i_a2_file_type", 0xff);
+            }
         }
         in_len = membuf_memlen(in);
 
@@ -1280,9 +1295,9 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("i_irq_during", NULL, &i_irq_during);
             resolve_symbol("i_irq_exit", NULL, &i_irq_exit);
 
-            LOG(LOG_BRIEF, (" Writing %s to \"%s\", saving from "
-                            "$%04X to $%04X.\n", targetp->outformat,
-                            flags->outfile, lowest_addr_out,
+            LOG(LOG_BRIEF, (" Writing \"%s\" as %s, saving from "
+                            "$%04X to $%04X.\n", flags->outfile,
+                            targetp->outformat, lowest_addr_out,
                             highest_addr_out));
 
             LOG(LOG_NORMAL, ("Memory layout:   |Start |End   |\n"));
@@ -1294,7 +1309,7 @@ void sfx(const char *appl, int argc, char *argv[])
                              i_table_addr, i_table_addr + table_size));
             LOG(LOG_NORMAL, (" Decruncher      | $00FD| $%04X| and ",
                              stage3end));
-            LOG(LOG_NORMAL, ("$%02X,$%02X,$%02X,$%02X-$%02X\n", zp_bits_hi,
+            LOG(LOG_NORMAL, ("$%02X,$%02X,$%02X,$%02X,$%02X\n", zp_bits_hi,
                              zp_len_lo, zp_len_hi, zp_src_lo, zp_src_lo + 1));
             if(i_effect == 0 && !resolve_symbol("i_effect_custom", NULL, NULL))
             {
@@ -1490,7 +1505,7 @@ void desfx(const char *appl, int argc, char *argv[])
 
     /* load file, don't care about tracking basic*/
     info->basic_txt_start = -1;
-    load_located(infilev[0], p, 0, info);
+    load_located(infilev[0], p, info);
 
     if(entry == -1)
     {
@@ -1535,7 +1550,7 @@ void desfx(const char *appl, int argc, char *argv[])
     p[0] = start;
     p[1] = start >> 8;
 
-    LOG(LOG_BRIEF, (" Writing prg to \"%s\", saving from $%04X to $%04X, "
+    LOG(LOG_BRIEF, (" Writing \"%s\" as prg, saving from $%04X to $%04X, "
                     "entry at $%04X.\n", outfile, start, cookedend, entry));
     write_file(outfile, mem);
 

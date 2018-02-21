@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Magnus Lind.
+ * Copyright (c) 2008-2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -27,8 +27,29 @@
 
 #include "exo_util.h"
 #include "log.h"
-#include "stdlib.h"
-#include "string.h"
+#include "vec.h"
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+#define ATARI_XEX_MAGIC_LEN 2
+#define ORIC_TAP_MAGIC_LEN 3
+#define APPLESINGLE_MAGIC_LEN 8
+
+static unsigned char atari_xex_magic[] = {0xff, 0xff};
+static unsigned char oric_tap_magic[] = {0x16, 0x16, 0x16};
+static unsigned char applesingle_magic[] = {0, 5, 0x16, 0, 0, 2, 0, 0};
+
+#define OPEN_UNPROVIDED INT_MIN
+enum file_type {RAW, ATARI_XEX, ORIC_TAP, APPLESINGLE, PRG};
+
+struct open_info
+{
+    int is_raw;
+    int load_addr;
+    int offset;
+    int length;
+};
 
 int find_sys(const unsigned char *buf, int sys_token, int *stub_lenp)
 {
@@ -110,12 +131,31 @@ static int get_be_word(FILE *in)
     return word;
 }
 
-static int tell_remaining(FILE *in, int offset)
+static unsigned int get_be_dword(FILE *in)
 {
-    int position;
-    int remaining;
+    int word = get_byte(in) << 24;
+    word |= get_byte(in) << 16;
+    word |= get_byte(in) << 8;
+    word |= get_byte(in);
+    return word;
+}
 
-    position = ftell(in);
+/**
+ * Normalizes and validates given offsets and lengths and seeks to the
+ * normalized offset. Offsets are relative current position of the in file
+ * unless they are negative, then they are relative to eof of in.
+ * after searching to the resulting offset the length is normalised.
+ * if it is negative it is added to the remaining length of the file.
+ */
+static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
+{
+    int file_pos;
+    int file_len;
+    int offset;
+    int remaining;
+    int length;
+
+    file_pos = ftell(in);
     /* get the real length of the file and validate the offset*/
     if(fseek(in, 0, SEEK_END))
     {
@@ -123,46 +163,78 @@ static int tell_remaining(FILE *in, int offset)
         fclose(in);
         exit(1);
     }
-    remaining = ftell(in) - position;
-
-    if(offset < 0)
+    file_len = ftell(in);
+    offset = info->offset;
+    if (offset == OPEN_UNPROVIDED)
     {
-        offset += remaining;
+        offset = 0;
     }
-    position += offset;
-
-    if(fseek(in, position, SEEK_SET))
+    if (offset < 0)
     {
-        LOG(LOG_ERROR, ("Error: can't seek to offset %d.\n", offset));
+        offset += file_len;
+    }
+    else
+    {
+        offset += file_pos;
+    }
+    if (offset < file_pos || offset > file_len)
+    {
+        /* bad offset */
+        LOG(LOG_ERROR, ("Error: offset %d (%d) out of range.\n",
+                        info->offset, offset));
         fclose(in);
         exit(1);
     }
-    return remaining;
+    if(fseek(in, offset, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: seek to offset %d (%d) failed.\n",
+                        info->offset, offset));
+        fclose(in);
+        exit(1);
+    }
+    remaining = file_len - offset;
+    length = info->length;
+    if (length == OPEN_UNPROVIDED)
+    {
+        length = remaining;;
+    }
+    if (length < 0)
+    {
+        length += remaining;;
+    }
+    if (length < 0 || length > remaining)
+    {
+        /* bad offset */
+        LOG(LOG_ERROR, ("Error: length %d (%d) out of range.\n",
+                        info->length, length));
+        fclose(in);
+        exit(1);
+    }
+
+    info->offset = offset;
+    info->length = length;
 }
 
 /**
- * if the file is detected to be xex then load_addr will be set to -1
- * if the file is detected to be oric tap then load_addr will be set to -2
- * if the name contains no len info then *lenp will be set to -1. If the name
- * contains negative len then *lenp will be set to len - 1.
- * if the name contains no offset info then *offsetp will be set to 0.
- * if the file is not detected as a xex or a tap and the name doesn't contain
- * a @<addr> to indicate a located raw file, then defaults to prg and the prg
- * header will read.
- * if the file is detected as a xex or tap file the first two bytes will
- * be read.
+ * Opens the given file and sets the fields in the open_info according to what
+ * is peovided by the file name suffix. If any of the fields load_addr, offset
+ * or length is unprovided by the file name suffix then it will be set to
+ * OPEN_UNPROVIDED.
+ * if the file name suffix indicates that it is a raw file (@<addr>) then the
+ * field is_raw will be set to 1.
  */
 static
 FILE *
-open_file(char *name, int prg_is_a2cc65,
-          int *load_addr, int *offsetp, int *lenp)
+open_file(char *name, struct open_info *open_info)
 {
     FILE *in;
     int is_raw = 0;
-    int is_relocated = 0;
-
     int tries;
     char *tries_arr[3];
+    int load = OPEN_UNPROVIDED;
+    int offset = OPEN_UNPROVIDED;
+    int len = OPEN_UNPROVIDED;
+
     for (tries = 0;; ++tries)
     {
         char *load_str;
@@ -192,7 +264,6 @@ open_file(char *name, int prg_is_a2cc65,
         }
 
         *load_str = '\0';
-        is_relocated = 1;
         ++load_str;
 
         /* relocation was requested */
@@ -205,120 +276,115 @@ open_file(char *name, int prg_is_a2cc65,
         exit(1);
     }
 
+    if (--tries >= 0)
     {
-        int load = -3;
-        int offset = 0;
-        int len = -1;
-        if (--tries >= 0)
+        char *p = tries_arr[tries];
+        if (p[0] != '\0' && str_to_int(p, &load) != 0)
         {
-            char *p = tries_arr[tries];
-            if (p[0] != '\0' && str_to_int(p, &load) != 0)
-            {
-                /* we fail */
-                LOG(LOG_ERROR, (" can't parse load address from \"%s\"\n", p));
-                exit(1);
-            }
-        }
-        if (--tries >= 0)
-        {
-            char *p = tries_arr[tries];
-            if (p[0] != '\0' && str_to_int(p, &offset) != 0)
-            {
-                /* we fail */
-                LOG(LOG_ERROR, (" can't parse offset from \"%s\"\n", p));
-                exit(1);
-            }
-        }
-        if (--tries >= 0)
-        {
-            int val;
-            char *p = tries_arr[tries];
-            if (p[0] != '\0')
-            {
-                if (str_to_int(p, &val) != 0)
-                {
-                    /* we fail */
-                    LOG(LOG_ERROR, (" can't parse length from \"%s\"\n", p));
-                    exit(1);
-                }
-                if (val < 0)
-                {
-                    /* make room for -1 to mean no explicit len */
-                    val -= 1;
-                }
-                len = val;
-            }
-        }
-
-        if(!is_raw)
-        {
-            /* read the prg load address */
-            int prg_load = get_le_word(in);
-            if (prg_is_a2cc65)
-            {
-                int a2_cc65_len;
-                int actual_len;
-                /* The a2 cc65 header contains 16 bits length too */
-                a2_cc65_len = get_le_word(in);
-                actual_len = tell_remaining(in, 0);
-                if (actual_len != a2_cc65_len)
-                {
-                    /* Nope, not a a2_cc65_len */
-                    LOG(LOG_ERROR, ("Error: cc65 header of \"%s\" is corrupt.",
-                                    name));
-                    fclose(in);
-                    exit(1);
-                }
-            }
-            if(!is_relocated || load == -3)
-            {
-                load = prg_load;
-                /* unrelocated prg loading to $ffff is xex */
-                if(prg_load == 0xffff)
-                {
-                    /* differentiate this from relocated $ffff files so it is
-                     * possible to override the xex auto-detection. */
-                    load = -1;
-                }
-                /* unrelocated prg loading to $1616 is Oric tap */
-                else if(prg_load == 0x1616)
-                {
-                    load = -2;
-                }
-            }
-        }
-        else if (load == -3)
-        {
-            /* is_Raw && no load address given */
-            LOG(LOG_ERROR,
-                ("Error: No load address given for raw file \"%s\".", name));
-            fclose(in);
+            /* we fail */
+            LOG(LOG_ERROR, (" can't parse load address from \"%s\"\n", p));
             exit(1);
         }
+    }
+    if (--tries >= 0)
+    {
+        char *p = tries_arr[tries];
+        if (p[0] != '\0' && str_to_int(p, &offset) != 0)
+        {
+            /* we fail */
+            LOG(LOG_ERROR, (" can't parse offset from \"%s\"\n", p));
+            exit(1);
+        }
+    }
+    if (--tries >= 0)
+    {
+        char *p = tries_arr[tries];
+        if (p[0] != '\0')
+        {
+            if (str_to_int(p, &len) != 0)
+            {
+                /* we fail */
+                LOG(LOG_ERROR, (" can't parse length from \"%s\"\n", p));
+                exit(1);
+            }
+        }
+    }
 
-        if(load_addr != NULL)
-        {
-            *load_addr = load;
-        }
-        if(offsetp != NULL)
-        {
-            *offsetp = offset;
-        }
-        if(lenp != NULL)
-        {
-            *lenp = len;
-        }
+    if (open_info != NULL)
+    {
+        open_info->is_raw = is_raw;
+        open_info->load_addr = load;
+        open_info->offset = offset;
+        open_info->length = len;
     }
     return in;
 }
 
-/* Handles xex files where the first two bytes has been skipped too. */
+static int is_matching_header(unsigned char *buf1,
+                              unsigned char *buf2,
+                              int len)
+{
+    int i;
+    for (i = 0; i < len; ++i)
+    {
+        if (buf1[i] != buf2[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/**
+ * Detects the file type by reading a few bytes at the start and then
+ * check for byte patterns. Won't detect RAW, default to PRG.
+ */
+static enum file_type detect_type(FILE *in)
+{
+    /* read the beginning of the file */
+    unsigned char buf[8] = {0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55};
+    /* Default to PRG */
+    enum file_type type = PRG;
+
+    fread(buf, 1, 8, in);
+    if(fseek(in, 0, SEEK_SET))
+    {
+        LOG(LOG_ERROR, ("Error: can't seek to file start.\n"));
+        fclose(in);
+        exit(1);
+    }
+
+    if(is_matching_header(buf, applesingle_magic, APPLESINGLE_MAGIC_LEN))
+    {
+        type = APPLESINGLE;
+    }
+    else if(is_matching_header(buf, atari_xex_magic, ATARI_XEX_MAGIC_LEN))
+    {
+        type = ATARI_XEX;
+    }
+    else if(is_matching_header(buf, oric_tap_magic, ORIC_TAP_MAGIC_LEN))
+    {
+        type = ORIC_TAP;
+    }
+    return type;
+}
+
+/* Handles xex files */
 static void load_xex(unsigned char mem[65536], FILE *in,
                      struct load_info *info)
 {
     int run = -1;
     int jsr = -1;
     int min = 65536, max = 0;
+    unsigned char buf[ATARI_XEX_MAGIC_LEN];
+
+    fread(buf, 1, ATARI_XEX_MAGIC_LEN, in);
+    if (!is_matching_header(buf, atari_xex_magic, ATARI_XEX_MAGIC_LEN))
+    {
+        LOG(LOG_ERROR, ("Error: not a valid Atari xex-header."));
+        fclose(in);
+        exit(1);
+    }
 
     goto initial_state;
     for(;;)
@@ -332,8 +398,8 @@ static void load_xex(unsigned char mem[65536], FILE *in,
         start = get_le_word(in);
         if(start == 0xffff)
         {
-            /* allowed optional header */
         initial_state:
+            /* allowed optional header */
             start = get_le_word(in);
         }
         end = get_le_word(in);
@@ -385,27 +451,27 @@ static void load_xex(unsigned char mem[65536], FILE *in,
     }
 }
 
-/* Handles tap files where the first two bytes has been skipped too. */
+/* Handles tap files */
 static void load_oric_tap(unsigned char mem[65536], FILE *in,
-                          struct load_info *info)
+                          struct load_info *load_info)
 {
     int c;
     int autostart;
     int start, end, len;
+    unsigned char buf[ORIC_TAP_MAGIC_LEN];
 
     /* read oric tap header */
-
-    /* next byte must be 0x16 as we have already read two and must
-     * have at least three */
-    if(get_byte(in) != 0x16)
+    fread(buf, 1, ORIC_TAP_MAGIC_LEN, in);
+    if (!is_matching_header(buf, oric_tap_magic, ORIC_TAP_MAGIC_LEN))
     {
-        LOG(LOG_ERROR, ("Error: fewer than three lead-in bytes ($16) "
-                        "in Oric tap-file header.\n"));
+        LOG(LOG_ERROR, ("Error: not a valid Oric tap-header."));
         fclose(in);
         exit(1);
     }
-    /* optionally more 0x16 bytes */
+
+    /* There can be optionally more 0x16 bytes */
     while((c = get_byte(in)) == 0x16);
+
     /* next byte must be 0x24 */
     if(c != 0x24)
     {
@@ -438,88 +504,323 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
                       start, end));
 
     /* fill in the fields */
-    info->start = start;
-    info->end = end;
-    info->run = -1;
-    info->basic_var_start = -1;
-    if(autostart)
+    if (load_info != NULL)
     {
-        info->run = start;
-    }
-    if(info->basic_txt_start >= start &&
-       info->basic_txt_start < end)
-    {
-        info->basic_var_start = end - 1;
+        load_info->start = start;
+        load_info->end = end;
+        load_info->run = -1;
+        load_info->basic_var_start = -1;
+        if(autostart)
+        {
+            load_info->run = start;
+        }
+        if (load_info->basic_txt_start >= start &&
+            load_info->basic_txt_start < end)
+        {
+            load_info->basic_var_start = end - 1;
+        }
     }
 }
 
-/* (len == -1) => no length was given
- * (len >= 0) => given length == len
- * (len < -1) => given length == len + 1 */
-static void load_raw(unsigned char mem[65536], FILE *in,
-                     int offset, int len,
-                     struct load_info *info)
+struct as_descr
 {
-    int file_len;
+    unsigned int id;
+    unsigned int offset;
+    unsigned int length;
+};
 
-    file_len = tell_remaining(in, offset);
-    if(offset < 0)
+static int cb_cmp_as_descr_id(const void *a, const void *b)
+{
+    const struct as_descr *ap = a;
+    const struct as_descr *bp = b;
+
+    int result = 0;
+    if (ap->id < bp->id)
     {
-        offset += file_len;
+        result = -1;
     }
-    if(len < 0)
+    else if (ap->id > bp->id)
     {
-        len += file_len - offset + 1; /* + 1 convert back to given length */
+        result = 1;
     }
-    if(len < 0)
+    return result;
+}
+
+/**
+ * Gets the load address from a PRODOS entry in an AppleSingle file.
+ * Also validates that the file type is binary or Applesoft basic.
+ */
+static int load_applesingle_prodos_entry(FILE *in,
+                                         struct as_descr *prodos,
+                                         int *file_type)
+{
+    int type;
+    int load_addr;
+    if (prodos->length != 8)
     {
-        LOG(LOG_ERROR, ("Error: can't read %d bytes from offset %d.\n",
-                        len, offset));
+        LOG(LOG_ERROR, ("Error: invalid length of prodos entry %d.\n",
+                        prodos->length));
         fclose(in);
         exit(1);
     }
-    if (len == 0 || len > 65536 - info->start)
+    if (fseek(in, prodos->offset, SEEK_SET) != 0)
     {
-        /* limit len to available buffer space */
-        len = 65536 - info->start;
+        LOG(LOG_ERROR,
+            ("Error: failed to seek to prodos entry at offset %d.\n",
+             prodos->offset));
+        fclose(in);
+        exit(1);
+    }
+    get_be_word(in); /* access */
+    type = get_be_word(in); /* file type */
+    if (type == 0xff)
+    {
+        /* system file that loads to $2000 */
+        load_addr = 0x2000;
+    }
+    else
+    if (type == 6 || type == 0xfc)
+    {
+        /* binary, Applesoft basic */
+        load_addr = get_be_dword(in); /* aux file type */
+    }
+    else
+    {
+        /* unsupported file type*/
+        LOG(LOG_ERROR,
+            ("Error: unsupported value $%X for PRODOS filetype.\n", type));
+        fclose(in);
+        exit(1);
+    }
+    if (load_addr < 0 || load_addr > 0xffff)
+    {
+        /* not binary, nor Applesoft basic */
+        LOG(LOG_ERROR,
+            ("Error: unexpected value $%X for PRODOS aux filetype.\n",
+             type));
+        fclose(in);
+        exit(1);
+    }
+    if (file_type != NULL)
+    {
+        *file_type = type;
+    }
+    return load_addr;
+}
+
+/* Handles apple single files */
+static void load_applesingle(unsigned char mem[65536], FILE *in,
+                             struct load_info *load_info)
+{
+    int desc_size;
+    int i;
+    unsigned char buf[16];
+    struct vec descrs;
+    struct as_descr *prodosp;
+    struct as_descr *datap;
+    struct as_descr key;
+    int load_addr;
+    int run;
+    int file_type;
+    int length;
+
+    /* read oric tap header */
+    fread(buf, 1, APPLESINGLE_MAGIC_LEN, in);
+    if (!is_matching_header(buf, applesingle_magic, APPLESINGLE_MAGIC_LEN))
+    {
+        LOG(LOG_ERROR, ("Error: not a valid AppleSingle-header."));
+        fclose(in);
+        exit(1);
     }
 
-    len = fread(mem + info->start, 1, len, in);
-
-    info->end = info->start + len;
-    info->basic_var_start = -1;
-    info->run = -1;
-    if(info->basic_txt_start >= info->start &&
-       info->basic_txt_start < info->end)
+    /* skip filler */
+    if (fread(buf, 1, 16, in) != 16)
     {
-        info->basic_var_start = info->end;
+        LOG(LOG_ERROR, ("Error: unexpected end of AppleSingle file."));
+        fclose(in);
+        exit(1);
+    }
+
+    /* Read the number of entr descriptors that follow */
+    desc_size = get_be_word(in);
+
+    vec_init(&descrs, sizeof(struct as_descr));
+
+    for (i = 0; i < desc_size; ++i)
+    {
+        struct as_descr descr;
+        descr.id = get_be_dword(in);
+        descr.offset = get_be_dword(in);
+        descr.length = get_be_dword(in);
+        if (!vec_insert_uniq(&descrs, cb_cmp_as_descr_id, &descr, NULL))
+        {
+            LOG(LOG_ERROR, ("Error: duplicate descriptor for id %d\n.",
+                            descr.id));
+            fclose(in);
+            exit(1);
+        }
+    }
+
+    /* find the PRODOS descriptor */
+    key.id = 11;
+    prodosp = vec_find2(&descrs, cb_cmp_as_descr_id, &key);
+    if (prodosp == NULL)
+    {
+        LOG(LOG_ERROR,
+            ("Error: unable to find descr 11 in AppleSingle file\n."));
+        fclose(in);
+        exit(1);
+    }
+
+    /* find the data descriptor */
+    key.id = 1;
+    datap = vec_find2(&descrs, cb_cmp_as_descr_id, &key);
+    if (datap == NULL)
+    {
+        LOG(LOG_ERROR,
+            ("Error: unable to find descr 1 in AppleSingle file\n."));
+        fclose(in);
+        exit(1);
+    }
+
+    load_addr = load_applesingle_prodos_entry(in, prodosp, &file_type);
+
+    if (fseek(in, datap->offset, SEEK_SET) != 0)
+    {
+        LOG(LOG_ERROR,
+            ("Error: failed to seek to data entry at offset %d.\n",
+             prodosp->offset));
+        fclose(in);
+        exit(1);
+    }
+    length = datap->length;
+    if (length > 65536 - load_addr)
+    {
+        /* truncating length to available buffer space */
+        length = 65536 - load_addr;
+    }
+    if (fread(mem + load_addr, 1, datap->length, in) != datap->length)
+    {
+        LOG(LOG_ERROR, ("Error: unexpected end of AppleSingle file."));
+        fclose(in);
+        exit(1);
+    }
+
+    run = -1;
+    if (file_type != 0xfc)
+    {
+        run = load_addr;
+    }
+
+    if (load_info != NULL)
+    {
+        load_info->start = load_addr;
+        load_info->end = load_addr + datap->length;
+        load_info->run = run;
+        load_info->basic_var_start = -1;
+
+        if (file_type != 0xff)
+        {
+            if (load_info->basic_txt_start >= load_info->start &&
+                load_info->basic_txt_start < load_info->end)
+            {
+                load_info->basic_var_start = load_info->end;
+            }
+        }
+        else
+        {
+            load_info->basic_var_start = load_addr;
+        }
+    }
+
+    vec_free(&descrs, NULL);
+}
+
+/**
+ * Requires that open_info->load_addr is set to a proper value
+ * (not OPEN_UNPROVIDED).
+ */
+static void load_raw(unsigned char mem[65536], FILE *in,
+                     struct open_info *open_info,
+                     struct load_info *load_info)
+{
+    int len;
+
+    if (open_info->load_addr == OPEN_UNPROVIDED)
+    {
+        LOG(LOG_ERROR,
+            ("Error: No load address given for raw file."));
+        fclose(in);
+        exit(1);
+    }
+
+    seek_and_normalize_offset_and_len(in, open_info);
+    len = fread(mem + open_info->load_addr, 1, open_info->length, in);
+
+    if (load_info != NULL)
+    {
+        load_info->start = open_info->load_addr;
+        load_info->end = open_info->load_addr + len;
+        load_info->basic_var_start = -1;
+        load_info->run = -1;
+        if(load_info->basic_txt_start >= load_info->start &&
+           load_info->basic_txt_start < load_info->end)
+        {
+            load_info->basic_var_start = load_info->end;
+        }
     }
 }
 
 void load_located(char *filename, unsigned char mem[65536],
-                  int prg_is_a2cc65,
                   struct load_info *info)
 {
-    int load, offset, len;
+    struct open_info open_info;
     FILE *in;
+    enum file_type type;
+    int load_addr;
 
-    in = open_file(filename, prg_is_a2cc65, &load, &offset, &len);
-    if(load == -1)
+    in = open_file(filename, &open_info);
+    if (open_info.is_raw)
     {
-        /* file is an xex file */
-        load_xex(mem, in, info);
-    }
-    else if(load == -2)
-    {
-        /* file is an oric tap file */
-        load_oric_tap(mem, in, info);
+        type = RAW;
     }
     else
     {
+        type = detect_type(in);
+    }
+    switch (type)
+    {
+    case ATARI_XEX:
+        /* file is an xex file */
+        load_xex(mem, in, info);
+        break;
+    case ORIC_TAP:
+        /* file is an oric tap file */
+        load_oric_tap(mem, in, info);
+        break;
+    case APPLESINGLE:
+        /* file is an AppleSingle file */
+        load_applesingle(mem, in, info);
+        break;
+    case PRG:
+        load_addr = get_le_word(in);
+        if (open_info.load_addr == OPEN_UNPROVIDED)
+        {
+            open_info.load_addr = load_addr;
+        }
+    case RAW:
+        if (open_info.load_addr == OPEN_UNPROVIDED)
+        {
+            LOG(LOG_ERROR,
+                ("Error: No load address given for raw file \"%s\".\n",
+                 filename));
+            fclose(in);
+            exit(1);
+        }
+
         /* file is a located raw file or a prg file
          * with it's header already read */
-        info->start = load;
-        load_raw(mem, in, offset, len, info);
+        load_raw(mem, in, &open_info, info);
     }
     fclose(in);
 

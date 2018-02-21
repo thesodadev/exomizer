@@ -285,9 +285,16 @@ some graphic needs to be protected from BASIC variables.
 itself in memory when run. The output file format depends on the target used:
 
  For all Commodore machines the output is a runnable prg-file that starts
-with a BASIC line. For the Atari target the output is a auto running xex-file.
-For the Apple target the output is an Applesoft BASIC file without headers. For
-the Oric family the output is a Oric tap file.
+with a BASIC line.
+
+ For the Atari target the output is a auto running xex-file.
+
+ For the Apple target the output is an AppleSingle file that almost always
+is a PRODOS bin file (filetype 6). But if the loaded file was a AppleSingle
+system file it will be a system file too (filetype $ff). Unless the run address
+is the string basic, then it is a PRODOS Applesoft basic file. (filetype $fc)
+
+For the Oric family the output is a Oric tap file.
 
  Please note that the sfx command doesn't support extended memory since it
 can't decrunch into banked memory.
@@ -518,14 +525,6 @@ Oric the default load address is $0500.
 have any BASIC line. (The Atari target never has a BASIC line). The run address
 is the same as the load address.
 
- The Apple target file format will change from an Applesoft BASIC file without
-header to an Apple binary file with a four byte header where the first two
-bytes are 16-bit load address, little endian, and the next two are the length
-in bytes of the following data, little endian. This is the same 4 byte DOS 3.3
-header that cc65 generates. AppleCommander 1.3.5 or later can be used to put
-these binary files onto DOS 3.3 as well as ProDOS 8 disk images using the -cc65
-option.
-
 The following symbol controls the sfx BASIC line number:
  i_line_number
 
@@ -565,11 +564,18 @@ To locate the decrunch table elsewhere than the default tape buffer or $0600
 for The Atari target, use the symbol i_table_addr:
  -Di_table_addr=<address>
 
-The apple target has an option to disconnect DOS. To do this, set the
+The Apple ][+ target has an option to disconnect DOS. To do this, set the
 i_a2_disable_dos symbol to any value:
  -Di_a2_disable_dos=1
 
-Effects are no longer selected by the use of symbols. They are now chosen by
+The Apple ][+ target writes files in the AppleSingle format. This option
+overrides the PRODOS filetype of the target file to the set value. To force a
+file of system type set the i_a2_file_type symbol to the file type value.
+See http://www.easy68k.com/paulrsm/6502/PDOS8TRM.HTM#B.4.2.4 for a list of
+valid file types:
+ -Di_a2_file_type=<filetype>
+
+Decruncher effects are not selected by the use of symbols. They are chosen by
 the -x or -X flags or deactivated by -n.
 
 -------------------------------------------------------------------------------
