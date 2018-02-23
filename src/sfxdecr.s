@@ -1220,7 +1220,7 @@ stage2end:
 ; -------------------------------------------------------------------
 stage3start:
 ; -------------------------------------------------------------------
-; get bits (24 bytes)
+; get bits (26 bytes)
 ;
 get_bits:
         adc #$80                ; needs c=0, affects v
@@ -1273,7 +1273,7 @@ no_hi_decr:
         jsr get_crunched_byte
         sta (zp_dest_lo),y
 ; -------------------------------------------------------------------
-; fetch sequence length index (14 bytes)
+; fetch sequence length index (15 bytes)
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
 begin:
@@ -1293,12 +1293,12 @@ nofetch8:
 ;
         beq literal_start1
 ; -------------------------------------------------------------------
-; check for decrunch done and literal sequences (6 bytes)
+; check for decrunch done and literal sequences (4 bytes)
 ;
         cpx #$11
         bcs exit_or_lit_seq
 ; -------------------------------------------------------------------
-; calulate length of sequence (zp_len) (17 bytes)
+; calulate length of sequence (zp_len) (22(15) bytes)
 ;
         lda #0
         sta <zp_bits_hi
@@ -1307,13 +1307,11 @@ nofetch8:
         adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
         sta <zp_len_lo
 .IF(!.DEFINED(i_max_sequence_length_256))
-; -------------------------------------------------------------------
-; now do the hibyte of the sequence length calculation (9 bytes)
         lda <zp_bits_hi
         adc tabl_hi - 1,x       ; c = 0 after this.
         sta <zp_len_hi
 ; -------------------------------------------------------------------
-; here we decide what offset table to use (29 bytes)
+; here we decide what offset table to use (27(26) bytes)
 ; z-flag reflects zp_len_hi here
 ;
         ldx <zp_len_lo
@@ -1341,7 +1339,7 @@ gbnc2_ok:
         bcs gbnc2_next
         tax
 ; -------------------------------------------------------------------
-; calulate absolute offset (zp_src) (20 bytes)
+; calulate absolute offset (zp_src) (24 bytes)
 ;
         lda #0
         sta <zp_bits_hi
@@ -1354,7 +1352,7 @@ gbnc2_ok:
         adc <zp_dest_hi
         sta <zp_src_hi
 ; -------------------------------------------------------------------
-; prepare for copy loop (8 bytes)
+; prepare for copy loop (4(2) bytes)
 ;
 pre_copy:
         ldx <zp_len_lo
@@ -1362,7 +1360,7 @@ pre_copy:
         bne copy_next
 .ENDIF
 ; -------------------------------------------------------------------
-; main copy loop (16 bytes)
+; main copy loop (22 bytes)
 ;
 .IF(!.DEFINED(i_max_sequence_length_256))
 copy_next_hi:
@@ -1396,11 +1394,11 @@ get_literal_byte1:
         jsr get_crunched_byte
         bcs literal_byte_gotten1
 .ENDIF
+; -------------------------------------------------------------------
+; exit or literal sequence handling (16(12) bytes)
+;
 exit_or_lit_seq:
 .IF(.DEFINED(i_literal_sequences_used))
-; -------------------------------------------------------------------
-; literal sequence handling (12 bytes)
-                                ;
         beq decr_exit
         jsr get_crunched_byte
   .IF(!.DEFINED(i_max_sequence_length_256))
@@ -1414,13 +1412,16 @@ exit_or_lit_seq:
   .ELSE
         bcs copy_next
   .ENDIF
-.ENDIF
 decr_exit:
+.ENDIF
 .IF(.DEFINED(exit_hook))
   .INCLUDE("exit_hook")
 .ELSE
         rts
 .ENDIF
+; -------------------------------------------------------------------
+; main copy loop 2 (16 bytes)
+;
 tya_loop:
 .IF(.DEFINED(i_literal_sequences_used))
         bcs get_literal_byte2
