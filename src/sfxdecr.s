@@ -1338,10 +1338,12 @@ gbnc2_ok:
         bcs gbnc2_next
         tax
 ; -------------------------------------------------------------------
-; calulate absolute offset (zp_src) (24 bytes)
+; calulate absolute offset (zp_src) (24(20) bytes)
 ;
+.IF(!.DEFINED(i_max_sequence_length_256))
         lda #0
         sta <zp_bits_hi
+.ENDIF
         lda tabl_bi,x
         jsr get_bits
         adc tabl_lo,x
