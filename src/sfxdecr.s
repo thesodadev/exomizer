@@ -1203,6 +1203,7 @@ no_fixup_lohi:
         iny
         cpy #encoded_entries
         bne table_gen
+        stx <zp_bits_hi
         .IF(.DEFINED(stage2_exit_hook))
           .INCLUDE("stage2_exit_hook")
         .ENDIF
@@ -1298,10 +1299,8 @@ nofetch8:
         cpx #$11
         bcs exit_or_lit_seq
 ; -------------------------------------------------------------------
-; calulate length of sequence (zp_len) (22(15) bytes)
+; calulate length of sequence (zp_len) (18(11) bytes)
 ;
-        lda #0
-        sta <zp_bits_hi
         lda tabl_bi - 1,x
         jsr get_bits
         adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
@@ -1360,7 +1359,7 @@ pre_copy:
         bne copy_next
 .ENDIF
 ; -------------------------------------------------------------------
-; main copy loop (22 bytes)
+; main copy loop (24 bytes)
 ;
 .IF(!.DEFINED(i_max_sequence_length_256))
 copy_next_hi:
@@ -1388,6 +1387,7 @@ after_len_lo:
         lda <zp_len_hi
         bne copy_next_hi
 .ENDIF
+        stx <zp_bits_hi
         jmp begin
 .IF(.DEFINED(i_literal_sequences_used))
 get_literal_byte1:
