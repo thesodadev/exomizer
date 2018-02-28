@@ -1,4 +1,4 @@
-;
+				;
 ; Copyright (c) 2002 - 2018 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
@@ -60,7 +60,6 @@ zp_len_hi = $a8
 zp_src_lo  = $ae
 zp_src_hi  = zp_src_lo + 1
 
-zp_dest_y = $fb
 zp_bits_hi = $fc
 
 zp_bitbuf  = $fd
@@ -95,6 +94,7 @@ gb_ok:
         bmi gb_next
 gb_skip:
         bvc skip
+gb_get_hi:
         sec
         sta zp_bits_hi
         jsr get_crunched_byte
@@ -117,7 +117,9 @@ gb_ok:
         rol
         bmi gb_next
 gb_skip:
-        bvc return
+        bvs gb_get_hi
+        rts
+gb_get_hi:
         sec
         sta zp_bits_hi
         jmp get_crunched_byte
@@ -197,10 +199,7 @@ no_fixup_lohi:
 ; prepare for main decruncher
         ldy zp_dest_lo
         stx zp_dest_lo
-        bcs literal_start1
-; -------------------------------------------------------------------
-return:
-        rts
+        stx zp_bits_hi
 ; -------------------------------------------------------------------
 ; copy one literal byte to destination (11 bytes)
 ;
@@ -213,7 +212,7 @@ no_hi_decr:
         jsr get_crunched_byte
         sta (zp_dest_lo),y
 ; -------------------------------------------------------------------
-; fetch sequence length index (14 bytes)
+; fetch sequence length index (15 bytes)
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
 next_round:
@@ -233,69 +232,58 @@ nofetch8:
 ;
         beq literal_start1
 ; -------------------------------------------------------------------
-; check for decrunch done and literal sequences (6 bytes)
+; check for decrunch done and literal sequences (4 bytes)
 ;
         cpx #$11
-        bcc sequence_start
-        beq return
-.IFNDEF LITERAL_SEQUENCES_NOT_USED
-; -------------------------------------------------------------------
-; literal sequence handling (12 bytes)
-;
-        jsr get_crunched_byte
-        sta zp_len_hi
-        jsr get_crunched_byte
-        tax
-.IFNDEF MAX_SEQUENCE_LENGTH_256
-        jmp copy_next_256
+.IFDEF INLINE_GET_BITS
+        bcc skip_jmp
+        jmp exit_or_lit_seq
+skip_jmp:
 .ELSE
-        jmp copy_next
-.ENDIF
+        bcs exit_or_lit_seq
 .ENDIF
 ; -------------------------------------------------------------------
-; calulate length of sequence (zp_len) (14 bytes) + get_bits macro
+; calulate length of sequence (zp_len) (18(11) bytes) + get_bits macro
 ;
-sequence_start:
-        sty zp_dest_y
-        ldy #0
-        sty zp_bits_hi
         lda tabl_bi - 1,x
         mac_get_bits
         adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
         sta zp_len_lo
 .IFNDEF MAX_SEQUENCE_LENGTH_256
-; -------------------------------------------------------------------
-; now do the hibyte of the sequence length calculation (9 bytes)
         lda zp_bits_hi
         adc tabl_hi - 1,x       ; c = 0 after this.
         sta zp_len_hi
-        sty zp_bits_hi
 ; -------------------------------------------------------------------
-; here we decide what offset table to use (14 bytes) + get_bits_nc macro
+; here we decide what offset table to use (27(26) bytes) + get_bits_nc macro
 ; z-flag reflects zp_len_hi here
 ;
-        bne nots123
         ldx zp_len_lo
 .ELSE
         tax
 .ENDIF
+        lda #$e1
         cpx #$03
-        bcc size123
-nots123:
-        ldx #$00
-size123:
-        lda tabl_bit,x
+        bcs gbnc2_next
+        lda tabl_bit - 1,x
 gbnc2_next:
         asl zp_bitbuf
         bne gbnc2_ok
-        mac_refill_bits
+        tax
+        jsr get_crunched_byte
+        rol
+        sta zp_bitbuf
+        txa
 gbnc2_ok:
         rol
         bcs gbnc2_next
         tax
 ; -------------------------------------------------------------------
-; calulate absolute offset (zp_src) (17 bytes) + get_bits macro
+; calulate absolute offset (zp_src) (21 bytes) + get_bits macro
 ;
+.IFNDEF MAX_SEQUENCE_LENGTH_256
+        lda #0
+        sta zp_bits_hi
+.ENDIF
         lda tabl_bi,x
         mac_get_bits
         adc tabl_lo,x
@@ -308,18 +296,12 @@ gbnc2_ok:
 ; prepare for copy loop (8 bytes)
 ;
 pre_copy:
-        ldy zp_dest_y
         ldx zp_len_lo
 .IFNDEF MAX_SEQUENCE_LENGTH_256
-copy_next_256:
         bne copy_next
 .ENDIF
 ; -------------------------------------------------------------------
 ; main copy loop (30 bytes)
-; entry point is at the copy_start label
-; y must contain low byte of dest zp pointer
-; x must contain copy length + 1 % 256,
-; zp_len_hi must contain copy length / 256
 ;
 .IFNDEF MAX_SEQUENCE_LENGTH_256
 copy_next_hi:
@@ -333,10 +315,7 @@ copy_next:
 copy_skip_hi:
         dey
 .IFNDEF LITERAL_SEQUENCES_NOT_USED
-        bcc skip_literal_byte
-        jsr get_crunched_byte
-        bcs literal_byte_gotten
-skip_literal_byte:
+        bcs get_literal_byte
 .ENDIF
         lda (zp_src_lo),y
 literal_byte_gotten:
@@ -347,12 +326,40 @@ literal_byte_gotten:
         lda zp_len_hi
         bne copy_next_hi
 .ENDIF
+begin_stx:
+        stx zp_bits_hi
         jmp next_round
+.IFNDEF LITERAL_SEQUENCES_NOT_USED
+get_literal_byte:
+        jsr get_crunched_byte
+        bcs literal_byte_gotten
+.ENDIF
 ; -------------------------------------------------------------------
-; the static stable used for bits+offset 3+, 1 and 2 (3 bytes)
-; bits 4,2,4 and offs 16,48,32.
+; exit or literal sequence handling (16(12) bytes)
+;
+exit_or_lit_seq:
+.IFNDEF LITERAL_SEQUENCES_NOT_USED
+        beq decr_exit
+        jsr get_crunched_byte
+.IFNDEF MAX_SEQUENCE_LENGTH_256
+        sta zp_len_hi
+.ENDIF
+        jsr get_crunched_byte
+        tax
+.IFNDEF MAX_SEQUENCE_LENGTH_256
+        bne copy_next
+        bcs copy_next_hi
+  .ELSE
+        bcs copy_next
+.ENDIF
+decr_exit:
+.ENDIF
+        rts
+; -------------------------------------------------------------------
+; the static stable used for bits+offset for lengths 1 and 2 (2 bytes)
+; bits 2, 4 and offsets 48, 32 corresponding to %10001100, %11100010
 tabl_bit:
-        .BYTE %11100001, %10001100, %11100010
+        .BYTE %10001100, %11100010
 ; -------------------------------------------------------------------
 ; end of decruncher
 ; -------------------------------------------------------------------

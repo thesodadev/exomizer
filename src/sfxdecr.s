@@ -1307,7 +1307,7 @@ nofetch8:
         adc tabl_hi - 1,x       ; c = 0 after this.
         sta <zp_len_hi
 ; -------------------------------------------------------------------
-; here we decide what offset table to use (17(16) bytes)
+; here we decide what offset table to use (27(26) bytes)
 ; z-flag reflects zp_len_hi here
 ;
         ldx <zp_len_lo
