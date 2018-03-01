@@ -876,7 +876,7 @@ void sfx(const char *appl, int argc, char *argv[])
                 exit(1);
             }
         }
-        if (strcmp(p, "bin") == 0)
+        else if (strcmp(p, "bin") == 0)
         {
             entry_addr = -3;
         }
