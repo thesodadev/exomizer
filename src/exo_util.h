@@ -2,7 +2,7 @@
 #define EXO_UTIL_ALREADY_INCLUDED
 
 /*
- * Copyright (c) 2008 Magnus Lind.
+ * Copyright (c) 2008 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -37,6 +37,8 @@
  */
 int find_sys(const unsigned char *buf, int target, int *stub_lenp);
 
+enum file_type {UNKNOWN, RAW, ATARI_XEX, ORIC_TAP, APPLESINGLE,
+                APPLESINGLE_SYS, PRG};
 struct load_info
 {
     int basic_txt_start; /* in */
@@ -44,6 +46,7 @@ struct load_info
     int run; /* out */
     int start; /* out */
     int end; /* out */
+    enum file_type type; /* out */
 };
 
 void load_located(char *filename, unsigned char mem[65536],

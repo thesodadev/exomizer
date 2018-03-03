@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2018 Magnus Lind.
+ * Copyright (c) 2008 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -41,8 +41,6 @@ static unsigned char oric_tap_magic[] = {0x16, 0x16, 0x16};
 static unsigned char applesingle_magic[] = {0, 5, 0x16, 0, 0, 2, 0, 0};
 
 #define OPEN_UNPROVIDED INT_MIN
-enum file_type {RAW, ATARI_XEX, ORIC_TAP, APPLESINGLE, PRG};
-
 struct open_info
 {
     int is_raw;
@@ -346,7 +344,13 @@ static enum file_type detect_type(FILE *in)
     /* Default to PRG */
     enum file_type type = PRG;
 
-    fread(buf, 1, 8, in);
+    if (fread(buf, 1, 8, in) != 8 &&
+        ferror(in))
+    {
+        LOG(LOG_ERROR, ("Error: failed to read from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if(fseek(in, 0, SEEK_SET))
     {
         LOG(LOG_ERROR, ("Error: can't seek to file start.\n"));
@@ -378,7 +382,13 @@ static void load_xex(unsigned char mem[65536], FILE *in,
     int min = 65536, max = 0;
     unsigned char buf[ATARI_XEX_MAGIC_LEN];
 
-    fread(buf, 1, ATARI_XEX_MAGIC_LEN, in);
+    if (fread(buf, 1, ATARI_XEX_MAGIC_LEN, in) != ATARI_XEX_MAGIC_LEN)
+    {
+        LOG(LOG_ERROR,
+            ("Error: failed to read Atari XEX header from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if (!is_matching_header(buf, atari_xex_magic, ATARI_XEX_MAGIC_LEN))
     {
         LOG(LOG_ERROR, ("Error: not a valid Atari xex-header."));
@@ -461,7 +471,12 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
     unsigned char buf[ORIC_TAP_MAGIC_LEN];
 
     /* read oric tap header */
-    fread(buf, 1, ORIC_TAP_MAGIC_LEN, in);
+    if (fread(buf, 1, ORIC_TAP_MAGIC_LEN, in) != ORIC_TAP_MAGIC_LEN)
+    {
+        LOG(LOG_ERROR, ("Error: failed to read Oric TAP header from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if (!is_matching_header(buf, oric_tap_magic, ORIC_TAP_MAGIC_LEN))
     {
         LOG(LOG_ERROR, ("Error: not a valid Oric tap-header."));
@@ -620,12 +635,17 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
     struct as_descr *datap;
     struct as_descr key;
     int load_addr;
-    int run;
     int file_type;
     int length;
 
     /* read oric tap header */
-    fread(buf, 1, APPLESINGLE_MAGIC_LEN, in);
+    if (fread(buf, 1, APPLESINGLE_MAGIC_LEN, in) != APPLESINGLE_MAGIC_LEN)
+    {
+        LOG(LOG_ERROR,
+            ("Error: failed to read applesingle header from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if (!is_matching_header(buf, applesingle_magic, APPLESINGLE_MAGIC_LEN))
     {
         LOG(LOG_ERROR, ("Error: not a valid AppleSingle-header."));
@@ -706,30 +726,26 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
         exit(1);
     }
 
-    run = -1;
-    if (file_type != 0xfc)
-    {
-        run = load_addr;
-    }
-
     if (load_info != NULL)
     {
         load_info->start = load_addr;
         load_info->end = load_addr + datap->length;
-        load_info->run = run;
+        load_info->run = -1;
         load_info->basic_var_start = -1;
-
-        if (file_type != 0xff)
+        if (file_type != 0xfc)
         {
-            if (load_info->basic_txt_start >= load_info->start &&
-                load_info->basic_txt_start < load_info->end)
-            {
-                load_info->basic_var_start = load_info->end;
-            }
+            /* We're not a basic file */
+            load_info->run = load_addr;
         }
-        else
+        if (file_type == 0xff)
         {
-            load_info->basic_var_start = load_addr;
+            /* We're a system file, not plain bin or basic */
+            load_info->type = APPLESINGLE_SYS;
+        }
+        if (load_info->basic_txt_start >= load_info->start &&
+            load_info->basic_txt_start < load_info->end)
+        {
+            load_info->basic_var_start = load_info->end;
         }
     }
 
@@ -788,6 +804,10 @@ void load_located(char *filename, unsigned char mem[65536],
     {
         type = detect_type(in);
     }
+    if (info != NULL)
+    {
+        info->type = type;
+    }
     switch (type)
     {
     case ATARI_XEX:
@@ -808,6 +828,7 @@ void load_located(char *filename, unsigned char mem[65536],
         {
             open_info.load_addr = load_addr;
         }
+        /* no break on purpose */
     case RAW:
         if (open_info.load_addr == OPEN_UNPROVIDED)
         {
@@ -821,6 +842,13 @@ void load_located(char *filename, unsigned char mem[65536],
         /* file is a located raw file or a prg file
          * with it's header already read */
         load_raw(mem, in, &open_info, info);
+        break;
+    default:
+        LOG(LOG_ERROR, ("Error: unknown file type for file \"%s\".\n",
+                        filename));
+        fclose(in);
+        exit(1);
+        break;
     }
     fclose(in);
 
