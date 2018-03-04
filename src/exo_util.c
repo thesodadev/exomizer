@@ -41,6 +41,7 @@ static unsigned char oric_tap_magic[] = {0x16, 0x16, 0x16};
 static unsigned char applesingle_magic[] = {0, 5, 0x16, 0, 0, 2, 0, 0};
 
 #define OPEN_UNPROVIDED INT_MIN
+#define OPEN_DEFAULT (INT_MIN + 1)
 struct open_info
 {
     int is_raw;
@@ -163,7 +164,7 @@ static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
     }
     file_len = ftell(in);
     offset = info->offset;
-    if (offset == OPEN_UNPROVIDED)
+    if (offset == OPEN_UNPROVIDED || offset == OPEN_DEFAULT)
     {
         offset = 0;
     }
@@ -192,7 +193,7 @@ static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
     }
     remaining = file_len - offset;
     length = info->length;
-    if (length == OPEN_UNPROVIDED)
+    if (length == OPEN_UNPROVIDED || length == OPEN_DEFAULT)
     {
         length = remaining;;
     }
@@ -216,8 +217,8 @@ static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
 /**
  * Opens the given file and sets the fields in the open_info according to what
  * is peovided by the file name suffix. If any of the fields load_addr, offset
- * or length is unprovided by the file name suffix then it will be set to
- * OPEN_UNPROVIDED.
+ * or length is unprovided or defaulted by the file name suffix then it will be
+ * set to OPEN_UNPROVIDED or OPEN_DEFAULT.
  * if the file name suffix indicates that it is a raw file (@<addr>) then the
  * field is_raw will be set to 1.
  */
@@ -231,7 +232,7 @@ open_file(char *name, struct open_info *open_info)
     char *tries_arr[3];
     int load = OPEN_UNPROVIDED;
     int offset = OPEN_UNPROVIDED;
-    int len = OPEN_UNPROVIDED;
+    int length = OPEN_UNPROVIDED;
 
     for (tries = 0;; ++tries)
     {
@@ -277,6 +278,7 @@ open_file(char *name, struct open_info *open_info)
     if (--tries >= 0)
     {
         char *p = tries_arr[tries];
+        load = OPEN_DEFAULT;
         if (p[0] != '\0' && str_to_int(p, &load) != 0)
         {
             /* we fail */
@@ -287,6 +289,7 @@ open_file(char *name, struct open_info *open_info)
     if (--tries >= 0)
     {
         char *p = tries_arr[tries];
+        offset = OPEN_DEFAULT;
         if (p[0] != '\0' && str_to_int(p, &offset) != 0)
         {
             /* we fail */
@@ -297,9 +300,10 @@ open_file(char *name, struct open_info *open_info)
     if (--tries >= 0)
     {
         char *p = tries_arr[tries];
+        length = OPEN_DEFAULT;
         if (p[0] != '\0')
         {
-            if (str_to_int(p, &len) != 0)
+            if (str_to_int(p, &length) != 0)
             {
                 /* we fail */
                 LOG(LOG_ERROR, (" can't parse length from \"%s\"\n", p));
@@ -313,7 +317,7 @@ open_file(char *name, struct open_info *open_info)
         open_info->is_raw = is_raw;
         open_info->load_addr = load;
         open_info->offset = offset;
-        open_info->length = len;
+        open_info->length = length;
     }
     return in;
 }
@@ -754,7 +758,7 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
 
 /**
  * Requires that open_info->load_addr is set to a proper value
- * (not OPEN_UNPROVIDED).
+ * (not OPEN_UNPROVIDED nor OPEN_DEFAULT).
  */
 static void load_raw(unsigned char mem[65536], FILE *in,
                      struct open_info *open_info,
@@ -762,7 +766,8 @@ static void load_raw(unsigned char mem[65536], FILE *in,
 {
     int len;
 
-    if (open_info->load_addr == OPEN_UNPROVIDED)
+    if (open_info->load_addr == OPEN_UNPROVIDED ||
+        open_info->load_addr == OPEN_DEFAULT)
     {
         LOG(LOG_ERROR,
             ("Error: No load address given for raw file."));
@@ -800,6 +805,11 @@ void load_located(char *filename, unsigned char mem[65536],
     {
         type = RAW;
     }
+    else if (open_info.load_addr != OPEN_UNPROVIDED)
+    {
+        /* relocaded prg */
+        type = PRG;
+    }
     else
     {
         type = detect_type(in);
@@ -824,13 +834,15 @@ void load_located(char *filename, unsigned char mem[65536],
         break;
     case PRG:
         load_addr = get_le_word(in);
-        if (open_info.load_addr == OPEN_UNPROVIDED)
+        if (open_info.load_addr == OPEN_UNPROVIDED ||
+            open_info.load_addr == OPEN_DEFAULT)
         {
             open_info.load_addr = load_addr;
         }
         /* no break on purpose */
     case RAW:
-        if (open_info.load_addr == OPEN_UNPROVIDED)
+        if (open_info.load_addr == OPEN_UNPROVIDED ||
+            open_info.load_addr == OPEN_DEFAULT)
         {
             LOG(LOG_ERROR,
                 ("Error: No load address given for raw file \"%s\".\n",
