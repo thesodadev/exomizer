@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2018 Magnus Lind.
+ * Copyright (c) 2007 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -268,8 +268,6 @@ u16 decrunch_sfx(u8 mem[65536], u16 run, u16 *startp, u16 *endp, u32 *cyclesp)
 
     areas_get_largest(&m.areas, startp, endp);
     if(cyclesp != NULL)
-    {
         *cyclesp = r.cycles;
-    }
     return r.pc;
 }

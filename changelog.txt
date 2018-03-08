@@ -1,11 +1,23 @@
-2017-02-20
+2018-03-08
+Release of 2.0.11 source code and Win32 binaries.
++ No change from preview 3
+2018-03-06
+Release of 2.0.11 preview 3
++ Improved desfx c64 IO banking handling and automatic decrunched area
+  detection.
++ sfx: Detected in-file type exported making target auto detection possible for
+  some sfx bin and sfx <addr> (not sfx basic or sfx sys).
++ sfx: Applesingle file write now writes the header descriptors in in ascending
+  order, suggested by Oliver Schmidt.
+
+2018-02-20
 Release of 2.0.11 preview 2
 + Fix compression improvement loop crashing bug exposed by the thread safety
   changes for library compilation, reported by Lasse Öörni.
 + Support the AppleSingle format instead of the 4 byte cc65 header, suggested
   by Oliver Schmidt.
 
-2017-02-11
+2018-02-11
 Release of 2.0.11 preview 1
 + Add i_raw assembler directive for sfx to generate header less output.
 + Make sfx 0xa2 fall back to 4 byte Apple II cc65 headers for in-files instead

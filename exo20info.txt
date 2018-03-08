@@ -282,12 +282,18 @@ could be when a BASIC program needs to be run at a non standard address and/or
 some graphic needs to be protected from BASIC variables.
 
  The output of the sfx command is a runnable program file that decrunches
-itself in memory when run. The output file format depends on the target used:
+itself in memory when run. If an explicit run address or the string bin is
+given then some targets, like Atari 8-bit, Oric 1 and Apple II, are auto
+detected based on the format of the in files. For other situations or if auto
+detection fails then the target defaults to C64 unless the -t <target> option
+is given. This option can also be used to override the auto detected target.
+
+The output file format depends on the target used:
 
  For all Commodore machines the output is a runnable prg-file that starts
 with a BASIC line.
 
- For the Atari target the output is a auto running xex-file.
+ For the Atari target the output is an auto running xex-file.
 
  For the Apple target the output is an AppleSingle file that almost always
 is a PRODOS bin file (filetype 6). But if the loaded file was a AppleSingle

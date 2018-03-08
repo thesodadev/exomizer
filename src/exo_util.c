@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2018 Magnus Lind.
+ * Copyright (c) 2008 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -41,8 +41,7 @@ static unsigned char oric_tap_magic[] = {0x16, 0x16, 0x16};
 static unsigned char applesingle_magic[] = {0, 5, 0x16, 0, 0, 2, 0, 0};
 
 #define OPEN_UNPROVIDED INT_MIN
-enum file_type {RAW, ATARI_XEX, ORIC_TAP, APPLESINGLE, PRG};
-
+#define OPEN_DEFAULT (INT_MIN + 1)
 struct open_info
 {
     int is_raw;
@@ -165,7 +164,7 @@ static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
     }
     file_len = ftell(in);
     offset = info->offset;
-    if (offset == OPEN_UNPROVIDED)
+    if (offset == OPEN_UNPROVIDED || offset == OPEN_DEFAULT)
     {
         offset = 0;
     }
@@ -194,7 +193,7 @@ static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
     }
     remaining = file_len - offset;
     length = info->length;
-    if (length == OPEN_UNPROVIDED)
+    if (length == OPEN_UNPROVIDED || length == OPEN_DEFAULT)
     {
         length = remaining;;
     }
@@ -218,8 +217,8 @@ static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
 /**
  * Opens the given file and sets the fields in the open_info according to what
  * is peovided by the file name suffix. If any of the fields load_addr, offset
- * or length is unprovided by the file name suffix then it will be set to
- * OPEN_UNPROVIDED.
+ * or length is unprovided or defaulted by the file name suffix then it will be
+ * set to OPEN_UNPROVIDED or OPEN_DEFAULT.
  * if the file name suffix indicates that it is a raw file (@<addr>) then the
  * field is_raw will be set to 1.
  */
@@ -233,7 +232,7 @@ open_file(char *name, struct open_info *open_info)
     char *tries_arr[3];
     int load = OPEN_UNPROVIDED;
     int offset = OPEN_UNPROVIDED;
-    int len = OPEN_UNPROVIDED;
+    int length = OPEN_UNPROVIDED;
 
     for (tries = 0;; ++tries)
     {
@@ -279,6 +278,7 @@ open_file(char *name, struct open_info *open_info)
     if (--tries >= 0)
     {
         char *p = tries_arr[tries];
+        load = OPEN_DEFAULT;
         if (p[0] != '\0' && str_to_int(p, &load) != 0)
         {
             /* we fail */
@@ -289,6 +289,7 @@ open_file(char *name, struct open_info *open_info)
     if (--tries >= 0)
     {
         char *p = tries_arr[tries];
+        offset = OPEN_DEFAULT;
         if (p[0] != '\0' && str_to_int(p, &offset) != 0)
         {
             /* we fail */
@@ -299,9 +300,10 @@ open_file(char *name, struct open_info *open_info)
     if (--tries >= 0)
     {
         char *p = tries_arr[tries];
+        length = OPEN_DEFAULT;
         if (p[0] != '\0')
         {
-            if (str_to_int(p, &len) != 0)
+            if (str_to_int(p, &length) != 0)
             {
                 /* we fail */
                 LOG(LOG_ERROR, (" can't parse length from \"%s\"\n", p));
@@ -315,7 +317,7 @@ open_file(char *name, struct open_info *open_info)
         open_info->is_raw = is_raw;
         open_info->load_addr = load;
         open_info->offset = offset;
-        open_info->length = len;
+        open_info->length = length;
     }
     return in;
 }
@@ -346,7 +348,13 @@ static enum file_type detect_type(FILE *in)
     /* Default to PRG */
     enum file_type type = PRG;
 
-    fread(buf, 1, 8, in);
+    if (fread(buf, 1, 8, in) != 8 &&
+        ferror(in))
+    {
+        LOG(LOG_ERROR, ("Error: failed to read from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if(fseek(in, 0, SEEK_SET))
     {
         LOG(LOG_ERROR, ("Error: can't seek to file start.\n"));
@@ -378,7 +386,13 @@ static void load_xex(unsigned char mem[65536], FILE *in,
     int min = 65536, max = 0;
     unsigned char buf[ATARI_XEX_MAGIC_LEN];
 
-    fread(buf, 1, ATARI_XEX_MAGIC_LEN, in);
+    if (fread(buf, 1, ATARI_XEX_MAGIC_LEN, in) != ATARI_XEX_MAGIC_LEN)
+    {
+        LOG(LOG_ERROR,
+            ("Error: failed to read Atari XEX header from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if (!is_matching_header(buf, atari_xex_magic, ATARI_XEX_MAGIC_LEN))
     {
         LOG(LOG_ERROR, ("Error: not a valid Atari xex-header."));
@@ -461,7 +475,12 @@ static void load_oric_tap(unsigned char mem[65536], FILE *in,
     unsigned char buf[ORIC_TAP_MAGIC_LEN];
 
     /* read oric tap header */
-    fread(buf, 1, ORIC_TAP_MAGIC_LEN, in);
+    if (fread(buf, 1, ORIC_TAP_MAGIC_LEN, in) != ORIC_TAP_MAGIC_LEN)
+    {
+        LOG(LOG_ERROR, ("Error: failed to read Oric TAP header from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if (!is_matching_header(buf, oric_tap_magic, ORIC_TAP_MAGIC_LEN))
     {
         LOG(LOG_ERROR, ("Error: not a valid Oric tap-header."));
@@ -620,12 +639,17 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
     struct as_descr *datap;
     struct as_descr key;
     int load_addr;
-    int run;
     int file_type;
     int length;
 
     /* read oric tap header */
-    fread(buf, 1, APPLESINGLE_MAGIC_LEN, in);
+    if (fread(buf, 1, APPLESINGLE_MAGIC_LEN, in) != APPLESINGLE_MAGIC_LEN)
+    {
+        LOG(LOG_ERROR,
+            ("Error: failed to read applesingle header from file.\n"));
+        fclose(in);
+        exit(1);
+    }
     if (!is_matching_header(buf, applesingle_magic, APPLESINGLE_MAGIC_LEN))
     {
         LOG(LOG_ERROR, ("Error: not a valid AppleSingle-header."));
@@ -706,30 +730,26 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
         exit(1);
     }
 
-    run = -1;
-    if (file_type != 0xfc)
-    {
-        run = load_addr;
-    }
-
     if (load_info != NULL)
     {
         load_info->start = load_addr;
         load_info->end = load_addr + datap->length;
-        load_info->run = run;
+        load_info->run = -1;
         load_info->basic_var_start = -1;
-
-        if (file_type != 0xff)
+        if (file_type != 0xfc)
         {
-            if (load_info->basic_txt_start >= load_info->start &&
-                load_info->basic_txt_start < load_info->end)
-            {
-                load_info->basic_var_start = load_info->end;
-            }
+            /* We're not a basic file */
+            load_info->run = load_addr;
         }
-        else
+        if (file_type == 0xff)
         {
-            load_info->basic_var_start = load_addr;
+            /* We're a system file, not plain bin or basic */
+            load_info->type = APPLESINGLE_SYS;
+        }
+        if (load_info->basic_txt_start >= load_info->start &&
+            load_info->basic_txt_start < load_info->end)
+        {
+            load_info->basic_var_start = load_info->end;
         }
     }
 
@@ -738,7 +758,7 @@ static void load_applesingle(unsigned char mem[65536], FILE *in,
 
 /**
  * Requires that open_info->load_addr is set to a proper value
- * (not OPEN_UNPROVIDED).
+ * (not OPEN_UNPROVIDED nor OPEN_DEFAULT).
  */
 static void load_raw(unsigned char mem[65536], FILE *in,
                      struct open_info *open_info,
@@ -746,7 +766,8 @@ static void load_raw(unsigned char mem[65536], FILE *in,
 {
     int len;
 
-    if (open_info->load_addr == OPEN_UNPROVIDED)
+    if (open_info->load_addr == OPEN_UNPROVIDED ||
+        open_info->load_addr == OPEN_DEFAULT)
     {
         LOG(LOG_ERROR,
             ("Error: No load address given for raw file."));
@@ -784,9 +805,18 @@ void load_located(char *filename, unsigned char mem[65536],
     {
         type = RAW;
     }
+    else if (open_info.load_addr != OPEN_UNPROVIDED)
+    {
+        /* relocaded prg */
+        type = PRG;
+    }
     else
     {
         type = detect_type(in);
+    }
+    if (info != NULL)
+    {
+        info->type = type;
     }
     switch (type)
     {
@@ -804,12 +834,15 @@ void load_located(char *filename, unsigned char mem[65536],
         break;
     case PRG:
         load_addr = get_le_word(in);
-        if (open_info.load_addr == OPEN_UNPROVIDED)
+        if (open_info.load_addr == OPEN_UNPROVIDED ||
+            open_info.load_addr == OPEN_DEFAULT)
         {
             open_info.load_addr = load_addr;
         }
+        /* no break on purpose */
     case RAW:
-        if (open_info.load_addr == OPEN_UNPROVIDED)
+        if (open_info.load_addr == OPEN_UNPROVIDED ||
+            open_info.load_addr == OPEN_DEFAULT)
         {
             LOG(LOG_ERROR,
                 ("Error: No load address given for raw file \"%s\".\n",
@@ -821,6 +854,13 @@ void load_located(char *filename, unsigned char mem[65536],
         /* file is a located raw file or a prg file
          * with it's header already read */
         load_raw(mem, in, &open_info, info);
+        break;
+    default:
+        LOG(LOG_ERROR, ("Error: unknown file type for file \"%s\".\n",
+                        filename));
+        fclose(in);
+        exit(1);
+        break;
     }
     fclose(in);
 

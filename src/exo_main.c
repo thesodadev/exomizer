@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 - 2007 Magnus Lind.
+ * Copyright (c) 2002 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -186,8 +186,8 @@ struct target_info
 static
 int
 do_loads(int filec, char *filev[], struct membuf *mem,
-         int basic_txt_start, int sys_token,
-         int *basic_var_startp, int *runp, int trim_sys)
+         int basic_txt_start, int sys_token, int trim_sys,
+         int *basic_var_startp, int *runp, enum file_type *typep)
 {
     int run = -1;
     int min_start = 65537;
@@ -196,6 +196,7 @@ do_loads(int filec, char *filev[], struct membuf *mem,
     int i;
     unsigned char *p;
     struct load_info info[1];
+    enum file_type type = RAW;
 
 
     membuf_clear(mem);
@@ -212,6 +213,15 @@ do_loads(int filec, char *filev[], struct membuf *mem,
             LOG(LOG_DEBUG, ("Propagating found run address $%04X.\n",
                             info->run));
             *runp = info->run;
+        }
+        if (type == RAW)
+        {
+            type = info->type;
+        }
+        else if (type != info->type)
+        {
+            /* mixed types */
+            type = UNKNOWN;
         }
 
         /* do we expect any basic file? */
@@ -299,6 +309,11 @@ do_loads(int filec, char *filev[], struct membuf *mem,
                      " is not 0 but %d.\n", valuepos, value));
             }
         }
+    }
+
+    if (typep != NULL)
+    {
+        *typep = type;
     }
 
     /* move memory to beginning of buffer */
@@ -604,7 +619,7 @@ void mem(const char *appl, int argc, char *argv[])
         int in_len;
         int safety;
 
-        in_load = do_loads(infilec, infilev, in, -1, -1, NULL, NULL, 0);
+        in_load = do_loads(infilec, infilev, in, -1, -1, 0, NULL, NULL, NULL);
         in_len = membuf_memlen(in);
 
         LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
@@ -792,6 +807,7 @@ void sfx(const char *appl, int argc, char *argv[])
     int basic_var_start = -1;
     int basic_highest_addr = -1;
     int decr_target = 64;
+    int decr_target_set = 0;
     int entry_addr = -1;
     int trim_sys = 0;
     int no_effect = 0;
@@ -888,7 +904,7 @@ void sfx(const char *appl, int argc, char *argv[])
                 exit(1);
             }
         }
-        if (strcmp(p, "bin") == 0)
+        else if (strcmp(p, "bin") == 0)
         {
             entry_addr = -3;
         }
@@ -924,6 +940,7 @@ void sfx(const char *appl, int argc, char *argv[])
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(1);
             }
+            decr_target_set = 1;
             break;
         case 'n':
             no_effect = 1;
@@ -1046,8 +1063,7 @@ void sfx(const char *appl, int argc, char *argv[])
         int *basic_var_startp;
         int *entry_addrp;
         int basic_start;
-        int bin_var_start;
-        int bin_entry_addr;
+        enum file_type type;
 
         entry_addrp = NULL;
         basic_var_startp = NULL;
@@ -1064,24 +1080,38 @@ void sfx(const char *appl, int argc, char *argv[])
                 entry_addrp = &entry_addr;
             }
         }
-        if (entry_addr == -3)
-        {
-            bin_var_start = -1;
-            bin_entry_addr = -1;
-            basic_var_startp = &bin_var_start;
-            entry_addrp = &bin_entry_addr;
-        }
 
         in_load = do_loads(infilec, infilev, in,
-                           basic_start, targetp->sys_token,
-                           basic_var_startp, entry_addrp, trim_sys);
+                           basic_start, targetp->sys_token, trim_sys,
+                           basic_var_startp, entry_addrp, &type);
+
+        /* if "sfx bin or explicit run address given */
+        if (!decr_target_set && (entry_addr == -3 || entry_addr >= 0))
+        {
+            /* target is not set explicitly, auto detect from file type */
+            switch (type)
+            {
+            case ATARI_XEX:
+                decr_target = 0xa8;
+                break;
+            case ORIC_TAP:
+                decr_target = 0x1;
+                break;
+            case APPLESINGLE_SYS:
+            case APPLESINGLE:
+                decr_target = 0xa2;
+                break;
+            default:
+                break;
+            }
+            /* refetch target info */
+            targetp = get_target_info(decr_target);
+        }
         if (entry_addr == -3)
         {
             entry_addr = in_load;
             set_initial_symbol_soft("i_load_addr", in_load);
-            if (decr_target == 0xa2 &&
-                bin_var_start == entry_addr &&
-                bin_entry_addr == entry_addr)
+            if (decr_target == 0xa2 && type == APPLESINGLE_SYS)
             {
                 /* magic for indicating Apple ][ PRODOS system file */
                 set_initial_symbol_soft("i_a2_file_type", 0xff);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 - 2008 Magnus Lind.
+ * Copyright (c) 2007 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
