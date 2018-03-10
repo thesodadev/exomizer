@@ -224,7 +224,7 @@ static void seek_and_normalize_offset_and_len(FILE *in, struct open_info *info)
  */
 static
 FILE *
-open_file(char *name, struct open_info *open_info)
+open_file(const char *name, struct open_info *open_info)
 {
     FILE *in;
     int is_raw = 0;
@@ -792,7 +792,7 @@ static void load_raw(unsigned char mem[65536], FILE *in,
     }
 }
 
-void load_located(char *filename, unsigned char mem[65536],
+void load_located(const char *filename, unsigned char mem[65536],
                   struct load_info *info)
 {
     struct open_info open_info;

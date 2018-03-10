@@ -1,8 +1,8 @@
-#ifndef EXO_UTIL_ALREADY_INCLUDED
-#define EXO_UTIL_ALREADY_INCLUDED
+#ifndef ALREADY_INCLUDED_AREATRACE
+#define ALREADY_INCLUDED_AREATRACE
 
 /*
- * Copyright (c) 2008 - 2018 Magnus Lind.
+ * Copyright (c) 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -28,32 +28,36 @@
  *
  */
 
-#include "log.h"
-#include "membuf.h"
+#include "int.h"
+#include "vec.h"
 
-/*
- * target is the basic token for the sys/call basic command
- * it may be -1 for hardcoded detection of a few targets.
- */
-int find_sys(const unsigned char *buf, int target, int *stub_lenp);
-
-enum file_type {UNKNOWN, RAW, ATARI_XEX, ORIC_TAP, APPLESINGLE,
-                APPLESINGLE_SYS, PRG};
-struct load_info
+struct areatrace
 {
-    int basic_txt_start; /* in */
-    int basic_var_start; /* out */
-    int run; /* out */
-    int start; /* out */
-    int end; /* out */
-    enum file_type type; /* out */
+    struct vec areas;
 };
 
-void load_located(const char *filename, unsigned char mem[65536],
-                  struct load_info *info);
+void areatrace_init(struct areatrace at[1]);
 
-int str_to_int(const char *str, int *value);
+void areatrace_free(struct areatrace *at);
 
-const char *fixup_appl(char *appl);
+/*
+ * Updates the given area trace with the given memory access.
+ */
+void areatrace_access(struct areatrace *at /* IN/OUT */,
+                      u16 address /* IN */);
+
+/*
+ * Merges overlapping areas in the given area trace.
+ * Areas can have one byte overlap when it is still undecided which of the
+ * areas that is growing/shrinking by the access pattern.
+ */
+void areatrace_merge_overlapping(struct areatrace *at /* IN/OUT */);
+
+/*
+ * Gets the largest area from the given area trace.
+ */
+void areatrace_get_largest(const struct areatrace *at, /* IN */
+                           int *startp /* OUT */,
+                           int *endp); /* OUT */
 
 #endif

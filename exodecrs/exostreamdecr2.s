@@ -35,6 +35,8 @@
 ; the data that are to be decrunched must not have been crunched with
 ; a maximum offset size greater than the buffer size. use the -m option
 ; with a value of (buffer_len_hi * 256) or less.
+; Please observe that the uncrunched file size must be a multiple of the
+; chunk size. If not the final uncomplete chunk will be skipped.
 ; -------------------------------------------------------------------
 .import buffer_start_hi:	absolute
 .import buffer_len_hi:	absolute

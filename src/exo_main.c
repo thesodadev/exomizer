@@ -1485,8 +1485,8 @@ void desfx(const char *appl, int argc, char *argv[])
     int c, infilec;
     char **infilev;
     u8 *p;
-    u16 start;
-    u16 end;
+    int start;
+    int end;
     u32 cycles;
     int cookedend;
     int entry = -1;

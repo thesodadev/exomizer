@@ -28,42 +28,68 @@
 #include "../src/log.h"
 #include "../src/exo_util.h"
 #include "../src/6502emu.h"
+#include "../src/areatrace.h"
+#include "../src/int.h"
+#include "../src/membuf_io.h"
 
 #include <stdlib.h>
 
+struct mem_ctx
+{
+    u8 *mem;
+    struct areatrace at;
+};
+
 static void mem_access_write(struct mem_access *this, u16 address, u8 value)
 {
-    u8 *mem = this->ctx;
-    mem[address] = value;
+    struct mem_ctx *ctx = this->ctx;
+    ctx->mem[address] = value;
+    areatrace_access(&ctx->at, address);
 }
 
 static u8 mem_access_read(struct mem_access *this, u16 address)
 {
-    u8 *mem = this->ctx;
-    return mem[address];
+    struct mem_ctx *ctx = this->ctx;
+    return ctx->mem[address];
 }
 
-int main(int argc, char *argv[])
+void save_single(const char *in_name, struct membuf *mem, int start, int end)
+{
+    struct membuf mb_name;
+    const char *out_name;
+
+    membuf_init(&mb_name);
+
+    membuf_printf(&mb_name, "%s.out", in_name);
+    out_name = (const char *)membuf_get(&mb_name);
+
+    membuf_truncate(mem, end);
+    membuf_trim(mem, start);
+
+    write_file(out_name, mem);
+
+    membuf_free(&mb_name);
+}
+
+void test_single(const char *name)
 {
     struct cpu_ctx r;
     struct load_info info[1];
-    static unsigned char mem[65536];
-    static unsigned char mem2[65536];
-    int p;
-    int pending;
-    int fail;
-    int failcount;
-    const char *appl;
+    struct membuf mem_mb;
+    u8 *mem;
+    struct mem_ctx mem_ctx;
+    int start;
+    int end;
 
-    /* init logging */
-    LOG_INIT_CONSOLE(LOG_BRIEF);
+    membuf_init(&mem_mb);
+    membuf_atleast(&mem_mb, 65536);
+    mem = membuf_get(&mem_mb);
+    mem_ctx.mem = mem;
 
-    appl = fixup_appl(argv[0]);
+    areatrace_init(&mem_ctx.at);
 
     info->basic_txt_start = 0x0801;
-    load_located(argv[1], mem, info);
-
-    mem[0x02a7] = 0x60;
+    load_located(name, mem, info);
 
     /* no start address from load*/
     if(info->run == -1)
@@ -80,7 +106,7 @@ int main(int argc, char *argv[])
     LOG(LOG_DEBUG, ("run %04x\n", info->run));
 
     r.cycles = 0;
-    r.mem.ctx = mem;
+    r.mem.ctx = &mem_ctx;
     r.mem.read = mem_access_read;
     r.mem.write = mem_access_write;
     r.pc = info->run;
@@ -90,58 +116,32 @@ int main(int argc, char *argv[])
     /* setting up decrunch */
     while(r.sp >= 0x10)
     {
-        /* redirect chrout to a safe rts */
-        if(r.pc == 0xffd2)
-        {
-            r.pc = 0x02a7;
-        }
         next_inst(&r);
     }
     LOG(LOG_BRIEF, ("decrunch took %u cycles.\n", r.cycles));
 
-    load_located(argv[2], mem2, info);
-    LOG(LOG_BRIEF, ("comparing $%04X - $%04X\n", info->start, info->end));
-    p = info->end - 1;
-    fail = 0;
-    pending = -1;
-    failcount = 0;
-    while(p >= info->start && failcount < 10)
+    /* save traced area */
+    areatrace_merge_overlapping(&mem_ctx.at);
+    areatrace_get_largest(&mem_ctx.at, &start, &end);
+
+    LOG(LOG_BRIEF, ("saving from $%04X to $%04X.\n", start, end));
+
+    save_single(name, &mem_mb, start, end);
+
+    areatrace_free(&mem_ctx.at);
+}
+
+int main(int argc, char *argv[])
+{
+    int i;
+
+    /* init logging */
+    LOG_INIT_CONSOLE(LOG_BRIEF);
+
+    for (i = 1; i < argc; ++i)
     {
-        if(mem[p] != mem2[p])
-        {
-            if(pending < 0)
-            {
-                pending = p;
-                fail = 1;
-            }
-        }
-        else
-        {
-            if(pending >= 0)
-            {
-                LOG(LOG_ERROR, ("%s: interval mismatch $%04X - $%04X, "
-                                "starts with $%02X, expected $%02X.\n",
-                                appl, pending, p + 1,
-                                mem[pending],
-                                mem2[pending]));
-                pending = -1;
-                ++failcount;
-            }
-        }
-        --p;
-    }
-    if(pending >= 0)
-    {
-        LOG(LOG_ERROR, ("%s: interval mismatch $%04X - $%04X, "
-                        "starts with $%02X, expected $%02X.\n",
-                        appl, pending, p + 1,
-                        mem[pending],
-                        mem2[pending]));
-    }
-    if (p > info->start)
-    {
-        LOG(LOG_ERROR, ("%s: giving up, too many mismatches.\n", appl));
+        test_single(argv[i]);
     }
 
-    return fail;
+    return 0;
 }
