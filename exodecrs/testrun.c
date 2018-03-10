@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 - 2008 Magnus Lind.
+ * Copyright (c) 2002 - 2018 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -71,10 +71,10 @@ void save_single(const char *in_name, struct membuf *mem, int start, int end)
     membuf_free(&mb_name);
 }
 
-void test_single(const char *name)
+void test_single(const char *name, int *cyclesp, int *in_lenp, int *out_lenp)
 {
     struct cpu_ctx r;
-    struct load_info info[1];
+    struct load_info info;
     struct membuf mem_mb;
     u8 *mem;
     struct mem_ctx mem_ctx;
@@ -88,28 +88,28 @@ void test_single(const char *name)
 
     areatrace_init(&mem_ctx.at);
 
-    info->basic_txt_start = 0x0801;
-    load_located(name, mem, info);
+    info.basic_txt_start = 0x0801;
+    load_located(name, mem, &info);
 
     /* no start address from load*/
-    if(info->run == -1)
+    if(info.run == -1)
     {
         /* look for sys line */
-        info->run = find_sys(mem + info->basic_txt_start, 0x9e, NULL);
+        info.run = find_sys(mem + info.basic_txt_start, 0x9e, NULL);
     }
-    if(info->run == -1)
+    if(info.run == -1)
     {
         LOG(LOG_ERROR, ("Error, can't find entry point.\n"));
         exit(-1);
     }
 
-    LOG(LOG_DEBUG, ("run %04x\n", info->run));
+    LOG(LOG_DEBUG, ("run %04x\n", info.run));
 
     r.cycles = 0;
     r.mem.ctx = &mem_ctx;
     r.mem.read = mem_access_read;
     r.mem.write = mem_access_write;
-    r.pc = info->run;
+    r.pc = info.run;
     r.sp = '\xff';
     r.flags = 0;
 
@@ -118,29 +118,67 @@ void test_single(const char *name)
     {
         next_inst(&r);
     }
-    LOG(LOG_BRIEF, ("decrunch took %u cycles.\n", r.cycles));
 
     /* save traced area */
     areatrace_merge_overlapping(&mem_ctx.at);
     areatrace_get_largest(&mem_ctx.at, &start, &end);
 
-    LOG(LOG_BRIEF, ("saving from $%04X to $%04X.\n", start, end));
-
     save_single(name, &mem_mb, start, end);
 
     areatrace_free(&mem_ctx.at);
+    membuf_free(&mem_mb);
+
+    if (cyclesp != NULL)
+    {
+        *cyclesp = r.cycles;
+    }
+    if (in_lenp != NULL)
+    {
+        *in_lenp = info.end - info.start;
+    }
+    if (out_lenp != NULL)
+    {
+        *out_lenp = end - start;
+    }
 }
 
 int main(int argc, char *argv[])
 {
     int i;
+    int cycles;
+    int inlen;
+    int outlen;
+    int cycles_sum = 0;
+    int inlen_sum = 0;
+    int outlen_sum = 0;
 
     /* init logging */
     LOG_INIT_CONSOLE(LOG_BRIEF);
 
     for (i = 1; i < argc; ++i)
     {
-        test_single(argv[i]);
+        test_single(argv[i], &cycles, &inlen, &outlen);
+        LOG(LOG_BRIEF,
+            (" Data expanded from %d to %d bytes (%0.2f%%) using %d cycles.\n",
+             inlen, outlen, 100.0 * (outlen - inlen) / inlen, cycles));
+        LOG(LOG_BRIEF,
+            (" Average decrunch pace was %0.2f cycles per output byte.\n",
+             (float)cycles / outlen));
+        cycles_sum += cycles;
+        inlen_sum += inlen;
+        outlen_sum += outlen;
+    }
+
+    if (argc > 2)
+    {
+        LOG(LOG_BRIEF, ("In total:\n"));
+        LOG(LOG_BRIEF,
+            (" Data expanded from %d to %d bytes (%0.2f%%) using %d cycles.\n",
+             inlen_sum, outlen_sum,
+             100.0 * (outlen_sum - inlen_sum) / inlen_sum, cycles_sum));
+        LOG(LOG_BRIEF,
+            (" Average decrunch pace was %0.2f cycles per output byte.\n",
+             (float)cycles_sum / outlen_sum));
     }
 
     return 0;

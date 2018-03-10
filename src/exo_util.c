@@ -109,7 +109,7 @@ static int get_byte(FILE *in)
     int byte = fgetc(in);
     if(byte == EOF)
     {
-        LOG(LOG_ERROR, ("Error: unexpected end of xex-file."));
+        LOG(LOG_ERROR, ("Error: unexpected end of file."));
         fclose(in);
         exit(1);
     }

@@ -935,7 +935,7 @@ void sfx(const char *appl, int argc, char *argv[])
             {
                 LOG(LOG_ERROR,
                     ("error: invalid value, %d, for -t option, must be one of "
-                     "1, 20, 23, 52, 55, 16, 4, 64, 128, 162 or 168.\n",
+                     "1, 20, 23, 52, 55, 16, 4, 64, 128, 162, 168 or 4032.\n",
                      decr_target));
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(1);
