@@ -183,6 +183,12 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
     offset = data->offset_f_priv;
 
     bits = 0.0;
+    if (mp->len > 255 && (data->flags_notrait & TFLAG_LEN123_SEQ_MIRRORS) &&
+        (mp->len & 255) < ((data->flags_proto & PFLAG_4_OFFSET_TABLES)
+                           ? 4 : 3))
+    {
+        bits += 100000000.0;
+    }
     if (mp->offset == 0)
     {
         bits += 9.0f * mp->len;
@@ -220,17 +226,8 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
                 break;
             }
         default:
-            if ((data->flags_notrait & TFLAG_LEN123_SEQ_MIRRORS) &&
-                (mp->len & 255) < ((data->flags_proto & PFLAG_4_OFFSET_TABLES)
-                                   ? 4 : 3))
-            {
-                bits += 100000000.0;
-            }
-            else
-            {
-                bits += data->offset_f(mp->offset, offset[7], emd->out,
-                                       eib_offset);
-            }
+            bits += data->offset_f(mp->offset, offset[7], emd->out,
+                                   eib_offset);
             break;
         }
         bits += data->len_f(mp->len, data->len_f_priv, emd->out, eib_len);

@@ -1207,6 +1207,7 @@ no_fixup_lohi:
           .INCLUDE("stage2_exit_hook")
         .ENDIF
         .BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
+        txa
         jmp begin_stx
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
@@ -1354,16 +1355,9 @@ gbnc2_ok:
 ;
 pre_copy:
         ldx <zp_len_lo
-.IF(!.DEFINED(i_max_sequence_length_256))
-        bne copy_next
-.ENDIF
 ; -------------------------------------------------------------------
 ; main copy loop (31(25) bytes)
 ;
-.IF(!.DEFINED(i_max_sequence_length_256))
-copy_next_hi:
-        dec <zp_len_hi
-.ENDIF
 copy_next:
         tya
         bne copy_skip_hi
@@ -1381,11 +1375,14 @@ literal_byte_gotten:
         bne copy_next
 .IF(!.DEFINED(i_max_sequence_length_256))
         lda <zp_len_hi
-        bne copy_next_hi
 .ENDIF
 begin_stx:
         stx <zp_bits_hi
-        jmp begin
+        beq begin
+.IF(!.DEFINED(i_max_sequence_length_256))
+        dec <zp_len_hi
+        jmp copy_next
+.ENDIF
 .IF(.DEFINED(i_literal_sequences_used))
 get_literal_byte:
         jsr get_crunched_byte
@@ -1403,12 +1400,7 @@ exit_or_lit_seq:
   .ENDIF
         jsr get_crunched_byte
         tax
-  .IF(!.DEFINED(i_max_sequence_length_256))
-        bne copy_next
-        bcs copy_next_hi
-  .ELSE
         bcs copy_next
-  .ENDIF
 decr_exit:
 .ENDIF
 .IF(.DEFINED(exit_hook))
