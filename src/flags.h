@@ -50,8 +50,8 @@
 #define PFLAG_4_OFFSET_TABLES  (1 << PBIT_4_OFFSET_TABLES)
 
 /*
- * bit 0  Sequences with length 1
- * bit 1  Literal sequences
+ * bit 0  Literal sequences
+ * bit 1  Sequences with length 1
  * bit 2  Sequences with length > 255 where (length & 255) would have been
  *        using its own decrunch table
  */

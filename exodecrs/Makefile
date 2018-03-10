@@ -32,32 +32,32 @@ testrun: $(TEST_OBJS)
 $(NAME): $(MAKEFILE) testrun $(SOURCES)
 	ld65 $(SOURCES) -o $@ -Cc64.cfg
 	./testrun $@
-	cmp $@.out data.bin && $(RM) $@.out
+	cmp -i0:2 $@.out data.bin && $(RM) $@.out
 
 $(NAME256): $(MAKEFILE) testrun $(SOURCES256)
 	ld65 $(SOURCES256) -o $@ -Cc64.cfg
 	./testrun $@
-	cmp $@.out data.bin && $(RM) $@.out
+	cmp -i0:2 $@.out data.bin && $(RM) $@.out
 
 $(NAMEc): $(MAKEFILE) testrun $(SOURCESc)
 	ld65 $(SOURCESc) -o $@ -Cc64.cfg
 	./testrun $@
-	cmp $@.out data.bin && $(RM) $@.out
+	cmp -i0:2 $@.out data.bin && $(RM) $@.out
 
 $(NAME256c): $(MAKEFILE) testrun $(SOURCES256c)
 	ld65 $(SOURCES256c) -o $@ -Cc64.cfg
 	./testrun $@
-	cmp $@.out data.bin && $(RM) $@.out
+	cmp -i0:2 $@.out data.bin && $(RM) $@.out
 
 $(NAMEF): $(MAKEFILE) testrun $(SOURCESF)
 	ld65 $(SOURCESF) -o $@ -Cc64.cfg
 	./testrun $@
-	cmp $@.out data.bin && $(RM) $@.out
+	cmp -i0:2 $@.out data.bin && $(RM) $@.out
 
 $(NAME1): $(MAKEFILE) testrun $(SOURCES1)
 	ld65 $(SOURCES1) -o $@ -Cc64.cfg
 	./testrun $@
-	cmp $@.out data.bin && $(RM) $@.out
+	cmp -i0:2 $@.out data.bin && $(RM) $@.out
 
 $(NAME2): $(MAKEFILE) testrun $(SOURCES2)
 	ld65 $(SOURCES2) -o $@ -Cc64.cfg
@@ -88,22 +88,22 @@ dataf.os: dataf.exo
 streamdata.os: streamdata.exo
 
 data.exo: data.bin
-	../src/exomizer mem -q -C data.bin@0x3000 -o data.exo
+	../src/exomizer mem -q -C data.bin,0x3000 -o data.exo
 
 data256.exo: data.bin
-	../src/exomizer mem -q -M256 -C data.bin@0x3000 -o data256.exo
+	../src/exomizer mem -q -M256 -C data.bin,0x3000 -o data256.exo
 
 datac.exo: data.bin
-	../src/exomizer mem -q -T4 -C data.bin@0x3000 -o datac.exo
+	../src/exomizer mem -q -T1 -C data.bin,0x3000 -o datac.exo
 
 data256c.exo: data.bin
-	../src/exomizer mem -q -M256 -c -C data.bin@0x3000 -o data256c.exo
+	../src/exomizer mem -q -M256 -c -C data.bin,0x3000 -o data256c.exo
 
 dataf.exo: data.bin
-	../src/exomizer mem -q -C -P0 -f data.bin@0x3000 -o dataf.exo
+	../src/exomizer mem -q -C -P0 -f data.bin,0x3000 -o dataf.exo
 
 streamdata.exo: data.bin
-	../src/exomizer raw -q -C -P0 -b -c -m 1024 data.bin -o streamdata.exo
+	../src/exomizer raw -q -C -P0 -b -c -m 1024 data.bin,2 -o streamdata.exo
 
 %.o:	%.c
 	@echo "Compiling $<"

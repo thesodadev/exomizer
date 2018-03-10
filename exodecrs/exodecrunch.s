@@ -264,7 +264,7 @@ skip_jmp:
         lda #$e1
         cpx #$03
         bcs gbnc2_next
-        lda tabl_bit - 1,x
+        lda tabl_bit,x
 gbnc2_next:
         asl zp_bitbuf
         bne gbnc2_ok
@@ -356,10 +356,10 @@ decr_exit:
 .ENDIF
         rts
 ; -------------------------------------------------------------------
-; the static stable used for bits+offset for lengths 1 and 2 (2 bytes)
-; bits 2, 4 and offsets 48, 32 corresponding to %10001100, %11100010
+; the static stable used for bits+offset for lengths 3, 1 and 2 (3 bytes)
+; bits 4, 2, 4 and offsets 16, 48, 32
 tabl_bit:
-        .BYTE %10001100, %11100010
+        .BYTE %11100001, %10001100, %11100010
 ; -------------------------------------------------------------------
 ; end of decruncher
 ; -------------------------------------------------------------------
