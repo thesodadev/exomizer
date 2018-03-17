@@ -1026,7 +1026,8 @@ void next_inst(struct cpu_ctx *r)
                         op_code, r->pc));
         exit(1);
     }
-    LOG(LOG_DUMP, ("%02x %02x %02x %02x: ", r->a, r->x, r->y, r->sp));
+    LOG(LOG_DUMP, ("%08d, %02x %02x %02x %02x: ",
+                   r->cycles, r->a, r->x, r->y, r->sp));
     mode = info->mode->f(r, arg);
 
     if(IS_LOGGABLE(LOG_DUMP))

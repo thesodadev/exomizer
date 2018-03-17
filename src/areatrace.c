@@ -30,6 +30,7 @@
 void areatrace_init(struct areatrace at[1])
 {
     vec_init(&at->areas, sizeof(u16));
+    membuf_atleast(&at->areas.buf, 64);
 }
 
 void areatrace_free(struct areatrace *at)
