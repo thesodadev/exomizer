@@ -36,7 +36,7 @@
 void search_buffer(match_ctx ctx,       /* IN */
                    encode_match_f * f,  /* IN */
                    encode_match_data emd,       /* IN */
-                   int use_literal_sequences,   /* IN */
+                   int flags_notrait,           /* IN */
                    int max_sequence_length,     /* IN */
                    int pass,   /* IN */
                    struct search_node **result)/* OUT */
@@ -50,6 +50,8 @@ void search_buffer(match_ctx ctx,       /* IN */
 
     struct search_node *best_rle_snp;
 
+    int use_literal_sequences = !(flags_notrait & TFLAG_LIT_SEQ);
+    int skip_len0123_mirrors = flags_notrait & TFLAG_LEN0123_SEQ_MIRRORS;
     int len = ctx->len + 1;
 
     progress_init(prog, "finding.shortest.path.",len, 0);
@@ -80,7 +82,7 @@ void search_buffer(match_ctx ctx,       /* IN */
         float prev_score;
         float prev_offset_sum;
 
-        if(use_literal_sequences)
+        if (use_literal_sequences)
         {
             /* check if we can do even better with copy */
             snp = &sn_arr[len];
@@ -103,7 +105,10 @@ void search_buffer(match_ctx ctx,       /* IN */
                     ("total score %0.1f, copy total score %0.1f\n",
                      snp->total_score, total_copy_score));
 
-                if(snp->total_score > total_copy_score )
+                if (snp->total_score > total_copy_score &&
+                    !(skip_len0123_mirrors &&
+                      /* must be < 2 due to PBIT_IMPL_1LITERAL adjustment */
+                      best_copy_len > 255 && (best_copy_len & 255) < 2))
                 {
                     match local_mp;
                     /* here it is good to just copy instead of crunch */

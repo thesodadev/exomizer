@@ -156,7 +156,7 @@ void do_output(match_ctx ctx,
                         int hi = mp->len & ~255;
                         if (hi > 0 && (lo == 1 || lo == 2 || lo == 3))
                         {
-                            traits_used |= TFLAG_LEN123_SEQ_MIRRORS;
+                            traits_used |= TFLAG_LEN0123_SEQ_MIRRORS;
                         }
                     }
                     if (mp->len > max_len)
@@ -244,8 +244,9 @@ do_compress(match_ctx ctx, encode_match_data emd,
         }
         snp = NULL;
         search_buffer(ctx, options->encode, emd,
-                      !(options->flags_notrait & TFLAG_LIT_SEQ),
-                      options->max_len, pass, &snp);
+                      options->flags_notrait,
+                      options->max_len,
+                      pass, &snp);
         if (snp == NULL)
         {
             LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));

@@ -183,7 +183,7 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
     offset = data->offset_f_priv;
 
     bits = 0.0;
-    if (mp->len > 255 && (data->flags_notrait & TFLAG_LEN123_SEQ_MIRRORS) &&
+    if (mp->len > 255 && (data->flags_notrait & TFLAG_LEN0123_SEQ_MIRRORS) &&
         (mp->len & 255) < ((data->flags_proto & PFLAG_4_OFFSET_TABLES)
                            ? 4 : 3))
     {

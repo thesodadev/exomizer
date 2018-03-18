@@ -443,7 +443,7 @@ static void output_crunch_info(struct crunch_info *info)
         LOG(LOG_NORMAL, (", length 1 sequences are %sused",
                          info->traits_used & TFLAG_LEN1_SEQ ? "" : "not "));
         LOG(LOG_NORMAL, (",\n  length 123 mirrors are %sused",
-                         info->traits_used & TFLAG_LEN123_SEQ_MIRRORS ?
+                         info->traits_used & TFLAG_LEN0123_SEQ_MIRRORS ?
                          "" : "not "));
         LOG(LOG_NORMAL, (", max length used is %d",
                          info->max_len));
@@ -599,6 +599,8 @@ void mem(const char *appl, int argc, char *argv[])
             handle_crunch_flags(c, flagarg, print_mem_usage, appl, flags);
         }
     }
+
+    options->flags_notrait |= TFLAG_LEN0123_SEQ_MIRRORS;
 
     membuf_init(in);
     membuf_init(out);
@@ -1008,7 +1010,7 @@ void sfx(const char *appl, int argc, char *argv[])
                  " are not supported by sfx, clearing them.\n"));
             options->flags_proto &= ~unsupported;
         }
-        options->flags_notrait |= TFLAG_LEN123_SEQ_MIRRORS;
+        options->flags_notrait |= TFLAG_LEN0123_SEQ_MIRRORS;
     }
 
     if (options->flags_proto & PFLAG_4_OFFSET_TABLES)
