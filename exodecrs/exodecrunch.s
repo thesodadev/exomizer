@@ -346,12 +346,7 @@ exit_or_lit_seq:
 .ENDIF
         jsr get_crunched_byte
         tax
-.IFNDEF MAX_SEQUENCE_LENGTH_256
-        bne copy_next
-        bcs copy_next_hi
-  .ELSE
         bcs copy_next
-.ENDIF
 decr_exit:
 .ENDIF
         rts
