@@ -73,7 +73,7 @@ void *vec_get(const struct vec *p, int index)
 {
     char *buf = NULL;
 
-    if(index < vec_count(p))
+    if(index >= 0 && index < vec_count(p))
     {
         buf = (char *) membuf_get(&p->buf);
         buf += index * p->elsize;
@@ -86,7 +86,7 @@ void *vec_set(struct vec *p, int index, const void *in)
 {
     void *buf = NULL;
 
-    if(index < vec_count(p))
+    if(index >= 0 && index < vec_count(p))
     {
         buf = membuf_memcpy(&p->buf, index * p->elsize, in, p->elsize);
     }
@@ -96,16 +96,22 @@ void *vec_set(struct vec *p, int index, const void *in)
 
 void *vec_insert(struct vec *p, int index, const void *in)
 {
-    void *buf;
+    void *buf = NULL;
 
-    buf = membuf_insert(&p->buf, index * p->elsize, in, p->elsize);
+    if(index >= 0 && index <= vec_count(p))
+    {
+        buf = membuf_insert(&p->buf, index * p->elsize, in, p->elsize);
+    }
 
     return buf;
 }
 
 void vec_remove(struct vec *p, int index)
 {
-    membuf_remove(&p->buf, index * p->elsize, p->elsize);
+    if(index >= 0 && index < vec_count(p))
+    {
+        membuf_remove(&p->buf, index * p->elsize, p->elsize);
+    }
 }
 
 void *vec_push(struct vec *p, const void *in)
