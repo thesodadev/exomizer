@@ -84,6 +84,7 @@ void test_single(const char *name, int *cyclesp, int *in_lenp, int *out_lenp)
     membuf_init(&mem_mb);
     membuf_atleast(&mem_mb, 65536);
     mem = membuf_get(&mem_mb);
+    memset(mem, 0, 65536);
     mem_ctx.mem = mem;
 
     areatrace_init(&mem_ctx.at);
