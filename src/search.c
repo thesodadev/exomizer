@@ -294,10 +294,6 @@ void search_buffer(match_ctx ctx,       /* IN */
         /* slow way to get to the next node for cur */
         --len;
         ++best_copy_len;
-        if(sn_arr[len].match == NULL)
-        {
-            LOG(LOG_ERROR, ("Found unreachable node at len %d.\n", len));
-        }
 
         progress_bump(prog, len);
     }

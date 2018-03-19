@@ -244,12 +244,8 @@ static const char *resolve_expr2(struct expr *e, i32 *valp)
         value = !value;
         break;
     case SYMBOL:
-        p = NULL;
         e2 = NULL;
-        if(s != NULL)
-        {
-            p = find_symref(e->type.symref, &e2);
-        }
+        p = find_symref(e->type.symref, &e2);
         if(p != NULL) break;
         if(e2 == NULL)
         {

@@ -305,7 +305,7 @@ renumber2_cb_line_mutate(const unsigned char *in, /* IN */
             struct goto_target *target;
 
             LOG(LOG_DUMP, ("found fixup goto %u at %p\n",
-                           rctx->fixup->old_line, in));
+                           rctx->fixup->old_line, (void*)in));
 
             target_key->old_line = rctx->fixup->old_line;
             target = vec_find2(rctx->targets,
