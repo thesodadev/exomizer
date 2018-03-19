@@ -1,9 +1,8 @@
 #
 # Makefile for exomizer decruncher
 #
-
-WFLAGS = --std=c89 -Wall -Wstrict-prototypes
-CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer -fgcse -pedantic
+WFLAGS = -std=c89 -Wall -Wstrict-prototypes -D_XOPEN_SOURCE=600 -pedantic
+CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer
 LDFLAGS = -s
 
 #CFLAGS = -g $(WFLAGS)

@@ -1,10 +1,12 @@
-
-WFLAGS = -Wall -Wstrict-prototypes
-CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer -fgcse -pedantic
+#
+# Makefile for testrun
+#
+WFLAGS = -std=c89 -Wall -Wstrict-prototypes -D_XOPEN_SOURCE=600 -pedantic
+CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer
 LDFLAGS = -s
 
-#CFLAGS = -g -mtune=i686 $(WFLAGS)
-#LDFLAGS = -g -mtune=i686
+#CFLAGS = -g $(WFLAGS)
+#LDFLAGS = -g
 
 TEST_OBJS = testrun.o ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/areatrace.o ../src/vec.o ../src/membuf_io.o ../src/membuf.o
 

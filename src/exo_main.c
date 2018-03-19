@@ -734,7 +734,8 @@ get_target_info(int target)
     return targetp;
 }
 
-static void do_effect(const char *appl, int no_effect, char *fast, char *slow)
+static void do_effect(const char *appl, int no_effect, const char *fast,
+                      const char *slow)
 {
     struct membuf *fx = NULL;
 
@@ -811,10 +812,10 @@ void sfx(const char *appl, int argc, char *argv[])
     int entry_addr = -1;
     int trim_sys = 0;
     int no_effect = 0;
-    char *fast = NULL;
-    char *slow = NULL;
-    char *enter_custom = NULL;
-    char *exit_custom = NULL;
+    const char *fast = NULL;
+    const char *slow = NULL;
+    const char *enter_custom = NULL;
+    const char *exit_custom = NULL;
     char flags_arr[64];
     int c;
     int infilec;
@@ -946,16 +947,16 @@ void sfx(const char *appl, int argc, char *argv[])
             no_effect = 1;
             break;
         case 'x':
-            fast = strdup(flagarg);
+            fast = flagarg;
             break;
         case 'X':
-            slow = strdup(flagarg);
+            slow = flagarg;
             break;
         case 's':
-            enter_custom = strdup(flagarg);
+            enter_custom = flagarg;
             break;
         case 'f':
-            exit_custom = strdup(flagarg);
+            exit_custom = flagarg;
             break;
         case 'D':
             p = strrchr(flagarg, '=');
