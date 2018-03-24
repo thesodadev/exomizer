@@ -39,6 +39,7 @@ enum log_level {
     LOG_FATAL = -40,
     LOG_ERROR = -30,
     LOG_WARNING = -20,
+    LOG_TERSE = -15,
     LOG_BRIEF = -10,
     LOG_NORMAL = 0,
     LOG_VERBOSE = 10,

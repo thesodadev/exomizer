@@ -71,10 +71,12 @@ void save_single(const char *in_name, struct membuf *mem, int start, int end)
     membuf_free(&mb_name);
 }
 
-void test_single(const char *name, int *cyclesp, int *in_lenp, int *out_lenp)
+void test_single(const char *prg_name, const char *data_name,
+                 int *cyclesp, int *in_lenp, int *out_lenp)
 {
     struct cpu_ctx r;
-    struct load_info info;
+    struct load_info prg_info;
+    struct load_info data_info;
     struct membuf mem_mb;
     u8 *mem;
     struct mem_ctx mem_ctx;
@@ -89,28 +91,37 @@ void test_single(const char *name, int *cyclesp, int *in_lenp, int *out_lenp)
 
     areatrace_init(&mem_ctx.at);
 
-    info.basic_txt_start = 0x0801;
-    load_located(name, mem, &info);
+    prg_info.basic_txt_start = 0x0801;
+    data_info.basic_txt_start = 0x0801;
+    load_located(prg_name, mem, &prg_info);
 
     /* no start address from load*/
-    if(info.run == -1)
+    if(prg_info.run == -1)
     {
         /* look for sys line */
-        info.run = find_sys(mem + info.basic_txt_start, 0x9e, NULL);
+        prg_info.run = find_sys(mem + prg_info.basic_txt_start, 0x9e, NULL);
     }
-    if(info.run == -1)
+    if(prg_info.run == -1)
     {
         LOG(LOG_ERROR, ("Error, can't find entry point.\n"));
         exit(-1);
     }
 
-    LOG(LOG_DEBUG, ("run %04x\n", info.run));
+    LOG(LOG_DEBUG, ("run %04x\n", prg_info.run));
+
+    load_located(data_name, mem, &data_info);
+
+    /* communicate the data region to the prg */
+    mem[2] = data_info.start & 255;
+    mem[3] = data_info.start >> 8;
+    mem[4] = data_info.end & 255;
+    mem[5] = data_info.end >> 8;
 
     r.cycles = 0;
     r.mem.ctx = &mem_ctx;
     r.mem.read = mem_access_read;
     r.mem.write = mem_access_write;
-    r.pc = info.run;
+    r.pc = prg_info.run;
     r.sp = '\xff';
     r.flags = 0;
 
@@ -124,7 +135,7 @@ void test_single(const char *name, int *cyclesp, int *in_lenp, int *out_lenp)
     areatrace_merge_overlapping(&mem_ctx.at);
     areatrace_get_largest(&mem_ctx.at, &start, &end);
 
-    save_single(name, &mem_mb, start, end);
+    save_single(data_name, &mem_mb, start, end);
 
     areatrace_free(&mem_ctx.at);
     membuf_free(&mem_mb);
@@ -135,7 +146,7 @@ void test_single(const char *name, int *cyclesp, int *in_lenp, int *out_lenp)
     }
     if (in_lenp != NULL)
     {
-        *in_lenp = info.end - info.start;
+        *in_lenp = data_info.end - data_info.start;
     }
     if (out_lenp != NULL)
     {
@@ -152,34 +163,38 @@ int main(int argc, char *argv[])
     int cycles_sum = 0;
     int inlen_sum = 0;
     int outlen_sum = 0;
+    const char *prg_name;
 
     /* init logging */
-    LOG_INIT_CONSOLE(LOG_BRIEF);
+    LOG_INIT_CONSOLE(LOG_TERSE);
 
-    for (i = 1; i < argc; ++i)
+    prg_name = argv[1];
+
+    LOG(LOG_TERSE, ("|File name                   "
+                    "|Size    |Reduced |Cycles    |C/B out|C/B in |\n"));
+    LOG(LOG_TERSE, ("|----------------------------"
+                    "|--------|--------|----------|-------|-------|\n"));
+    for (i = 2; i < argc; ++i)
     {
-        test_single(argv[i], &cycles, &inlen, &outlen);
-        LOG(LOG_BRIEF,
-            (" Data expanded from %d to %d bytes (%0.2f%%) using %d cycles.\n",
-             inlen, outlen, 100.0 * (outlen - inlen) / inlen, cycles));
-        LOG(LOG_BRIEF,
-            (" Average decrunch pace was %0.2f cycles per output byte.\n",
-             (float)cycles / outlen));
+        test_single(prg_name, argv[i], &cycles, &inlen, &outlen);
+        LOG(LOG_TERSE,
+            ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
+             argv[i], inlen, 100.0 * (outlen - inlen) / inlen, cycles,
+             (float)cycles / outlen, (float)cycles / inlen));
         cycles_sum += cycles;
         inlen_sum += inlen;
         outlen_sum += outlen;
     }
 
-    if (argc > 2)
+    if (argc > 3)
     {
-        LOG(LOG_BRIEF, ("In total:\n"));
-        LOG(LOG_BRIEF,
-            (" Data expanded from %d to %d bytes (%0.2f%%) using %d cycles.\n",
-             inlen_sum, outlen_sum,
-             100.0 * (outlen_sum - inlen_sum) / inlen_sum, cycles_sum));
-        LOG(LOG_BRIEF,
-            (" Average decrunch pace was %0.2f cycles per output byte.\n",
-             (float)cycles_sum / outlen_sum));
+        LOG(LOG_TERSE, ("|----------------------------"
+                        "|--------|--------|----------|-------|-------|\n"));
+        LOG(LOG_TERSE,
+            ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
+             "Total", inlen_sum, 100.0 * (outlen_sum - inlen_sum) / inlen_sum,
+             cycles_sum, (float)cycles_sum / outlen_sum,
+             (float)cycles_sum / inlen_sum));
     }
 
     return 0;

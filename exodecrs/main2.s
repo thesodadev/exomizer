@@ -9,7 +9,6 @@
 .import init_decruncher
 .import get_decrunched_chunk
 .export get_crunched_byte
-.import end_of_data
 
 .export buffer_start_hi:	absolute
 .export buffer_len_hi:		absolute
@@ -21,6 +20,10 @@ decrunched_chunk_size = 128
 ; -------------------------------------------------------------------
 ; we begin here
 ; -------------------------------------------------------------------
+	lda $04
+	sta _byte_lo
+	lda $05
+	sta _byte_hi
 	jsr init_decruncher
 _sample_next:
 	jsr get_decrunched_chunk
@@ -60,7 +63,7 @@ _byte_skip_hi:
 	dec _byte_lo
 _byte_lo = * + 1
 _byte_hi = * + 2
-	lda end_of_data		; needs to be set correctly before
+	lda $ffff		; needs to be set correctly before
 	rts			; decrunch_file is called.
 ; end_of_data needs to point to the address just after the address
 ; of the last byte of crunched data.

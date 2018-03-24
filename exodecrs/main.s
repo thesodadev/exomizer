@@ -14,6 +14,10 @@
 ; -------------------------------------------------------------------
 ; we begin here
 ; -------------------------------------------------------------------
+	lda $04
+	sta _byte_lo
+	lda $05
+	sta _byte_hi
 	jmp decrunch
 ; -------------------------------------------------------------------
 get_crunched_byte:
@@ -24,7 +28,7 @@ _byte_skip_hi:
 	dec _byte_lo
 _byte_lo = * + 1
 _byte_hi = * + 2
-	lda end_of_data		; needs to be set correctly before
+	lda $ffff		; needs to be set correctly before
 	rts			; decrunch_file is called.
 ; end_of_data needs to point to the address just after the address
 ; of the last byte of crunched data.

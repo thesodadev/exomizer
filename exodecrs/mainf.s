@@ -9,18 +9,21 @@
 ; -------------------------------------------------------------------
 .import decrunch
 .export get_crunched_byte
-.import start_of_data
 
 	.byte $01,$08,$0b,$08,<2003,>2003,$9e,'2','0','6','1',0,0,0
 ; -------------------------------------------------------------------
 ; we begin here
 ; -------------------------------------------------------------------
+	lda $02
+	sta _byte_lo
+	lda $03
+	sta _byte_hi
 	jmp decrunch
 ; -------------------------------------------------------------------
 get_crunched_byte:
 _byte_lo = * + 1
 _byte_hi = * + 2
-	lda start_of_data	; needs to be set correctly before
+	lda $ffff		; needs to be set correctly before
 				; decrunch_file is called.
 	inc _byte_lo
 	bne _byte_skip_hi

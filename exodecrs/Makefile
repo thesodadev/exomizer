@@ -10,13 +10,13 @@ LDFLAGS = -s
 
 TEST_OBJS = testrun.o ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/areatrace.o ../src/vec.o ../src/membuf_io.o ../src/membuf.o
 
-SOURCES = main.os exodecrunch.os data.os
-SOURCES256 = main.os exodecrunch.os256 data256.os
-SOURCESc = main.os exodecrunch.osc datac.os
-SOURCES256c = main.os exodecrunch.os256c data256c.os
-SOURCESF = mainf.os krilldecr.os dataf.os
-SOURCES1 = main1.os exostreamdecr1.os streamdata.os
-SOURCES2 = main2.os exostreamdecr2.os streamdata.os
+SOURCES = main.os exodecrunch.os
+SOURCES256 = main.os exodecrunch.os256
+SOURCESc = main.os exodecrunch.osc
+SOURCES256c = main.os exodecrunch.os256c
+SOURCESF = mainf.os krilldecr.os
+SOURCES1 = main1.os exostreamdecr1.os
+SOURCES2 = main2.os exostreamdecr2.os
 NAME = test.prg
 NAME256 = test256.prg
 NAMEc = testc.prg
@@ -25,46 +25,49 @@ NAMEF = testf.prg
 NAME1 = test1.prg
 NAME2 = test2.prg
 
+.PRECIOUS: %.exo %.prg $(TEST_OBJS)
+.INTERMEDIATE: %.exo.out
+
 build: $(NAME) $(NAME256) $(NAMEc) $(NAME256c) $(NAMEF) $(NAME1) $(NAME2)
 
 testrun: $(TEST_OBJS)
 	@echo "Linking $@"
 	@$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
 
-$(NAME): $(MAKEFILE) testrun $(SOURCES)
+$(NAME): $(MAKEFILE) testrun data.exo $(SOURCES)
 	ld65 $(SOURCES) -o $@ -Cc64.cfg
-	./testrun $@
-	cmp -i0:2 $@.out data.bin && $(RM) $@.out
+	./testrun $@ data.exo
+	cmp -i0:2 data.exo.out data.bin && $(RM) data.exo.out
 
-$(NAME256): $(MAKEFILE) testrun $(SOURCES256)
+$(NAME256): $(MAKEFILE) testrun data256.exo $(SOURCES256)
 	ld65 $(SOURCES256) -o $@ -Cc64.cfg
-	./testrun $@
-	cmp -i0:2 $@.out data.bin && $(RM) $@.out
+	./testrun $@ data256.exo
+	cmp -i0:2 data256.exo.out data.bin && $(RM) data256.exo.out
 
-$(NAMEc): $(MAKEFILE) testrun $(SOURCESc)
+$(NAMEc): $(MAKEFILE) testrun datac.exo $(SOURCESc)
 	ld65 $(SOURCESc) -o $@ -Cc64.cfg
-	./testrun $@
-	cmp -i0:2 $@.out data.bin && $(RM) $@.out
+	./testrun $@ datac.exo
+	cmp -i0:2 datac.exo.out data.bin && $(RM) datac.exo.out
 
-$(NAME256c): $(MAKEFILE) testrun $(SOURCES256c)
+$(NAME256c): $(MAKEFILE) testrun data256c.exo $(SOURCES256c)
 	ld65 $(SOURCES256c) -o $@ -Cc64.cfg
-	./testrun $@
-	cmp -i0:2 $@.out data.bin && $(RM) $@.out
+	./testrun $@ data256c.exo
+	cmp -i0:2 data256c.exo.out data.bin && $(RM) data256c.exo.out
 
-$(NAMEF): $(MAKEFILE) testrun $(SOURCESF)
+$(NAMEF): $(MAKEFILE) testrun dataf.exo $(SOURCESF)
 	ld65 $(SOURCESF) -o $@ -Cc64.cfg
-	./testrun $@
-	cmp -i0:2 $@.out data.bin && $(RM) $@.out
+	./testrun $@ dataf.exo
+	cmp -i0:2 dataf.exo.out data.bin && $(RM) dataf.exo.out
 
-$(NAME1): $(MAKEFILE) testrun $(SOURCES1)
+$(NAME1): $(MAKEFILE) testrun streamdata.exo $(SOURCES1)
 	ld65 $(SOURCES1) -o $@ -Cc64.cfg
-	./testrun $@
-	cmp -i0:2 $@.out data.bin && $(RM) $@.out
+	./testrun $@ streamdata.exo@0x3000
+	cmp -i0:2 streamdata.exo.out data.bin && $(RM) streamdata.exo.out
 
-$(NAME2): $(MAKEFILE) testrun $(SOURCES2)
+$(NAME2): $(MAKEFILE) testrun streamdata.exo $(SOURCES2)
 	ld65 $(SOURCES2) -o $@ -Cc64.cfg
-	./testrun $@
-	cmp -i0:2 $@.out data.bin && $(RM) $@.out
+	./testrun $@ streamdata.exo@0x3000
+	cmp -i0:2 streamdata.exo.out data.bin && $(RM) streamdata.exo.out
 
 %.os: %.s
 	ca65 $< -o $@
@@ -79,15 +82,7 @@ $(NAME2): $(MAKEFILE) testrun $(SOURCES2)
 	ca65 -DLITERAL_SEQUENCES_NOT_USED=1 $< -o $@
 
 clean:
-	$(RM) $(TEST_OBJS) $(SOURCES) $(SOURCES256) $(SOURCESc) $(SOURCES256c) $(SOURCESF) $(SOURCES1) $(SOURCES2) $(NAME) $(NAME256) $(NAMEc) $(NAME256c) $(NAMEF) $(NAME1) $(NAME2) testrun data.exo data256.exo datac.exo data256c.exo dataf.exo \
-	streamdata.exo
-
-data.os: data.exo
-data256.os: data256.exo
-datac.os: datac.exo
-data256c.os: data256c.exo
-dataf.os: dataf.exo
-streamdata.os: streamdata.exo
+	$(RM) $(TEST_OBJS) $(SOURCES) $(SOURCES256) $(SOURCESc) $(SOURCES256c) $(SOURCESF) $(SOURCES1) $(SOURCES2) $(NAME) $(NAME256) $(NAMEc) $(NAME256c) $(NAMEF) $(NAME1) $(NAME2) testrun data.exo data256.exo datac.exo data256c.exo dataf.exo streamdata.exo
 
 data.exo: data.bin
 	../src/exomizer mem -q -C data.bin,0x3000 -o data.exo
@@ -113,3 +108,6 @@ streamdata.exo: data.bin
 
 %:	%.o
 	@$(CC) $(LDFLAGS) $< -o $@
+
+# cancel built in rule that disturb things
+%.out: %

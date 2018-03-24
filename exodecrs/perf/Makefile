@@ -14,8 +14,8 @@ SOURCES = ../main.os ../exodecrunch.os
 NAME = pfp_1.prg
 
 .PHONY: build %.test
-.PRECIOUS: %.exo $(SOURCES) $(TEST_OBJS)
-.INTERMEDIATE: %_data.os %_data.s
+.PRECIOUS: %.exo %.prg $(TEST_OBJS)
+.INTERMEDIATE: %.exo.out
 
 build: data.test
 
@@ -23,20 +23,14 @@ build: data.test
 	@echo "Linking $@"
 	@$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
 
-%.test: %.prg.out
+%.test: %.exo.out %.raw
 	cmp $< $*.raw
 
-%.prg.out: %.prg ../testrun
-	../testrun $<
+%.exo.out: test.prg %.exo ../testrun
+	../testrun $< $*.exo
 
-%.prg: %_data.os $(MAKEFILE) $(SOURCES)
-	ld65 $(SOURCES) $< -o $@ -C../c64.cfg
-
-%_data.s: %.exo data.s.template
-	sed 's/PLACEHOLDER/$</' data.s.template > $@
-
-%_data.os: %_data.s %.exo
-	ca65 $< -o $@
+%.prg: $(SOURCES) ../c64.cfg
+	ld65 $(SOURCES) -o $@ -C../c64.cfg
 
 %.os: %.s
 	ca65 $< -o $@
@@ -45,7 +39,7 @@ clean:
 	$(RM) data.test *.out *.exo *.prg
 
 %.exo: %.raw
-	../../src/exomizer mem -B $<@0x1000 -o $@
+	../../src/exomizer mem -q $<@0x1000 -o $@
 
 %.o:	%.c
 	@echo "Compiling $<"
@@ -53,3 +47,6 @@ clean:
 
 %:	%.o
 	@$(CC) $(LDFLAGS) $< -o $@
+
+# cancel built in rule that disturb things
+%.out: %
