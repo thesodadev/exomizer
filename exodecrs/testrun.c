@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
         test_single(prg_name, argv[i], &cycles, &inlen, &outlen);
         LOG(LOG_TERSE,
             ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
-             argv[i], inlen, 100.0 * (outlen - inlen) / inlen, cycles,
+             argv[i], inlen, 100.0 * (outlen - inlen) / outlen, cycles,
              (float)cycles / outlen, (float)cycles / inlen));
         cycles_sum += cycles;
         inlen_sum += inlen;
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
                         "|--------|--------|----------|-------|-------|\n"));
         LOG(LOG_TERSE,
             ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
-             "Total", inlen_sum, 100.0 * (outlen_sum - inlen_sum) / inlen_sum,
+             "Total", inlen_sum, 100.0 * (outlen_sum - inlen_sum) / outlen_sum,
              cycles_sum, (float)cycles_sum / outlen_sum,
              (float)cycles_sum / inlen_sum));
     }

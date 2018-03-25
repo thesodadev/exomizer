@@ -11,13 +11,16 @@ LDFLAGS = -s
 TEST_OBJS = ../testrun.o ../../src/6502emu.o ../../src/exo_util.o ../../src/log.o ../../src/areatrace.o ../../src/vec.o ../../src/membuf_io.o ../../src/membuf.o
 
 SOURCES = ../main.os ../exodecrunch.os
-NAME = pfp_1.prg
 
-.PHONY: build %.test
+.PHONY: build %.test %.stat
 .PRECIOUS: %.exo %.prg $(TEST_OBJS)
 .INTERMEDIATE: %.exo.out
 
 build: data.test
+
+%.stat:	test.prg ../testrun
+	@$(MAKE) $(sort $(patsubst %.raw,%.exo,$(wildcard $**.raw)))
+	@../testrun test.prg $(sort $(patsubst %.raw,%.exo,$(wildcard $**.raw)))
 
 ../testrun: $(TEST_OBJS)
 	@echo "Linking $@"
