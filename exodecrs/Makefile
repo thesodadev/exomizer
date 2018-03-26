@@ -8,7 +8,7 @@ LDFLAGS = -s
 #CFLAGS = -g $(WFLAGS)
 #LDFLAGS = -g
 
-TEST_OBJS = testrun.o ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/areatrace.o ../src/vec.o ../src/membuf_io.o ../src/membuf.o
+TEST_OBJS = ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/areatrace.o ../src/vec.o ../src/membuf_io.o ../src/membuf.o
 
 SOURCES = main.os exodecrunch.os
 SOURCES256 = main.os exodecrunch.os256
@@ -30,9 +30,9 @@ NAME2 = test2.prg
 
 build: $(NAME) $(NAME256) $(NAMEc) $(NAME256c) $(NAMEF) $(NAME1) $(NAME2)
 
-testrun: $(TEST_OBJS)
+testrun: testrun.o $(TEST_OBJS)
 	@echo "Linking $@"
-	@$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
+	@$(CC) $(LDFLAGS) -o $@ testrun.o $(TEST_OBJS)
 
 $(NAME): $(MAKEFILE) testrun data.exo $(SOURCES)
 	ld65 $(SOURCES) -o $@ -Cc64.cfg
@@ -82,7 +82,7 @@ $(NAME2): $(MAKEFILE) testrun streamdata.exo $(SOURCES2)
 	ca65 -DLITERAL_SEQUENCES_NOT_USED=1 $< -o $@
 
 clean:
-	$(RM) $(TEST_OBJS) $(SOURCES) $(SOURCES256) $(SOURCESc) $(SOURCES256c) $(SOURCESF) $(SOURCES1) $(SOURCES2) $(NAME) $(NAME256) $(NAMEc) $(NAME256c) $(NAMEF) $(NAME1) $(NAME2) testrun data.exo data256.exo datac.exo data256c.exo dataf.exo streamdata.exo
+	$(RM) $(SOURCES) $(SOURCES256) $(SOURCESc) $(SOURCES256c) $(SOURCESF) $(SOURCES1) $(SOURCES2) $(NAME) $(NAME256) $(NAMEc) $(NAME256c) $(NAMEF) $(NAME1) $(NAME2) testrun data.exo data256.exo datac.exo data256c.exo dataf.exo streamdata.exo
 
 data.exo: data.bin
 	../src/exomizer mem -q -C data.bin,0x3000 -o data.exo

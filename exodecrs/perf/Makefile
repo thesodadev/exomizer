@@ -8,41 +8,45 @@ LDFLAGS = -s
 #CFLAGS = -g -mtune=i686 $(WFLAGS)
 #LDFLAGS = -g -mtune=i686
 
+DECR_OBJS = ../exodecrunch.os
+CRUNCHER = ../../src/exomizer mem -q $<@0x1010 -o $@
+
 TEST_OBJS = ../testrun.o ../../src/6502emu.o ../../src/exo_util.o ../../src/log.o ../../src/areatrace.o ../../src/vec.o ../../src/membuf_io.o ../../src/membuf.o
 
-SOURCES = ../main.os ../exodecrunch.os
+OBJS = ../main.os $(DECR_OBJS)
+
 
 .PHONY: build %.test %.stat
-.PRECIOUS: %.exo %.prg $(TEST_OBJS)
-.INTERMEDIATE: %.exo.out
+.PRECIOUS: %.cru %.prg $(TEST_OBJS) %.cru.out
+#.INTERMEDIATE: %.cru.out
 
 build: data.test
 
 %.stat:	test.prg ../testrun
-	@$(MAKE) $(sort $(patsubst %.raw,%.exo,$(wildcard $**.raw)))
-	@../testrun test.prg $(sort $(patsubst %.raw,%.exo,$(wildcard $**.raw)))
+	@$(MAKE) $(sort $(patsubst %.raw,%.cru,$(wildcard $**.raw)))
+	@../testrun test.prg $(sort $(patsubst %.raw,%.cru,$(wildcard $**.raw)))
 
-../testrun: $(TEST_OBJS)
+../testrun: testrun.o $(TEST_OBJS)
 	@echo "Linking $@"
-	@$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
+	@$(CC) $(LDFLAGS) -o $@ testrun.o $(TEST_OBJS)
 
-%.test: %.exo.out %.raw
+%.test: %.cru.out %.raw
 	cmp $< $*.raw
 
-%.exo.out: test.prg %.exo ../testrun
-	../testrun $< $*.exo
+%.cru.out: test.prg %.cru ../testrun
+	../testrun $< $*.cru
 
-%.prg: $(SOURCES) ../c64.cfg
-	ld65 $(SOURCES) -o $@ -C../c64.cfg
+%.prg: $(OBJS) ../c64.cfg
+	ld65 $(OBJS) -o $@ -C../c64.cfg
 
 %.os: %.s
 	ca65 $< -o $@
 
 clean:
-	$(RM) data.test *.out *.exo *.prg
+	$(RM) *.out *.cru *.prg
 
-%.exo: %.raw
-	../../src/exomizer mem -q $<@0x1000 -o $@
+%.cru: %.raw
+	$(CRUNCHER)
 
 %.o:	%.c
 	@echo "Compiling $<"

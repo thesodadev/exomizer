@@ -1,4 +1,4 @@
-				;
+;
 ; Copyright (c) 2002 - 2018 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
