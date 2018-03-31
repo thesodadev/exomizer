@@ -91,7 +91,7 @@ data256.exo: data.bin
 	../src/exomizer mem -q -M256 -C data.bin,0x3000 -o data256.exo
 
 datac.exo: data.bin
-	../src/exomizer mem -q -T1 -C data.bin,0x3000 -o datac.exo
+	../src/exomizer mem -q -c -C data.bin,0x3000 -o datac.exo
 
 data256c.exo: data.bin
 	../src/exomizer mem -q -M256 -c -C data.bin,0x3000 -o data256c.exo

@@ -467,6 +467,7 @@ void level(const char *appl, int argc, char *argv[])
     struct membuf in[1];
     struct membuf out[1];
 
+    options->flags_notrait = TFLAG_LEN0123_SEQ_MIRRORS;
     flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
@@ -568,6 +569,7 @@ void mem(const char *appl, int argc, char *argv[])
     struct membuf in[1];
     struct membuf out[1];
 
+    options->flags_notrait = TFLAG_LEN0123_SEQ_MIRRORS;
     flags->options = options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
@@ -834,6 +836,7 @@ void sfx(const char *appl, int argc, char *argv[])
     struct membuf *in;
     struct membuf *out;
 
+    options->flags_proto = PFLAG_BITS_ORDER_BE | PFLAG_BITS_COPY_GT_7;
     flags->options = options;
 
     if(argc <= 1)

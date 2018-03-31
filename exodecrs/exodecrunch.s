@@ -293,20 +293,13 @@ gbnc2_ok:
         adc zp_dest_hi
         sta zp_src_hi
 ; -------------------------------------------------------------------
-; prepare for copy loop (8 bytes)
+; prepare for copy loop (2 bytes)
 ;
 pre_copy:
         ldx zp_len_lo
-.IFNDEF MAX_SEQUENCE_LENGTH_256
-        bne copy_next
-.ENDIF
 ; -------------------------------------------------------------------
 ; main copy loop (30 bytes)
 ;
-.IFNDEF MAX_SEQUENCE_LENGTH_256
-copy_next_hi:
-        dec zp_len_hi
-.ENDIF
 copy_next:
         tya
         bne copy_skip_hi
@@ -329,6 +322,11 @@ literal_byte_gotten:
 begin_stx:
         stx zp_bits_hi
         jmp next_round
+.IFNDEF MAX_SEQUENCE_LENGTH_256
+copy_next_hi:
+        dec zp_len_hi
+        jmp copy_next
+.ENDIF
 .IFNDEF LITERAL_SEQUENCES_NOT_USED
 get_literal_byte:
         jsr get_crunched_byte
