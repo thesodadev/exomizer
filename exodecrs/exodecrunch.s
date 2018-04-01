@@ -40,7 +40,7 @@
 
 ; -------------------------------------------------------------------
 ; Controls if the shared get_bits routines should be inlined or not.
-INLINE_GET_BITS=1
+;INLINE_GET_BITS=1
 ; -------------------------------------------------------------------
 ; if literal sequences is not used (the data was crunched with the -c
 ; flag) then the following line can be uncommented for shorter and.
@@ -317,11 +317,17 @@ literal_byte_gotten:
         bne copy_next
 .IFNDEF MAX_SEQUENCE_LENGTH_256
         lda zp_len_hi
+.IFDEF INLINE_GET_BITS
         bne copy_next_hi
+.ENDIF
 .ENDIF
 begin_stx:
         stx zp_bits_hi
+.IFNDEF INLINE_GET_BITS
+        beq next_round
+.ELSE
         jmp next_round
+.ENDIF
 .IFNDEF MAX_SEQUENCE_LENGTH_256
 copy_next_hi:
         dec zp_len_hi
