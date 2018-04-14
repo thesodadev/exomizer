@@ -53,9 +53,9 @@ build: data.test
 	@$(MAKE) $(sort $(patsubst %.raw,%.crui256,$(wildcard $**.raw)))
 	@../testrun test.prgi256 $(sort $(patsubst %.raw,%.crui256,$(wildcard $**.raw)))
 
-../testrun: testrun.o $(TEST_OBJS)
+../testrun: $(TEST_OBJS)
 	@echo "Linking $@"
-	@$(CC) $(LDFLAGS) -o $@ testrun.o $(TEST_OBJS)
+	@$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
 
 %.test: %.cru.out %.raw
 	cmp $< $*.raw
@@ -106,7 +106,7 @@ build: data.test
 	ca65 -DINLINE_GET_BITS=1 -DMAX_SEQUENCE_LENGTH_256=1 $< -o $@
 
 clean:
-	$(RM) *.out *.cru *.prg
+	$(RM) *.out *.cru* test*.prg*
 
 %.cru: %.raw
 	$(CRUNCHER)

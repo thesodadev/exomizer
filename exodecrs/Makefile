@@ -121,7 +121,7 @@ $(NAME2): $(MAKEFILE) testrun streamdata.exo $(SOURCES2)
 %.osic: %.s
 	ca65 -DINLINE_GET_BITS=1 -DLITERAL_SEQUENCES_NOT_USED=1 $< -o $@
 clean:
-	$(RM) $(SOURCES) $(SOURCES256) $(SOURCESc) $(SOURCES256c) $(SOURCESi) $(SOURCESi256) $(SOURCESic) $(SOURCESi256c) $(SOURCESF) $(SOURCES1) $(SOURCES2) $(NAME) $(NAME256) $(NAMEc) $(NAME256c) $(NAMEi) $(NAMEi256) $(NAMEic) $(NAMEi256c) $(NAMEF) $(NAME1) $(NAME2) testrun data.exo data256.exo datac.exo data256c.exo dataf.exo streamdata.exo
+	$(RM) testrun.o test*.prg *.os* *.exo *.exo.out testrun
 
 data.exo: data.bin
 	../src/exomizer mem -q -C data.bin,0x3000 -o data.exo
