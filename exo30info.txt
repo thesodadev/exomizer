@@ -1,0 +1,104 @@
+Exomizer 3.0
+
+FEATURES
+
+o  New bit stream format for crunched files that allow for faster decrunching.
+
+o  The bit stream format is controlled by a new -P<bitfield> flag. The bits
+   control different aspects of the bit stream format. -P0 disables all new
+   aspects and will generate exomizer 2.0 compatible files. Raw mem and level
+   modes default to -P7.
+
+   bit 0  Controls bit bit orientation, 1=big endian, 0=little endian
+   bit 1  Contols how more than 7 bits are shifted 1=split into a shift of
+          of less than 8 bits + a byte, 0=all bits are shifted
+   bit 2  Implicit first literal byte: 1=enable, 0=disable
+   bit 3  Align bit stream towards start without flag: 1=enable, 0=disable
+   bit 4  Decides if we are to have two lengths (1 and 2) or three lengths
+          (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three
+
+   Please note that many decrunchers has not yet been ported to the new bit
+   stream format and requires a -P0 on the commandline. However,
+   exodecrs/exodecrunch.s, rawdecrs/exodecr.c and rawdecrs/exodecrunch.c will
+   work out of the box.
+
+o  There is a new -T<bitfield> flag that controls traits of the bit stream that
+   don't affect the bit stream format. Typically traits are disallowed to make
+   the decruncher faster and/or shorter. Raw mode defaults to -T0. Mem
+   and level modes default to -T4.
+
+   bit 0  Disallow literal sequences, 0 allow, 1 disallow
+   bit 1  Disallow sequences with length 1, 0 allow, 1 disallow
+   bit 2  Disallow sequences with length > 255 and (length & 255) < 3, 0 allow,
+          1 disallow
+
+o  Sfx decruncher and exodecrunch.s that takes advantage of the new bit stream
+   for decrunching speed inprovements.
+
+o  Very slightly improved compression.
+
+Contributing
+
+   You are very welcome to contribute decruncher source code for unsupported
+   targets and/or improving existing decrunchers.
+
+   However, The unclear licensing of some of the contributions so far has not
+   been ideal. So please decide on what license to use before contributing. If
+   you are unsure which license to chose I recommend using the same license
+   that I use for my own decruncer sources. It is a plain zlib license with an
+   additional BSD like no-endorsement clause. See exodecrs/exodecrunch.s for
+   how it can be included in the source file as a comment block.
+
+Credits
+
+   The new bit stream format features/traits have been inspired from several
+   sources that I would like to mention (in no particular order):
+
+   1) The exoopt tool developed by Metalbrain and Antonio Villena
+      (z80 decruncher contributors, the new -P and -T flags should be able to
+      replicate all bit protocol variants that exoopt generates).
+   2) The Doynamite 6502 decruncher by Doynax, a work of art.
+   3) Feedback from users
+
+Benchmarks
+
+For the memory decruncher exodecrunch.s using the "Pearl for Pigs" files (from
+here http://codebase64.org/doku.php?id=base:compression_benchmarks):
+
+(not inlined get_bits, unlimited sequence lengths)
+|File name                   |Size    |Reduced |Cycles    |C/B out|C/B in |
+|----------------------------|--------|--------|----------|-------|-------|
+|pfp1.cru                    |    2949|  73.21%|    737850|  67.03| 250.20|
+|pfp2.cru                    |    2192|  55.92%|    479188|  96.36| 218.61|
+|pfp3.cru                    |    1784|  54.82%|    355245|  89.96| 199.13|
+|pfp4.cru                    |    3432|  51.08%|    665760|  94.89| 193.99|
+|pfp5.cru                    |   19581|  43.67%|   3577694| 102.93| 182.71|
+|pfp6.cru                    |    8288|  73.78%|   1973435|  62.44| 238.11|
+|pfp7.cru                    |    8757|  57.06%|   1764659|  86.54| 201.51|
+|pfp8.cru                    |    3073|  46.21%|    534654|  93.59| 173.98|
+|pfp9.cru                    |    5302|  40.83%|    944379| 105.40| 178.12|
+|----------------------------|--------|--------|----------|-------|-------|
+|Total                       |   55358|  56.88%|  11032864|  85.94| 199.30|
+
+(inlined get_bits, sequence lengths < 256)
+|File name                   |Size    |Reduced |Cycles    |C/B out|C/B in |
+|----------------------------|--------|--------|----------|-------|-------|
+|pfp1.crui256                |    2949|  73.21%|    676595|  61.46| 229.43|
+|pfp2.crui256                |    2192|  55.92%|    429109|  86.29| 195.76|
+|pfp3.crui256                |    1784|  54.82%|    319676|  80.95| 179.19|
+|pfp4.crui256                |    3432|  51.08%|    603915|  86.08| 175.97|
+|pfp5.crui256                |   19581|  43.67%|   3256292|  93.68| 166.30|
+|pfp6.crui256                |    8403|  73.41%|   1821915|  57.65| 216.82|
+|pfp7.crui256                |    8759|  57.05%|   1611966|  79.05| 184.04|
+|pfp8.crui256                |    3073|  46.21%|    487499|  85.33| 158.64|
+|pfp9.crui256                |    5311|  40.73%|    860093|  95.99| 161.95|
+|----------------------------|--------|--------|----------|-------|-------|
+|Total                       |   55484|  56.78%|  10067060|  78.42| 181.44|
+
+You can make these tables yourself by naming the pfp files pfp[1-9].raw,
+dropping them in the exodecrs/perf folder and in that folder execute the
+following command line: $ make pfp.stat pfp.stati256
+
+(You need to build exomizer in the src folder first and you also need to have
+cc65, gcc and gnu make on the path) It works in Linux and in a mingw/msys2
+environment in Windows.

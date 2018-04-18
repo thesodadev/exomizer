@@ -29,10 +29,10 @@
  */
 
 /*
- * bit 0  Controls bit bit orientation
- * bit 1  Contols how more than 7 bits are shifted 0=split into a shift of
- *        of less than 8 bits + a byte (new), 1=all bits are shifted (old)
- * bit 2  Implicit first literal byte: 0=enable, 1=disable
+ * bit 0  Controls bit bit orientation, 1=big endian, 0=little endian
+ * bit 1  Contols how more than 7 bits are shifted 1=split into a shift of
+ *        of less than 8 bits + a byte (new), 0=all bits are shifted
+ * bit 2  Implicit first literal byte: 1=enable, 0=disable
  * bit 3  Align bit stream towards start without flag: 1=enable, 0=disable
  * bit 4  Decides if we are to have two lengths (1 and 2) or three lengths
  *        (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three

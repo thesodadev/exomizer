@@ -420,7 +420,7 @@ void print_license(void)
 {
     LOG(LOG_WARNING,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v2.1.0 Copyright (c) 2002-2018 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v3.0.0 Copyright (c) 2002-2018 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_WARNING,
         ("This software is provided 'as-is', without any express or implied warranty.\n"

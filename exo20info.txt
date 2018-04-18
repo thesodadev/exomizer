@@ -1,4 +1,4 @@
-Exomizer 2.1
+Exomizer 2.0
 
 FEATURES
 
