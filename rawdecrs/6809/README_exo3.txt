@@ -5,4 +5,3 @@ default.
 
  To generate files that are compatible with exomizer 2 you must now add the
 flag -P0 to the commandline.
-
