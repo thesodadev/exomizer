@@ -75,13 +75,13 @@ get_byte(struct dec_ctx *ctx)
 static int
 get_bits(struct dec_ctx *ctx, int count)
 {
-    int byte_count = 0;
+    int byte_copy = 0;
     int val;
 
     val = 0;
     if (ctx->flags_proto & PFLAG_BITS_COPY_GT_7)
     {
-        byte_count = count >> 3;
+        byte_copy = count & 8;
         count &= 7;
     }
 
@@ -103,7 +103,7 @@ get_bits(struct dec_ctx *ctx, int count)
     }
     /*printf(" val = %d\n", val);*/
 
-    while (byte_count-- > 0)
+    if (byte_copy != 0)
     {
         val <<= 8;
         val |= get_byte(ctx);
@@ -293,7 +293,8 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
         }
         if(val == 17)
         {
-            len = get_bits(ctx, 16);
+            len = get_byte(ctx) << 8;
+            len |= get_byte(ctx);
             literal = 1;
 
             LOG(LOG_DEBUG, ("[%d] literal copy len %d\n",

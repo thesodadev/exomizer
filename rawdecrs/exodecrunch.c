@@ -77,7 +77,7 @@ static int bitbuffer_rotate(struct exo_decrunch_ctx *ctx, int carry)
 static int
 read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
 {
-    int byte_count = bit_count >> 3;
+    int byte_copy = bit_count & 8;
     int bits = 0;
     bit_count &= 7;
     while(bit_count-- > 0)
@@ -91,7 +91,7 @@ read_bits(struct exo_decrunch_ctx *ctx, int bit_count)
         bits <<= 1;
         bits |= carry;
     }
-    while (byte_count-- > 0)
+    if (byte_copy != 0)
     {
         bits <<= 8;
         bits |= ctx->read_byte(ctx->read_data);
@@ -194,7 +194,8 @@ exo_read_decrunched_byte(struct exo_decrunch_ctx *ctx)
         if(length_index == 17)
         {
             /* literal data block */
-            ctx->length = read_bits(ctx, 16);
+            ctx->length = ctx->read_byte(ctx->read_data) << 8;
+            ctx->length |= ctx->read_byte(ctx->read_data);
             ctx->state = STATE_NEXT_LITERAL_BYTE;
     case STATE_NEXT_LITERAL_BYTE:
             if(--ctx->length == 0)

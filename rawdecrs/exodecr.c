@@ -53,7 +53,7 @@ static unsigned short int
 read_bits(const char **inp, int bit_count)
 {
     unsigned short int bits = 0;
-    int byte_count = bit_count >> 3;
+    int byte_copy = bit_count & 8;
     bit_count &= 7;
 
     while(bit_count-- > 0)
@@ -67,7 +67,7 @@ read_bits(const char **inp, int bit_count)
         bits <<= 1;
         bits |= carry;
     }
-    while (byte_count-- > 0)
+    if (byte_copy != 0)
     {
         bits <<= 8;
         bits |= read_byte(inp);
