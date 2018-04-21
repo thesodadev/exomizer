@@ -1,6 +1,11 @@
 Exomizer 3.0
+------------
 
-FEATURES
+This document only mentions what has changed since exomizer 2.0. For
+more general exomizer info also read the exo20info.txt file.
+
+New features
+------------
 
 o  New bit stream format for crunched files that allow for faster decrunching.
 
@@ -13,14 +18,16 @@ o  The bit stream format is controlled by a new -P<bitfield> flag. The bits
    bit 1  Contols how more than 7 bits are shifted 1=split into a shift of
           of less than 8 bits + a byte, 0=all bits are shifted
    bit 2  Implicit first literal byte: 1=enable, 0=disable
-   bit 3  Align bit stream towards start without flag: 1=enable, 0=disable
+   bit 3  Align bit stream towards start without shift flag bit included:
+          1=enable, 0=disable
    bit 4  Decides if we are to have two lengths (1 and 2) or three lengths
           (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three
 
    Please note that many decrunchers has not yet been ported to the new bit
    stream format and requires a -P0 on the commandline. However,
    exodecrs/exodecrunch.s, rawdecrs/exodecr.c and rawdecrs/exodecrunch.c will
-   work out of the box.
+   work out of the box. Only the built in decruncher src/exodec.c handles all
+   possible bit combinations. Please check it out for implementation details.
 
 o  There is a new -T<bitfield> flag that controls traits of the bit stream that
    don't affect the bit stream format. Typically traits are disallowed to make
@@ -32,12 +39,16 @@ o  There is a new -T<bitfield> flag that controls traits of the bit stream that
    bit 2  Disallow sequences with length > 255 and (length & 255) < 3, 0 allow,
           1 disallow
 
-o  Sfx decruncher and exodecrunch.s that takes advantage of the new bit stream
-   for decrunching speed inprovements.
+o  The sfx decruncher and exodecrs/exodecrunch.s take advantage of the new bit
+   stream format for decrunching speed inprovements. They also become faster if
+   the sequence length is limited to 256 by using -M256 when crunching.
+   (exodecrs/exodecrunch.s has to be told by a define, see the comments in the
+   file for more info)
 
 o  Very slightly improved compression.
 
 Contributing
+------------
 
    You are very welcome to contribute decruncher source code for unsupported
    targets and/or improving existing decrunchers.
@@ -49,23 +60,27 @@ Contributing
    additional BSD like no-endorsement clause. See exodecrs/exodecrunch.s for
    how it can be included in the source file as a comment block.
 
-Credits
+Sources of inspiration
+----------------------
 
-   The new bit stream format features/traits have been inspired from several
-   sources that I would like to mention (in no particular order):
+   The new bit stream format features/traits and the 6502 decruncher speed
+   improvements have been inspired from several sources that I would like to
+   mention (in no particular order):
 
-   1) The exoopt tool developed by Metalbrain and Antonio Villena
-      (z80 decruncher contributors, the new -P and -T flags should be able to
+   * The exoopt tool developed by Metalbrain and Antonio Villena
+     (z80 decruncher contributors, the new -P and -T flags should be able to
       replicate all bit protocol variants that exoopt generates).
-   2) The Doynamite 6502 decruncher by Doynax, a work of art.
-   3) Feedback from users
+   * The Doynamite 6502 decruncher by Doynax and the subsizer cruncher by TLR,
+     for raising the bar.
+   * Feedback from users
 
 Benchmarks
+----------
 
 For the memory decruncher exodecrunch.s using the "Pearl for Pigs" files (from
 here http://codebase64.org/doku.php?id=base:compression_benchmarks):
 
-(not inlined get_bits, unlimited sequence lengths)
+(get_bits not inlined, unlimited sequence lengths)
 |File name                   |Size    |Reduced |Cycles    |C/B out|C/B in |
 |----------------------------|--------|--------|----------|-------|-------|
 |pfp1.cru                    |    2949|  73.21%|    737850|  67.03| 250.20|
@@ -80,7 +95,7 @@ here http://codebase64.org/doku.php?id=base:compression_benchmarks):
 |----------------------------|--------|--------|----------|-------|-------|
 |Total                       |   55358|  56.88%|  11032864|  85.94| 199.30|
 
-(inlined get_bits, sequence lengths < 256)
+(get_bits inlined, sequence lengths < 256)
 |File name                   |Size    |Reduced |Cycles    |C/B out|C/B in |
 |----------------------------|--------|--------|----------|-------|-------|
 |pfp1.crui256                |    2949|  73.21%|    676595|  61.46| 229.43|
@@ -100,5 +115,5 @@ dropping them in the exodecrs/perf folder and in that folder execute the
 following command line: $ make pfp.stat pfp.stati256
 
 (You need to build exomizer in the src folder first and you also need to have
-cc65, gcc and gnu make on the path) It works in Linux and in a mingw/msys2
-environment in Windows.
+cc65, gcc and gnu make on the path) It works in Linux and in a Windows
+mingw/msys2 environment in Windows.
