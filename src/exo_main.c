@@ -1571,10 +1571,9 @@ void desfx(const char *appl, int argc, char *argv[])
     cookedend = ((end - 1) & 0xffff) + 1;
 
     LOG(LOG_NORMAL,
-        (" Crunched file entry point $%04X, decrunch took %u cycles.\n",
-         entry, cycles));
-    LOG(LOG_NORMAL,
-        (" The average decrunch pace was %0.2f cycles per output byte.\n",
+        (" Decrunch took %0.6f Mcycles, speed was %0.2f kB/Mc (%0.2f c/B).\n",
+         (double)cycles / 1000000,
+         1000 * (end - start) / (float)cycles,
          (float)cycles / (end - start)));
 
     membuf_truncate(mem, cookedend);

@@ -1196,7 +1196,7 @@ rolled:
         bmi no_fixup_lohi
         lda <zp_len_hi
         stx <zp_len_hi
-        .BYTE($24)
+        .BYTE($24)             ; bit zero page
 no_fixup_lohi:
         txa
 ; -------------------------------------------------------------------
