@@ -45,6 +45,10 @@ o  The sfx decruncher and exodecrs/exodecrunch.s take advantage of the new bit
    (exodecrs/exodecrunch.s has to be told by a define, see the comments in the
    file for more info)
 
+o  The sfx decruncher now has a setting for size/speed trade-off i_sizespeed.
+   There values are -1 to 2 where -1 is slowest/shortest and 2 is
+   fastest/largest. Default is 0.
+
 o  Very slightly improved compression.
 
 Contributing

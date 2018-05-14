@@ -45,6 +45,7 @@
 ; -- i_fourth_offset_table, done /* defined if true, otherwise not */
 ; -- i_load_addr, done /* optional, if set no basic stub, loads to value */
 ; -- i_raw, done /* optional, if defined and != 0 outfile is raw */
+; -- i_sizespeed, done [-1 (slow/short), 0(default), 1, 2(fast/large)
 ; -- the crunched file to it.
 ; -------------------------------------------------------------------
 ; - if basic start --------------------------------------------------
@@ -58,6 +59,9 @@
 .ENDIF
 .IF(!.DEFINED(i_effect))
   i_effect = 0
+.ENDIF
+.IF(!.DEFINED(i_sizespeed))
+  i_sizespeed = 0
 .ENDIF
 
 .IF(.DEFINED(i_irq_enter) && i_irq_enter != 0 && i_irq_enter != 1)
@@ -1207,6 +1211,428 @@ no_fixup_lohi:
           .INCLUDE("stage2_exit_hook")
         .ENDIF
         .BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
+; ###################################################################
+.IF(i_sizespeed == -1)
+; ###################################################################
+; ## tiny start #####################################################
+; ###################################################################
+        .BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
+        jmp begin
+; -------------------------------------------------------------------
+; -- end of stage 2 -------------------------------------------------
+; -------------------------------------------------------------------
+        .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
+        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
+stage2end:
+        .ORG($0100)
+; -------------------------------------------------------------------
+; -- start of stage 3 -----------------------------------------------
+; -------------------------------------------------------------------
+stage3start:
+; -------------------------------------------------------------------
+; get bits (26 bytes)
+;
+get_bits:
+        adc #$80                ; needs c=0, affects v
+        asl
+        bpl gb_skip
+gb_next:
+        asl <zp_bitbuf
+        bne gb_no_refill
+        pha
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
+        pla
+gb_no_refill:
+        rol
+        bmi gb_next
+gb_skip:
+        bvs gb_get_hi
+        rts
+gb_get_hi:
+        sec
+        sta <zp_bits_hi
+; -------------------------------------------------------------------
+; get crunched byte (15 bytes) + hooks
+;
+get_crunched_byte:
+        .IF(.DEFINED(fast_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+        lda get_byte_fixup + 1
+        bne get_byte_skip_hi
+        dec get_byte_fixup + 2
+        .IF(.DEFINED(slow_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+get_byte_skip_hi:
+        dec get_byte_fixup + 1
+get_byte_fixup:
+        lda lowest_addr + max_transfer_len
+        rts
+; -------------------------------------------------------------------
+; fetch sequence length index (13 bytes)
+; x must be #0 when entering and contains the length index + 1
+; when exiting or 0 for literal byte
+begin:
+        asl <zp_bitbuf
+        bne nofetch8
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
+nofetch8:
+        inx
+        bcc begin
+; -------------------------------------------------------------------
+; check for literal byte (4 bytes)
+;
+        cpx #1
+        beq copy_next
+; -------------------------------------------------------------------
+; check for decrunch done and literal sequences (4 bytes)
+;
+        cpx #$12
+        bcs exit_or_lit_seq
+; -------------------------------------------------------------------
+; calulate length of sequence (zp_len) (22(15) bytes)
+;
+        lda #0
+        sta <zp_bits_hi
+        lda tabl_bi - 2,x
+        jsr get_bits
+        adc tabl_lo - 2,x       ; we have now calculated zp_len_lo
+        sta <zp_len_lo
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda <zp_bits_hi
+        adc tabl_hi - 2,x       ; c = 0 after this.
+        sta <zp_len_hi
+; -------------------------------------------------------------------
+; here we decide what offset table to use (27(26) bytes)
+; z-flag reflects zp_len_hi here
+;
+        ldx <zp_len_lo
+.ELSE
+        tax
+.ENDIF
+        lda #$f1
+.IF(.DEFINED(i_fourth_offset_table))
+        cpx #$04
+.ELSE
+        cpx #$03
+.ENDIF
+        bcs gbnc2_next
+        lda tabl_bit - 1,x
+gbnc2_next:
+        clv
+        jsr gb_next
+        clc
+        tax
+; -------------------------------------------------------------------
+; calulate absolute offset (zp_src) (24 bytes)
+;
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda #0
+        sta <zp_bits_hi
+.ENDIF
+        lda tabl_bi,x
+        jsr get_bits
+        adc tabl_lo,x
+        sta <zp_src_lo
+        lda <zp_bits_hi
+        adc tabl_hi,x
+        adc <zp_dest_hi
+        sta <zp_src_hi
+; -------------------------------------------------------------------
+; prepare for copy loop (4(2) bytes)
+;
+pre_copy:
+        ldx <zp_len_lo
+; -------------------------------------------------------------------
+; main copy loop (31(25) bytes)
+;
+copy_next:
+        tya
+        bne copy_skip_hi
+        dec <zp_dest_hi
+        dec <zp_src_hi
+copy_skip_hi:
+        dey
+        bcs get_literal_byte
+        lda (zp_src_lo),y
+literal_byte_gotten:
+        sta (zp_dest_lo),y
+        dex
+        bne copy_next
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda <zp_len_hi
+.ENDIF
+        beq begin
+.IF(!.DEFINED(i_max_sequence_length_256))
+        dec <zp_len_hi
+        jmp copy_next
+.ENDIF
+get_literal_byte:
+        jsr get_crunched_byte
+        bcs literal_byte_gotten
+; -------------------------------------------------------------------
+; exit or literal sequence handling (16(12) bytes)
+;
+exit_or_lit_seq:
+.IF(.DEFINED(i_literal_sequences_used))
+        beq decr_exit
+        jsr get_crunched_byte
+  .IF(!.DEFINED(i_max_sequence_length_256))
+        sta <zp_len_hi
+  .ENDIF
+        jsr get_crunched_byte
+        tax
+        bcs copy_next
+decr_exit:
+.ENDIF
+.IF(.DEFINED(exit_hook))
+  .INCLUDE("exit_hook")
+.ELSE
+        rts
+.ENDIF
+.IF(.DEFINED(i_fourth_offset_table))
+; -------------------------------------------------------------------
+; the static stable used for bits+offset for lengths 1, 2 and 3 (3 bytes)
+; bits 2, 4, 4 and offsets 64, 48, 32 corresponding to
+; %11010000, %11110011, %11110010
+tabl_bit:
+        .BYTE($d0, $f3, $f2)
+.ELSE
+; -------------------------------------------------------------------
+; the static stable used for bits+offset for lengths 1 and 2 (2 bytes)
+; bits 2, 4 and offsets 48, 32 corresponding to %11001100, %11110010
+tabl_bit:
+        .BYTE($cc, $f2)
+.ENDIF
+; ###################################################################
+; ## tiny end #######################################################
+; ###################################################################
+.ELIF(i_sizespeed == 0)
+; ###################################################################
+; ## small start ####################################################
+; ###################################################################
+        .BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
+        txa
+        jmp begin_stx
+; -------------------------------------------------------------------
+; -- end of stage 2 -------------------------------------------------
+; -------------------------------------------------------------------
+        .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
+        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
+stage2end:
+        .ORG($0100)
+; -------------------------------------------------------------------
+; -- start of stage 3 -----------------------------------------------
+; -------------------------------------------------------------------
+stage3start:
+; -------------------------------------------------------------------
+; get bits (26 bytes)
+;
+get_bits:
+        adc #$80                ; needs c=0, affects v
+        asl
+        bpl gb_skip
+gb_next:
+        asl <zp_bitbuf
+        bne gb_no_refill
+        pha
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
+        pla
+gb_no_refill:
+        rol
+        bmi gb_next
+gb_skip:
+        bvs gb_get_hi
+        rts
+gb_get_hi:
+        sec
+        sta <zp_bits_hi
+; -------------------------------------------------------------------
+; get crunched byte (15 bytes) + hooks
+;
+get_crunched_byte:
+        .IF(.DEFINED(fast_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+        lda get_byte_fixup + 1
+        bne get_byte_skip_hi
+        dec get_byte_fixup + 2
+        .IF(.DEFINED(slow_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+get_byte_skip_hi:
+        dec get_byte_fixup + 1
+get_byte_fixup:
+        lda lowest_addr + max_transfer_len
+        rts
+; -------------------------------------------------------------------
+; copy one literal byte to destination (11 bytes)
+;
+literal_start1:
+        tya
+        bne no_hi_decr
+        dec <zp_dest_hi
+no_hi_decr:
+        dey
+        jsr get_crunched_byte
+        sta (zp_dest_lo),y
+; -------------------------------------------------------------------
+; x must be #0 when entering and contains the length index + 1
+; when exiting or 0 for literal byte
+begin:
+        dex
+no_literal1:
+        asl <zp_bitbuf
+        bne nofetch8
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
+nofetch8:
+        inx
+        bcc no_literal1
+; -------------------------------------------------------------------
+; check for literal byte (2 bytes)
+;
+        beq literal_start1
+; -------------------------------------------------------------------
+; check for decrunch done and literal sequences (4 bytes)
+;
+        cpx #$11
+        bcs exit_or_lit_seq
+; -------------------------------------------------------------------
+; calulate length of sequence (zp_len) (22(15) bytes)
+;
+        lda tabl_bi - 1,x
+        jsr get_bits
+        adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
+        sta <zp_len_lo
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda <zp_bits_hi
+        adc tabl_hi - 1,x       ; c = 0 after this.
+        sta <zp_len_hi
+; -------------------------------------------------------------------
+; here we decide what offset table to use (27(26) bytes)
+; z-flag reflects zp_len_hi here
+;
+        ldx <zp_len_lo
+.ELSE
+        tax
+.ENDIF
+        lda #$f1
+.IF(.DEFINED(i_fourth_offset_table))
+        cpx #$04
+.ELSE
+        cpx #$03
+.ENDIF
+        bcs gbnc2_next
+        lda tabl_bit - 1,x
+gbnc2_next:
+        clv
+        jsr gb_next
+        clc
+        tax
+; -------------------------------------------------------------------
+; calulate absolute offset (zp_src) (24 bytes)
+;
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda #0
+        sta <zp_bits_hi
+.ENDIF
+        lda tabl_bi,x
+        jsr get_bits
+        adc tabl_lo,x
+        sta <zp_src_lo
+        lda <zp_bits_hi
+        adc tabl_hi,x
+        adc <zp_dest_hi
+        sta <zp_src_hi
+; -------------------------------------------------------------------
+; prepare for copy loop (4(2) bytes)
+;
+pre_copy:
+        ldx <zp_len_lo
+; -------------------------------------------------------------------
+; main copy loop (31(25) bytes)
+;
+copy_next:
+        tya
+        bne copy_skip_hi
+        dec <zp_dest_hi
+        dec <zp_src_hi
+copy_skip_hi:
+        dey
+.IF(.DEFINED(i_literal_sequences_used))
+        bcs get_literal_byte
+.ENDIF
+        lda (zp_src_lo),y
+literal_byte_gotten:
+        sta (zp_dest_lo),y
+        dex
+        bne copy_next
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda <zp_len_hi
+.ENDIF
+begin_stx:
+        stx <zp_bits_hi
+        beq begin
+.IF(!.DEFINED(i_max_sequence_length_256))
+        dec <zp_len_hi
+        jmp copy_next
+.ENDIF
+.IF(.DEFINED(i_literal_sequences_used))
+get_literal_byte:
+        jsr get_crunched_byte
+        bcs literal_byte_gotten
+.ENDIF
+; -------------------------------------------------------------------
+; exit or literal sequence handling (16(12) bytes)
+;
+exit_or_lit_seq:
+.IF(.DEFINED(i_literal_sequences_used))
+        beq decr_exit
+        jsr get_crunched_byte
+  .IF(!.DEFINED(i_max_sequence_length_256))
+        sta <zp_len_hi
+  .ENDIF
+        jsr get_crunched_byte
+        tax
+        bcs copy_next
+decr_exit:
+.ENDIF
+.IF(.DEFINED(exit_hook))
+  .INCLUDE("exit_hook")
+.ELSE
+        rts
+.ENDIF
+.IF(.DEFINED(i_fourth_offset_table))
+; -------------------------------------------------------------------
+; the static stable used for bits+offset for lengths 1, 2 and 3 (3 bytes)
+; bits 2, 4, 4 and offsets 64, 48, 32 corresponding to
+; %11010000, %11110011, %11110010
+tabl_bit:
+        .BYTE($d0, $f3, $f2)
+.ELSE
+; -------------------------------------------------------------------
+; the static stable used for bits+offset for lengths 1 and 2 (2 bytes)
+; bits 2, 4 and offsets 48, 32 corresponding to %11001100, %11110010
+tabl_bit:
+        .BYTE($cc, $f2)
+.ENDIF
+; ###################################################################
+; ## small end ######################################################
+; ###################################################################
+.ELIF(i_sizespeed == 1)
+; ###################################################################
+; ## quick start ####################################################
+; ###################################################################
+        .BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
         txa
         jmp begin_stx
 ; -------------------------------------------------------------------
@@ -1422,6 +1848,264 @@ tabl_bit:
 tabl_bit:
         .BYTE($8c, $e2)
 .ENDIF
+; ###################################################################
+; ## quick end ######################################################
+; ###################################################################
+.ELIF(i_sizespeed == 2)
+; ###################################################################
+; ## fast start #####################################################
+; ###################################################################
+        .BYTE ($a0, v_highest_addr % 256) ; ldy #<v_highest_addr
+        txa
+        jmp begin_stx
+; -------------------------------------------------------------------
+; -- end of stage 2 -------------------------------------------------
+; -------------------------------------------------------------------
+        .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
+        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
+stage2end:
+        .ORG($0100)
+; -------------------------------------------------------------------
+; -- start of stage 3 -----------------------------------------------
+; -------------------------------------------------------------------
+stage3start:
+; -------------------------------------------------------------------
+; get bits (26 bytes)
+;
+get_bits:
+        adc #$80                ; needs c=0, affects v
+        asl
+        bpl gb_skip
+gb_next:
+        asl <zp_bitbuf
+        bne gb_no_refill
+        pha
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
+        pla
+gb_no_refill:
+        rol
+        bmi gb_next
+gb_skip:
+        bvs gb_get_hi
+        rts
+gb_get_hi:
+        sec
+        sta <zp_bits_hi
+; -------------------------------------------------------------------
+; get crunched byte (15 bytes) + hooks
+;
+get_crunched_byte:
+        .IF(.DEFINED(fast_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+        lda get_byte_fixup + 1
+        bne get_byte_skip_hi
+        dec get_byte_fixup + 2
+        .IF(.DEFINED(slow_effect_hook))
+          .INCLUDE("effect_hook")
+        .ENDIF
+get_byte_skip_hi:
+        dec get_byte_fixup + 1
+get_byte_fixup:
+        lda lowest_addr + max_transfer_len
+        rts
+; -------------------------------------------------------------------
+; copy one literal byte to destination (11 bytes)
+;
+literal_start1:
+        tya
+        bne no_hi_decr
+        dec <zp_dest_hi
+no_hi_decr:
+        dey
+        jsr get_crunched_byte
+        sta (zp_dest_lo),y
+; -------------------------------------------------------------------
+; fetch sequence length index (22 bytes)
+; x must be #0 when entering and contains the length index + 1
+; when exiting or 0 for literal byte
+begin:
+        asl <zp_bitbuf
+        beq fetch8
+        bcs literal_start1
+        lda <zp_bitbuf
+        inx
+no_literal1:
+        asl
+        bne nofetch8
+fetch8:
+        jsr get_crunched_byte
+        rol
+nofetch8:
+        inx
+        bcc no_literal1
+        sta <zp_bitbuf
+        dex
+; -------------------------------------------------------------------
+; check for literal byte (2 bytes)
+;
+        beq literal_start1
+; -------------------------------------------------------------------
+; check for decrunch done and literal sequences (4 bytes)
+;
+        cpx #$11
+        bcs exit_or_lit_seq
+; -------------------------------------------------------------------
+; calulate length of sequence (zp_len) (18(11) bytes)
+;
+        lda tabl_bi - 1,x
+        jsr get_bits
+        adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
+        sta <zp_len_lo
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda <zp_bits_hi
+        adc tabl_hi - 1,x       ; c = 0 after this.
+        sta <zp_len_hi
+; -------------------------------------------------------------------
+; here we decide what offset table to use (27(26) bytes)
+; z-flag reflects zp_len_hi here
+;
+        ldx <zp_len_lo
+.ELSE
+        tax
+.ENDIF
+        lda #$e1
+.IF(.DEFINED(i_fourth_offset_table))
+        cpx #$04
+.ELSE
+        cpx #$03
+.ENDIF
+        bcs gbnc2_next
+        lda tabl_bit - 1,x
+gbnc2_next:
+        asl <zp_bitbuf
+        bne gbnc2_ok
+        tax
+        jsr get_crunched_byte
+        rol
+        sta <zp_bitbuf
+        txa
+gbnc2_ok:
+        rol
+        bcs gbnc2_next
+        tax
+; -------------------------------------------------------------------
+; calulate absolute offset (zp_src) (24(20) bytes)
+;
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda #0
+        sta <zp_bits_hi
+.ENDIF
+        lda tabl_bi,x
+        jsr get_bits
+        adc tabl_lo,x
+        sta <zp_src_lo
+        lda <zp_bits_hi
+        adc tabl_hi,x
+        adc <zp_dest_hi
+        sta <zp_src_hi
+; -------------------------------------------------------------------
+; prepare for copy loop (4(2) bytes)
+;
+pre_copy:
+        ldx <zp_len_lo
+; -------------------------------------------------------------------
+; main copy loop (24 bytes)
+;
+copy_next:
+        tya
+        bne copy_skip_hi
+copy_decr_hi:
+        dec <zp_dest_hi
+        dec <zp_src_hi
+copy_skip_hi:
+        dey
+        beq tya_loop
+.IF(.DEFINED(i_literal_sequences_used))
+        bcs get_literal_byte1
+.ENDIF
+        lda (zp_src_lo),y
+literal_byte_gotten1:
+        sta (zp_dest_lo),y
+        dex
+        bne copy_skip_hi
+after_len_lo:
+.IF(!.DEFINED(i_max_sequence_length_256))
+        lda <zp_len_hi
+.ENDIF
+begin_stx:
+        stx <zp_bits_hi
+        beq begin
+.IF(!.DEFINED(i_max_sequence_length_256))
+        dec <zp_len_hi
+        jmp copy_next
+.ENDIF
+.IF(.DEFINED(i_literal_sequences_used))
+get_literal_byte1:
+        jsr get_crunched_byte
+        bcs literal_byte_gotten1
+.ENDIF
+; -------------------------------------------------------------------
+; exit or literal sequence handling (16(12) bytes)
+;
+exit_or_lit_seq:
+.IF(.DEFINED(i_literal_sequences_used))
+        beq decr_exit
+        jsr get_crunched_byte
+  .IF(!.DEFINED(i_max_sequence_length_256))
+        sta <zp_len_hi
+  .ENDIF
+        jsr get_crunched_byte
+        tax
+        bcs copy_next
+decr_exit:
+.ENDIF
+.IF(.DEFINED(exit_hook))
+  .INCLUDE("exit_hook")
+.ELSE
+        rts
+.ENDIF
+; -------------------------------------------------------------------
+; main copy loop 2 (16 bytes)
+;
+tya_loop:
+.IF(.DEFINED(i_literal_sequences_used))
+        bcs get_literal_byte2
+.ENDIF
+        lda (zp_src_lo),y
+literal_byte_gotten2:
+        sta (zp_dest_lo),y
+        dex
+        bne copy_decr_hi
+        beq after_len_lo
+.IF(.DEFINED(i_literal_sequences_used))
+get_literal_byte2:
+        jsr get_crunched_byte
+        bcs literal_byte_gotten2
+.ENDIF
+.IF(.DEFINED(i_fourth_offset_table))
+; -------------------------------------------------------------------
+; the static stable used for bits+offset for lengths 1, 2 and 3 (3 bytes)
+; bits 2, 4, 4 and offsets 64, 48, 32 corresponding to
+; %10010000, %11100011, %11100010
+tabl_bit:
+        .BYTE($90, $e3, $e2)
+.ELSE
+; -------------------------------------------------------------------
+; the static stable used for bits+offset for lengths 1 and 2 (2 bytes)
+; bits 2, 4 and offsets 48, 32 corresponding to %10001100, %11100010
+tabl_bit:
+        .BYTE($8c, $e2)
+.ENDIF
+; ###################################################################
+; ## fast end #######################################################
+; ###################################################################
+.ELSE
+  .ERROR("Symbol i_sizespeed must have a value of [-1 - 2].")
+.ENDIF
+; ###################################################################
 ; -------------------------------------------------------------------
 stage3end:
 ; -------------------------------------------------------------------
