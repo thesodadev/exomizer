@@ -328,7 +328,7 @@ transfer_len ?= 0
 .ENDIF
 
 .IF(!.DEFINED(i_line_number))
-  i_line_number = 20
+  i_line_number = 30
 .ENDIF
 
 ; -------------------------------------------------------------------
