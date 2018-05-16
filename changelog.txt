@@ -1,3 +1,9 @@
+2018-05-16
+Release of 3.0.0 source code and Win32 binaries.
++ Up to almost 50% faster 6502 decruncher (sfx and stand-alone). However the
+  bitstream format has changed in an incompatible way. See exo30info.txt for
+  more info.
+
 2018-03-08
 Release of 2.0.11 source code and Win32 binaries.
 + No change from preview 3
