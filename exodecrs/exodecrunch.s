@@ -148,9 +148,10 @@ init_zp:
         dex
         bne init_zp
 ; -------------------------------------------------------------------
-; calculate tables (52 bytes) + get_bits_nc macro
+; calculate tables (62 bytes) + get_bits macro
 ; x and y must be #0 when entering
 ;
+        clc
 table_gen:
         tax
         tya

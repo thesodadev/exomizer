@@ -1083,7 +1083,7 @@ cploop:
         dex
         bne cploop
 .IF(transfer_len > 256)
-        ldx #transfer_len / 256
+        ldx #transfer_len / 256 + 1
 .ENDIF
 .IF(transfer_len != max_transfer_len)
         jmp stage2start
@@ -1137,11 +1137,7 @@ copy1_loop:
         dey
         bne copy1_loop
 .ELSE
-        bne copy2_loop1
-copy2_loop2:
-        dex
-        dec lda_fixup + 2
-        dec sta_fixup + 2
+        bne stage2start
 copy2_loop1:
         dey
 lda_fixup:
@@ -1151,8 +1147,10 @@ sta_fixup:
 stage2start:
         tya
         bne copy2_loop1
-        txa
-        bne copy2_loop2
+        dec lda_fixup + 2
+        dec sta_fixup + 2
+        dex
+        bne copy2_loop1
 .ENDIF
 ; -------------------------------------------------------------------
 .IF(.DEFINED(i_fourth_offset_table))
@@ -1163,6 +1161,7 @@ encoded_entries = 52
 tabl_bi = i_table_addr
 tabl_lo = i_table_addr + encoded_entries
 tabl_hi = i_table_addr + 2 * encoded_entries
+        clc
 table_gen:
         tax
         tya
