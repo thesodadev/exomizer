@@ -144,7 +144,7 @@ void do_output(match_ctx ctx,
                 {
                     LOG(LOG_DUMP, ("sequence for %d bytes at offset %d\n",
                                    mp->len, mp->offset));
-                    options->encode(mp, emd, NULL);
+                    optimal_encode(mp, emd, NULL);
                     output_bits(out, 1, 0);
                     if (mp->len == 1)
                     {
@@ -243,7 +243,7 @@ do_compress(match_ctx ctx, encode_match_data emd,
             free(snp);
         }
         snp = NULL;
-        search_buffer(ctx, options->encode, emd,
+        search_buffer(ctx, optimal_encode, emd,
                       options->flags_notrait,
                       options->max_len,
                       pass, &snp);

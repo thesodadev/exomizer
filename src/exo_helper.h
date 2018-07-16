@@ -43,7 +43,7 @@
                                 PFLAG_BITS_ORDER_BE | \
                                 PFLAG_BITS_COPY_GT_7 | \
                                 PFLAG_IMPL_1LITERAL, \
-                                0, optimal_encode}
+                                0}
 
 struct common_flags
 {
@@ -73,19 +73,6 @@ void handle_base_flags(int flag_char, /* IN */
                        const char *appl, /* IN */
                        const char **default_outfilep); /* OUT */
 
-    /*
-     * bit 0  Controls bit bit orientation: 0=normal (new), 1=reversed (old)
-     * bit 1  Sequences with length 1: 0=enable,1=disable
-     * bit 2  Sequences with length > 255 where (length & 255) would have been
-     *        using its own decrunch table: 0=enable, 1=disable
-     * bit 3  Decides if we are to have two lengths (1 and 2) or three lengths
-     *        (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three
-     * bit 4  Contols how more than 7 bits are shifted 0=split into a shift of
-     *        of less than 8 bits + a byte (new), 1=all bits are shifted (old)
-     * bit 5  Align bit stream towards start without flag: 1=enable, 0=disable
-     * bit 6  Implicit first literal byte: 0=enable, 1=disable
-     */
-
 struct crunch_options
 {
     const char *exported_encoding;
@@ -96,7 +83,6 @@ struct crunch_options
     int output_header;
     int flags_proto;
     int flags_notrait;
-    encode_match_f *encode;
 };
 
 #define STATIC_CRUNCH_INFO_INIT {0, 0, 0}
