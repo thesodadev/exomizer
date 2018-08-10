@@ -1,3 +1,7 @@
+2018-08-10
+Release of 3.0.1 source code and Win32 binaries.
++ Add missing clc to the new 6502 decrunchers. Bug reported by Soci.
+
 2018-05-16
 Release of 3.0.0 source code and Win32 binaries.
 + Up to almost 50% faster 6502 decruncher (sfx and stand-alone). However the
