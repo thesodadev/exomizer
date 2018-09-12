@@ -11,12 +11,12 @@ o  New bit stream format for crunched files that allow for faster decrunching.
 
 o  The bit stream format is controlled by a new -P<bit-field> flag. The bits
    control different aspects of the bit stream format. -P0 disables all new
-   aspects and will generate exomizer 2.0 compatible files. Raw mem and level
-   modes default to -P7.
+   aspects and will generate exomizer 2.0 compatible files. The raw, mem and
+   level modes default to -P7.
 
    bit 0  Controls bit bit orientation, 1=big endian, 0=little endian
    bit 1  Controls how more than 7 bits are shifted 1=split into a shift of
-          of less than 8 bits + a byte, 0=all bits are shifted
+          less than 8 bits + a byte, 0=all bits are shifted
    bit 2  Implicit first literal byte: 1=enable, 0=disable
    bit 3  Align bit stream towards start without shift flag bit included:
           1=enable, 0=disable
@@ -31,7 +31,7 @@ o  The bit stream format is controlled by a new -P<bit-field> flag. The bits
 
 o  There is a new -T<bit-field> flag that controls traits of the bit stream that
    don't affect the bit stream format. Typically traits are disallowed to make
-   the decruncher faster and/or shorter. Raw mode defaults to -T0. Mem
+   the decruncher faster and/or shorter. The raw mode defaults to -T0. The mem
    and level modes default to -T4.
 
    bit 0  Disallow literal sequences, 0 allow, 1 disallow

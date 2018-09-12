@@ -111,9 +111,9 @@ data. They share the following option flags:
 -P <options>
         Bit-field that disables bit stream protocol modifications. A value of
         15 makes the bit stream compatible with exomizer 2.0 (experimental).
-        0 bit: Big endian bit orientation, 0=enable (default), 1=disable
-        1 bit: Copy byte when reading > 7 bits, 0=enable (default), 1=disable
-        2 bit: Implicit first literal byte, 0=enable (default), 1=disable
+        0 bit: Big endian bit orientation, 1=enable (default), 0=disable
+        1 bit: Copy byte when reading > 7 bits, 1=enable (default), 0=disable
+        2 bit: Implicit first literal byte, 1=enable (default), 0=disable
         3 bit: Align bit stream to stream start, 0=disable (default), 1=enable
         4 bit: Four offset decoding tables, 0=disable (default), 1=enable
 
