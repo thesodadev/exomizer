@@ -1209,7 +1209,7 @@ no_fixup_lohi:
         .IF(.DEFINED(stage2_exit_hook))
           .INCLUDE("stage2_exit_hook")
         .ENDIF
-        ldy #v_highest_addr % 256
+        ldy #(v_highest_addr - 1) % 256
 ; ###################################################################
 .IF(i_perf == -1)
 ; ###################################################################
@@ -1220,7 +1220,7 @@ no_fixup_lohi:
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
+        .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG($0100)
 ; -------------------------------------------------------------------
@@ -1350,16 +1350,16 @@ pre_copy:
 ; main copy loop (31(25) bytes)
 ;
 copy_next:
+        bcs get_literal_byte
+        lda (zp_src_lo),y
+literal_byte_gotten:
+        sta (zp_dest_lo),y
         tya
         bne copy_skip_hi
         dec <zp_dest_hi
         dec <zp_src_hi
 copy_skip_hi:
         dey
-        bcs get_literal_byte
-        lda (zp_src_lo),y
-literal_byte_gotten:
-        sta (zp_dest_lo),y
         dex
         bne copy_next
 .IF(!.DEFINED(i_max_sequence_length_256))
@@ -1420,7 +1420,7 @@ tabl_bit:
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
+        .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG($0100)
 ; -------------------------------------------------------------------
@@ -1473,13 +1473,13 @@ get_byte_fixup:
 ; copy one literal byte to destination (11 bytes)
 ;
 literal_start1:
+        jsr get_crunched_byte
+        sta (zp_dest_lo),y
         tya
         bne no_hi_decr
         dec <zp_dest_hi
 no_hi_decr:
         dey
-        jsr get_crunched_byte
-        sta (zp_dest_lo),y
 ; -------------------------------------------------------------------
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
@@ -1559,18 +1559,18 @@ pre_copy:
 ; main copy loop (31(25) bytes)
 ;
 copy_next:
-        tya
-        bne copy_skip_hi
-        dec <zp_dest_hi
-        dec <zp_src_hi
-copy_skip_hi:
-        dey
 .IF(.DEFINED(i_literal_sequences_used))
         bcs get_literal_byte
 .ENDIF
         lda (zp_src_lo),y
 literal_byte_gotten:
         sta (zp_dest_lo),y
+        tya
+        bne copy_skip_hi
+        dec <zp_dest_hi
+        dec <zp_src_hi
+copy_skip_hi:
+        dey
         dex
         bne copy_next
 .IF(!.DEFINED(i_max_sequence_length_256))
@@ -1635,7 +1635,7 @@ tabl_bit:
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
+        .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG($0100)
 ; -------------------------------------------------------------------
@@ -1688,13 +1688,13 @@ get_byte_fixup:
 ; copy one literal byte to destination (11 bytes)
 ;
 literal_start1:
+        jsr get_crunched_byte
+        sta (zp_dest_lo),y
         tya
         bne no_hi_decr
         dec <zp_dest_hi
 no_hi_decr:
         dey
-        jsr get_crunched_byte
-        sta (zp_dest_lo),y
 ; -------------------------------------------------------------------
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
@@ -1781,18 +1781,18 @@ pre_copy:
 ; main copy loop (31(25) bytes)
 ;
 copy_next:
-        tya
-        bne copy_skip_hi
-        dec <zp_dest_hi
-        dec <zp_src_hi
-copy_skip_hi:
-        dey
 .IF(.DEFINED(i_literal_sequences_used))
         bcs get_literal_byte
 .ENDIF
         lda (zp_src_lo),y
 literal_byte_gotten:
         sta (zp_dest_lo),y
+        tya
+        bne copy_skip_hi
+        dec <zp_dest_hi
+        dec <zp_src_hi
+copy_skip_hi:
+        dey
         dex
         bne copy_next
 .IF(!.DEFINED(i_max_sequence_length_256))
@@ -1857,7 +1857,7 @@ tabl_bit:
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD(((v_highest_addr % 65536) / 256) * 256)     ; => zp_dest_lo/hi
+        .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG($0100)
 ; -------------------------------------------------------------------
@@ -1910,13 +1910,13 @@ get_byte_fixup:
 ; copy one literal byte to destination (11 bytes)
 ;
 literal_start1:
+        jsr get_crunched_byte
+        sta (zp_dest_lo),y
         tya
         bne no_hi_decr
         dec <zp_dest_hi
 no_hi_decr:
         dey
-        jsr get_crunched_byte
-        sta (zp_dest_lo),y
 ; -------------------------------------------------------------------
 ; fetch sequence length index (22 bytes)
 ; x must be #0 when entering and contains the length index + 1
@@ -2011,19 +2011,16 @@ pre_copy:
 ;
 copy_next:
         tya
-        bne copy_skip_hi
-copy_decr_hi:
-        dec <zp_dest_hi
-        dec <zp_src_hi
+        beq sta_decr_hi_dey
 copy_skip_hi:
-        dey
-        beq tya_loop
 .IF(.DEFINED(i_literal_sequences_used))
         bcs get_literal_byte1
 .ENDIF
         lda (zp_src_lo),y
 literal_byte_gotten1:
         sta (zp_dest_lo),y
+        dey
+        beq dex_sta_decr_hi_dey
         dex
         bne copy_skip_hi
 after_len_lo:
@@ -2035,7 +2032,7 @@ begin_stx:
         beq begin
 .IF(!.DEFINED(i_max_sequence_length_256))
         dec <zp_len_hi
-        jmp copy_next
+        jmp copy_skip_hi
 .ENDIF
 .IF(.DEFINED(i_literal_sequences_used))
 get_literal_byte1:
@@ -2065,15 +2062,21 @@ decr_exit:
 ; -------------------------------------------------------------------
 ; main copy loop 2 (16 bytes)
 ;
-tya_loop:
+dex_sta_decr_hi_dey:
+        dex
+        beq after_len_lo
+sta_decr_hi_dey:
 .IF(.DEFINED(i_literal_sequences_used))
         bcs get_literal_byte2
 .ENDIF
         lda (zp_src_lo),y
 literal_byte_gotten2:
         sta (zp_dest_lo),y
+        dec <zp_dest_hi
+        dec <zp_src_hi
+        dey
         dex
-        bne copy_decr_hi
+        bne copy_skip_hi
         beq after_len_lo
 .IF(.DEFINED(i_literal_sequences_used))
 get_literal_byte2:
