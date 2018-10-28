@@ -14,7 +14,7 @@ o  The bit stream format is controlled by a new -P<bit-field> flag. The bits
    aspects and will generate exomizer 2.0 compatible files. The raw, mem and
    level modes default to -P7.
 
-   bit 0  Controls bit bit orientation, 1=big endian, 0=little endian
+   bit 0  Controls bit stream bit orientation, 1=big endian, 0=little endian
    bit 1  Controls how more than 7 bits are shifted 1=split into a shift of
           less than 8 bits + a byte, 0=all bits are shifted
    bit 2  Implicit first literal byte: 1=enable, 0=disable

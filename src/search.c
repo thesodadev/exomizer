@@ -257,7 +257,9 @@ void search_buffer(match_ctx ctx,       /* IN */
                                tmp->offset, tmp->len));
                 if (bucket_len_start == 0 ||
                     tmp->len < 3 ||
-                    tmp->len < bucket_len_start)
+                    tmp->len < bucket_len_start ||
+                    (skip_len0123_mirrors && tmp->len > 255 &&
+                     (tmp->len & 255) < 4))
                 {
                     score = f(tmp, emd, &match_buckets);
                     bucket_len_start = match_buckets.len.start;
