@@ -470,8 +470,8 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
         ("  -m <offset>   sets the maximum sequence offset, default is 65535\n"
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"
-         "  -T <options>  bitfield that deactivates bit stream traits. [0-7]\n"
-         "  -P <options>  bitfield that disables bit stream modifications. [0-31]\n"));
+         "  -T <options>  bitfield that controls bit stream traits. [0-7]\n"
+         "  -P <options>  bitfield that controls bit stream format. [0-31]\n"));
     print_base_flags(level, default_outfile);
 }
 

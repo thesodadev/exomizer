@@ -277,7 +277,11 @@ void search_buffer(match_ctx ctx,       /* IN */
                 if ((total_score < 100000000.0) &&
                     (snp->match->len == 0 ||
                      total_score < snp->total_score ||
-                     ((pass & 1) == 0 && total_score == snp->total_score &&
+                     (total_score == snp->total_score &&
+                      total_offset < snp->total_offset &&
+                      tmp->len >= snp->match->len) ||
+                     ((pass & 1) == 0 &&
+                      total_score == snp->total_score &&
                       (total_offset < snp->total_offset ||
                        (mp->offset == 0 && snp->match->len == 1)))))
                 {
