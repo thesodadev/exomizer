@@ -241,6 +241,23 @@
   c_rom_nmi_value = $40
   c_ram_nmi_value = 0
   c_default_table = $0600
+.ELIF(r_target == $bbcb)
+  zp_len_lo = $70
+  zp_len_hi = $71
+  zp_src_lo = $72
+  zp_src_hi = zp_src_lo + 1
+  zp_bits_hi = $74
+
+  c_basic_start    = $1900
+  c_end_of_mem_rom = $7c00
+  c_effect_char    = $7fe7
+  c_effect_color   = $7fe6
+  c_border_color   = $7fe7
+  c_rom_config_value = 0
+  c_ram_config_value = 0
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
+  c_default_table = $0734
 .ELSE
   .ERROR("Symbol r_target_addr has an invalid value.")
 .ENDIF
@@ -379,7 +396,11 @@ lowest_addr = c_effect_char
 stage2_exit_hook = 1
   .MACRO("stage2_exit_hook")
     .IF(c_effect_char < lowest_addr || c_effect_char > v_highest_addr)
+      .IF(r_target == $bbcb)
+        sty c_effect_char
+      .ELSE
         stx c_effect_char
+      .ENDIF
     .ENDIF
   .ENDMACRO
 .ENDIF
@@ -489,6 +510,8 @@ exit_hook = 1
       .ENDIF
     .ELIF(r_target == $a8)
         .ERROR("Atari target can't handle basic start.")
+    .ELIF(r_target == $bbcb)
+        .ERROR("BBC Micro B target can't handle basic start.")
     .ELIF(r_target == 1)
       .IF(.DEFINED(i_basic_txt_start))
         lda #i_basic_txt_start % 256
@@ -615,6 +638,11 @@ oric_ROM11:
         lda <$fd,x
         and #$07
         ora #$10
+        sta c_effect_color
+      .ELIF(r_target == $bbcb)
+	txa
+        and #$1f
+        ora #$80
         sta c_effect_color
       .ELSE
         stx c_effect_color
@@ -872,6 +900,22 @@ oric_ROM11:
         sta $d40e
   .ENDMACRO
 .ELSE
+.ELIF(r_target == $bbcb)
+; -------------------------------------------------------------------
+; -- The ram/rom switch macros for BBC Micro B ----------------------
+; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
+  .MACRO("b2d_ram")
+  .ENDMACRO
+  .MACRO("d2io")
+  .ENDMACRO
+  .MACRO("io2d")
+  .ENDMACRO
+  .MACRO("d2r_ram")
+  .ENDMACRO
+  .MACRO("d2r_nmi")
+  .ENDMACRO
   .ERROR("Unhandled target for macro definitions.")
 .ENDIF
 ; -------------------------------------------------------------------
@@ -899,7 +943,7 @@ lowest_addr_out:
 basic_end:
         .BYTE(0,0)
   .ELSE
-.IF(!.DEFINED(i_raw) || i_raw == 0)
+    .IF(!.DEFINED(i_raw) || i_raw == 0)
         .BYTE($16,$16,$16,$24,$00,$00,$80,$c7)
         .BYTE((o1_end - 1) / 256, (o1_end - 1) % 256)
         .BYTE(o1_start / 256, o1_start % 256)
@@ -1029,6 +1073,14 @@ a2_start:
         lda #$00
         jsr $fe8b
   .ENDIF
+.ELIF(r_target == $bbcb)
+; -- No header at all for BBC b
+  .IF(.DEFINED(i_load_addr))
+        .ORG(i_load_addr)
+  .ELSE
+        .ORG(c_basic_start)
+  .ENDIF
+lowest_addr_out:
 .ELSE
   .ERROR("Unhandled target for file header stuff")
 .ENDIF
@@ -2152,6 +2204,8 @@ a8_end:
 ; -- Start of Apple file footer stuff -------------------------------
 ; -------------------------------------------------------------------
 a2_end:
+.ELIF(r_target == $bbcb)
+; -- No header at all for BBC b
 .ELSE
   .ERROR("Unhandled target for file header stuff")
 .ENDIF

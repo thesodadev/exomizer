@@ -721,6 +721,8 @@ get_target_info(int target)
             {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "AppleSingle"},
             {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},
             {4032, 0x9e, 0x0401, 0x8000,  "PET CBM 4032", "prg"},
+            {0xbbcb, -1, 0x1902, 0x8000,  "BBC micro B",
+             "Standard Archive format"},
             {0,   -1,   -1,     -1,  NULL, NULL}
         };
     const struct target_info *targetp;
@@ -941,7 +943,8 @@ void sfx(const char *appl, int argc, char *argv[])
             {
                 LOG(LOG_ERROR,
                     ("error: invalid value, %d, for -t option, must be one of "
-                     "1, 20, 23, 52, 55, 16, 4, 64, 128, 162, 168 or 4032.\n",
+                     "1, 20, 23, 52, 55, 16, 4, 64, 128, 162, 168, 4032 or "
+                     "48075.\n",
                      decr_target));
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(1);
@@ -1372,13 +1375,34 @@ void sfx(const char *appl, int argc, char *argv[])
                 LOG(LOG_NORMAL, (" NMI enabled |   $%02X|   $%02X|   $%02X|\n",
                      i_nmi_enter, i_nmi_during, i_nmi_exit));
             }
+            else if (decr_target == 0xbbcb)
+            {
+                FILE *inf;
+                char *p;
+                int i;
+                /* write shadowing .inf file */
+                struct membuf name_buf = STATIC_MEMBUF_INIT;
+                membuf_printf(&name_buf, "%s.inf", flags->outfile);
+                p = membuf_get(&name_buf);
+                inf = fopen(p, "wb");
+                p[membuf_memlen(&name_buf) - 4] = '\0';
+                for (i = 0; p[i] != '\0' && (i < 7 || (p[i] = '\0')); ++i)
+                {
+                    p[i] = toupper(p[i]);
+                }
+
+                fprintf(inf, "$.%s %06X %06X %X", p,
+                        lowest_addr_out | 0xff0000,
+                        lowest_addr_out | 0xff0000,
+                        membuf_memlen(out));
+                fclose(inf);
+            }
         }
 
         membuf_free(&source);
     }
 
     write_file(flags->outfile, out);
-
     membuf_free(buf1);
 
     parse_free();

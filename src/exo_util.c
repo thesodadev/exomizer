@@ -887,11 +887,17 @@ int str_to_int(const char *str, int *value)
             break;
         }
 
-        if (*str == '$')
+        if (*str == '$' || *str == '&')
         {
-            /* a $ prefix specifies base 16 */
+            /* a $ or & prefix specifies base 16 */
             ++str;
             base = 16;
+        }
+        if (*str == '%')
+        {
+            /* a % prefix specifies base 2 */
+            ++str;
+            base = 2;
         }
 
         lval = strtol(str, &str_end, base);

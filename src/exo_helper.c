@@ -577,14 +577,40 @@ void handle_crunch_flags(int flag_char, /* IN */
         }
         break;
     case 'P':
-        if (str_to_int(flag_arg, &options->flags_proto) != 0 ||
-            options->flags_proto < 0 || options->flags_proto > 31)
         {
-            LOG(LOG_ERROR,
-                ("Error: invalid value for -P option, "
-                 "must be in the range of [0 - 31]\n"));
-            print_usage(appl, LOG_NORMAL, flags->outfile);
-            exit(1);
+            int op = 0;
+            int flags_proto;
+            if (*flag_arg == '+')
+            {
+                op = 1;
+                ++flag_arg;
+            }
+            else if (*flag_arg == '-')
+            {
+                op = 2;
+                ++flag_arg;
+            }
+            if (str_to_int(flag_arg, &flags_proto) != 0 ||
+                options->flags_proto < 0 || options->flags_proto > 31)
+            {
+                LOG(LOG_ERROR,
+                    ("Error: invalid value for -P option, "
+                     "must be in the range of [0 - 31]\n"));
+                print_usage(appl, LOG_NORMAL, flags->outfile);
+                exit(1);
+            }
+            if (op == 1)
+            {
+                options->flags_proto |= flags_proto;
+            }
+            else if (op == 2)
+            {
+                options->flags_proto &= ~flags_proto;
+            }
+            else
+            {
+                options->flags_proto = flags_proto;
+            }
         }
         break;
     default:
