@@ -792,6 +792,53 @@ static void load_raw(unsigned char mem[65536], FILE *in,
     }
 }
 
+static int try_load_bbc_inf(unsigned char mem[65536],
+                            FILE *in,
+                            const char *filename,
+                            struct open_info *open_info,
+                            struct load_info *load_info)
+{
+    FILE *inf;
+    char *p;
+    unsigned int load;
+    unsigned int run;
+
+    /* try to open shadowing .inf file */
+    struct membuf name_buf = STATIC_MEMBUF_INIT;
+    membuf_printf(&name_buf, "%s.inf", filename);
+    p = membuf_get(&name_buf);
+    inf = fopen(p, "rb");
+    if (inf == NULL)
+    {
+        /* failed to open */
+        return 0;
+    }
+    /* parse .inf file here and populate load_info */
+    if (fscanf(inf, "%*s %x %x", &load, &run) != 2)
+    {
+        LOG(LOG_ERROR,
+            ("Error: Failed to parse BBCIm/BBCXfer inf from \"%s\".", p));
+        fclose(inf);
+        fclose(in);
+        exit(1);
+    }
+    fclose(inf);
+    LOG(LOG_BRIEF, ("BBC inf: load %06X, run %06X.", load, run));
+
+    /* read data file here */
+    open_info->load_addr = load;
+    load_raw(mem, in, open_info, load_info);
+    if (load_info != NULL)
+    {
+        /* set run address after load_raw since it clears it */
+        load_info->run = run;
+    }
+
+    /* success */
+    membuf_free(&name_buf);
+    return 1;
+}
+
 void load_located(const char *filename, unsigned char mem[65536],
                   struct load_info *info)
 {
@@ -809,6 +856,10 @@ void load_located(const char *filename, unsigned char mem[65536],
     {
         /* relocaded prg */
         type = PRG;
+    }
+    else if (try_load_bbc_inf(mem, in, filename, &open_info, info))
+    {
+        type = BBC_INF;
     }
     else
     {
@@ -831,6 +882,9 @@ void load_located(const char *filename, unsigned char mem[65536],
     case APPLESINGLE:
         /* file is an AppleSingle file */
         load_applesingle(mem, in, info);
+        break;
+    case BBC_INF:
+        /* already loaded by try_load_bbc_inf(...) */
         break;
     case PRG:
         load_addr = get_le_word(in);

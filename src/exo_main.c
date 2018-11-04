@@ -721,8 +721,7 @@ get_target_info(int target)
             {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "AppleSingle"},
             {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},
             {4032, 0x9e, 0x0401, 0x8000,  "PET CBM 4032", "prg"},
-            {0xbbcb, -1, 0x1902, 0x8000,  "BBC micro B",
-             "Standard Archive format"},
+            {0xbbcb, -1, 0x1902, 0x8000,  "BBC Micro B", "BBCIm/BBCXfer inf"},
             {0,   -1,   -1,     -1,  NULL, NULL}
         };
     const struct target_info *targetp;
@@ -1053,9 +1052,9 @@ void sfx(const char *appl, int argc, char *argv[])
     }
 
     targetp = get_target_info(decr_target);
-    if(entry_addr == -2 && targetp->id == 0xa8)
+    if(entry_addr == -2 && (targetp->id == 0xa8 || targetp->id == 0xbbcb))
     {
-        /* basic start not implemented for Atari targets */
+        /* basic start not implemented for Atari or BBC targets */
         LOG(LOG_ERROR, ("Start address \"basic\" is not supported for "
                         "the %s target.\n", targetp->model));
         print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
@@ -1072,6 +1071,7 @@ void sfx(const char *appl, int argc, char *argv[])
         int *basic_var_startp;
         int *entry_addrp;
         int basic_start;
+        int mode_bin = 0;
         enum file_type type;
 
         entry_addrp = NULL;
@@ -1081,13 +1081,22 @@ void sfx(const char *appl, int argc, char *argv[])
             basic_var_startp = &basic_var_start;
         }
         basic_start = -1;
-        if(entry_addr == -1 || entry_addr == -2)
+        if (entry_addr == -1)
         {
+            /* mode sys */
             basic_start = basic_txt_start;
-            if(entry_addr == -1)
-            {
-                entry_addrp = &entry_addr;
-            }
+            entry_addrp = &entry_addr;
+        }
+        else if (entry_addr == -2)
+        {
+            /* mode basic */
+            basic_start = basic_txt_start;
+        }
+        else if (entry_addr == -3)
+        {
+            /* mode bin */
+            entry_addrp = &entry_addr;
+            mode_bin = 1;
         }
 
         in_load = do_loads(infilec, infilev, in,
@@ -1095,7 +1104,7 @@ void sfx(const char *appl, int argc, char *argv[])
                            basic_var_startp, entry_addrp, &type);
 
         /* if "sfx bin or explicit run address given */
-        if (!decr_target_set && (entry_addr == -3 || entry_addr >= 0))
+        if (!decr_target_set && (mode_bin || entry_addr >= 0))
         {
             /* target is not set explicitly, auto detect from file type */
             switch (type)
@@ -1110,15 +1119,17 @@ void sfx(const char *appl, int argc, char *argv[])
             case APPLESINGLE:
                 decr_target = 0xa2;
                 break;
+            case BBC_INF:
+                decr_target = 0xbbcb;
+                break;
             default:
                 break;
             }
             /* refetch target info */
             targetp = get_target_info(decr_target);
         }
-        if (entry_addr == -3)
+        if (mode_bin)
         {
-            entry_addr = in_load;
             set_initial_symbol_soft("i_load_addr", in_load);
             if (decr_target == 0xa2 && type == APPLESINGLE_SYS)
             {

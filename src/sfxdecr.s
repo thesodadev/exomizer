@@ -257,7 +257,7 @@
   c_ram_config_value = 0
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
-  c_default_table = $0734
+  c_default_table = $0a34
 .ELSE
   .ERROR("Symbol r_target_addr has an invalid value.")
 .ENDIF

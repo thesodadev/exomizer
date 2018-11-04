@@ -38,7 +38,7 @@
 int find_sys(const unsigned char *buf, int target, int *stub_lenp);
 
 enum file_type {UNKNOWN, RAW, ATARI_XEX, ORIC_TAP, APPLESINGLE,
-                APPLESINGLE_SYS, PRG};
+                APPLESINGLE_SYS, BBC_INF, PRG};
 struct load_info
 {
     int basic_txt_start; /* in */
