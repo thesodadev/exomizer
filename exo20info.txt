@@ -51,8 +51,13 @@ o  Contributed decruncher source
 -------------------------------------------------------------------------------
 A note about addresses:
 An address in this context is a positive 16-bit value [0 - 65536]. It can be
-given in decimal, hexadecimal (prefixed with $ or 0x) or octal (prefixed with
+given in decimal, hexadecimal (prefixed with $, & or 0x) or octal (prefixed with
 0) notation. Examples: 3, 54, $3456, 0x1111, 06543.
+
+Please be aware that in some command line shells $ and & have special meaning
+if used unescaped. If you use $ or & as hexadecimal prefix and see strange
+behaviour from exomizer you might be bitten by this. Try 0x instead and see if
+things improve.
 
 All addresses that end an interval of any kind, printed by exomizer or given by
 the user as an argument, are exclusive. In other words they point to the
@@ -101,16 +106,18 @@ data. They share the following option flags:
         cruncher will always stop when no further improvement to the crunch
         result is made.
 
--T <options>
-        Bit-field that deactivates bit stream traits (experimental).
+-T <value>
+        Bit-field that deactivates bit stream traits. Valid values are 0 - 7.
         0 bit: Sequences with length 1, 0=use (default), 1=deactivate
         1 bit: Sequences with lengths where the low byte is 1, 2 or 3 and the
                high byte is > 0, 0=use (default), 1=deactivate
         2 bit: Literal sequences, same as -c, 0=use (default), 1=deactivate
 
--P <options>
+-P <value>
         Bit-field that disables bit stream protocol modifications. A value of
-        15 makes the bit stream compatible with exomizer 2.0 (experimental).
+        0 makes the bit stream compatible with exomizer 2.0. You can prefix the
+	value with a + or - to set/clear the bits the value represents. Valid
+	values are 0 - 31.
         0 bit: Big endian bit orientation, 1=enable (default), 0=disable
         1 bit: Copy byte when reading > 7 bits, 1=enable (default), 0=disable
         2 bit: Implicit first literal byte, 1=enable (default), 0=disable
@@ -137,9 +144,10 @@ data. They share the following option flags:
 The mem, level and sfx command all crunches files backwards. The files are
 loaded into a 16-bit address space and are also limited in size to that 16-bit
 address space. The format of the input files can be prg files, Atari xex
-files, Oric tap files or located plain files (plain files that are given an
-address to load to.) Please note that all input file formats is valid for all
-sfx targets which can be a bit unexpected.
+files, Oric tap files, AppleSingle files, BBC Micro Standard Archive Format
+file tuples or located plain files (plain files that are given an address to
+load to.) Please note that all input file formats is valid for all sfx targets
+which can be a bit unexpected.
 
  Plain raw files are loaded by adding an address to it using the @-character.
 It is also possible to specify an optional offset and optional length if only a
@@ -230,14 +238,14 @@ bytes from secondary storage.
 
  The sfx command generates a runnable stand alone in memory decrunching file.
 Its first argument must always be the run address. It may be given as an
-address or the string sys, the string systrim or the string basic.
+address or of the following string sys, systrim, vin and basic.
 
  If the run address is an actual address then it will be used as the target
 address of a jmp instruction executed after the decrunching.
 
  If the run address is the string sys then the run address will be
-auto detected. Either from the RUNAD vector for the Atari target or by scanning
-the area of the basic start for a SYS BASIC command.
+auto detected by scanning the area of the basic start for a SYS (or CALL) BASIC
+command.
 
  The keyword systrim behaves just like keyword sys but it also excludes the
 memory area that contains the SYS BASIC line from being included in the
@@ -247,8 +255,9 @@ has a memory hole that will overlap with the crunched data. By using systrim,
 the start of decrunched data will be moved a few bytes and by that also move
 the crunched data out of the memory hole.
 
- If the run address is the string bin then the run address will be set to A
-where A is the start address of the combined memory area of the loaded in-
+ If the run address is the string bin then the run address will be detected
+from the in-file. If no in-file is given that contains any run address then it
+will be set to the start address of the combined memory area of the loaded in-
 files. An implicit -Di_load_addr=<A> will be used as well so the load and run
 addresses of the generated file will be A too. The generated file will not
 contain any basic stub.
@@ -283,10 +292,11 @@ some graphic needs to be protected from BASIC variables.
 
  The output of the sfx command is a runnable program file that decrunches
 itself in memory when run. If an explicit run address or the string bin is
-given then some targets, like Atari 8-bit, Oric 1 and Apple II, are auto
-detected based on the format of the in files. For other situations or if auto
-detection fails then the target defaults to C64 unless the -t <target> option
-is given. This option can also be used to override the auto detected target.
+given then some targets like Atari 8-bit, Oric 1, BBC Micro B and Apple II will
+be auto detected based on the format of the in files. For other situations or
+if auto detection fails then the target defaults to C64 unless the -t <target>
+option is given. This option can also be used to override the target auto
+detection if necessary.
 
 The output file format depends on the target used:
 
@@ -297,8 +307,12 @@ with a BASIC line.
 
  For the Apple target the output is an AppleSingle file that almost always
 is a PRODOS bin file (file-type 6). But if the loaded file was a AppleSingle
-system file it will be a system file too (file-type $ff). Unless the run address
-is the string basic, then it is a PRODOS Applesoft basic file. (file-type $fc)
+system file then it will be a system file (file-type $ff). However if the run
+address is the string basic, then it will be a PRODOS Applesoft basic file.
+(file-type $fc)
+
+ For the BBC target the output is a BBC Micro Standard Archive Format file
+tuple. (http://archive.retro-kit.co.uk/bbc.nvg.org/std-format.php3.html)
 
 For the Oric family the output is a Oric tap file.
 
@@ -319,8 +333,9 @@ can't decrunch into banked memory.
           64: Commodore c64 (The default target)
          128: Commodore c128
         4032: Commodore PET 4032
-         162: Apple ][+ and //e
-         168: Atari 400/800 XL/XE
+        0xa2: Apple ][+ and //e
+        0xa8: Atari 400/800 XL/XE
+      0xbbcb: BBC Micro B
 
 -X<custom slow effect assembler fragment>
 -x[1-3]|<custom fast effect assembler fragment>
