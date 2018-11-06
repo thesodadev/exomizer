@@ -256,7 +256,7 @@ void search_buffer(match_ctx ctx,       /* IN */
                                mp->offset, mp->len,
                                tmp->offset, tmp->len));
                 if (bucket_len_start == 0 ||
-                    tmp->len < 3 ||
+                    tmp->len < 4 ||
                     tmp->len < bucket_len_start ||
                     (skip_len0123_mirrors && tmp->len > 255 &&
                      (tmp->len & 255) < 4))
@@ -274,16 +274,15 @@ void search_buffer(match_ctx ctx,       /* IN */
                      len, tmp->offset, tmp->len,
                      prev_score, score, snp->total_score));
 
-                if ((total_score < 100000000.0) &&
+                if (total_score < 100000000.0 &&
                     (snp->match->len == 0 ||
                      total_score < snp->total_score ||
                      (total_score == snp->total_score &&
                       total_offset < snp->total_offset &&
-                      tmp->len >= snp->match->len) ||
-                     ((pass & 1) == 0 &&
-                      total_score == snp->total_score &&
-                      (total_offset < snp->total_offset ||
-                       (mp->offset == 0 && snp->match->len == 1)))))
+                      ((pass & 1) == 0 ||
+                       (snp->match->len == 1 && snp->match->offset > 8) ||
+                       tmp->offset > 48 ||
+                       tmp->len > 15))))
                 {
                     LOG(LOG_DUMP, (", replaced"));
                     snp->index = len - tmp->len;
