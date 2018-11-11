@@ -1,3 +1,13 @@
+
+Release of 3.0.2 source code and Win32 binaries.
++ Fix -P0 literal sequences bug in exodec.c, Bug reported by Nino Porcino.
++ improved cruncher tuning for slightly improved compression on average.
++ Added sfx support for a new target, BBC Micro B (-t 0xbbcb).
++ Added -P+16 awareness to exodecrunch.s
++ Fix bucket optimization to be -T+4 aware in search.c, Bug eported by
+  Ciccioriccio.
++ Fix absolute offset overflow bug in sfxdecr.s. Bug reported by Comos.
+
 2018-08-10
 Release of 3.0.1 source code and Win32 binaries.
 + Add missing clc to the new 6502 decrunchers. Bug reported by Soci.
