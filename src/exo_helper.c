@@ -121,7 +121,7 @@ void do_output(match_ctx ctx,
                         output_gamma_code(out, 17);
                         output_bits(out, 1, 0);
                         /* literal sequence */
-                        LOG(LOG_DUMP, ("literal sequence for %d bytes\n",
+                        LOG(LOG_DUMP, ("[%d] literal copy len %d\n", out->pos,
                                        len));
                         traits_used |= TFLAG_LIT_SEQ;
                         if (len > max_len)
@@ -132,7 +132,7 @@ void do_output(match_ctx ctx,
                     if (i < mp->len)
                     {
                         /* literal */
-                        LOG(LOG_DUMP, ("literal byte: $%02X\n",
+                        LOG(LOG_DUMP, ("[%d] literal $%02X\n", out->pos,
                                        ctx->buf[snp->index + i]));
                         output_byte(out, ctx->buf[snp->index + i]);
                         if (!splitLitSeq)
@@ -142,8 +142,8 @@ void do_output(match_ctx ctx,
                     }
                 } else
                 {
-                    LOG(LOG_DUMP, ("sequence for %d bytes at offset %d\n",
-                                   mp->len, mp->offset));
+                    LOG(LOG_DUMP, ("[%d] sequence offset = %d, len = %d\n",
+                                    out->pos, mp->offset, mp->len));
                     optimal_encode(mp, emd, NULL);
                     output_bits(out, 1, 0);
                     if (mp->len == 1)
