@@ -166,6 +166,7 @@ float optimal_encode_int(int arg, void *priv, output_ctxp out,
 }
 
 float optimal_encode(const_matchp mp, encode_match_data emd,
+                     unsigned short prev_offset,
                      struct encode_match_buckets *embp)
 {
     interval_nodep *offset;
@@ -197,38 +198,50 @@ float optimal_encode(const_matchp mp, encode_match_data emd,
     } else
     {
         bits += 1.0;
-        switch (mp->len)
+        if (mp->offset != prev_offset)
         {
-        case 0:
-            LOG(LOG_ERROR, ("bad len\n"));
-            exit(1);
-            break;
-        case 1:
-            if (data->flags_notrait & TFLAG_LEN1_SEQ)
+            switch (mp->len)
             {
-                bits += 100000000.0;
-            }
-            else
-            {
-                bits += data->offset_f(mp->offset, offset[0], emd->out,
+            case 0:
+                LOG(LOG_ERROR, ("bad len\n"));
+                exit(1);
+                break;
+            case 1:
+                if (data->flags_notrait & TFLAG_LEN1_SEQ)
+                {
+                    bits += 100000000.0;
+                }
+                else
+                {
+                    bits += data->offset_f(mp->offset, offset[0], emd->out,
+                                           eib_offset);
+                }
+                break;
+            case 2:
+                bits += data->offset_f(mp->offset, offset[1], emd->out,
                                        eib_offset);
-            }
-            break;
-        case 2:
-            bits += data->offset_f(mp->offset, offset[1], emd->out,
-                                   eib_offset);
-            break;
-        case 3:
-            if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
-            {
-                bits += data->offset_f(mp->offset, offset[2], emd->out,
+                break;
+            case 3:
+                if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
+                {
+                    bits += data->offset_f(mp->offset, offset[2], emd->out,
+                                           eib_offset);
+                    break;
+                }
+            default:
+                bits += data->offset_f(mp->offset, offset[7], emd->out,
                                        eib_offset);
                 break;
             }
-        default:
-            bits += data->offset_f(mp->offset, offset[7], emd->out,
-                                   eib_offset);
-            break;
+        }
+        if (prev_offset > 0)
+        {
+            /* reuse previous offset state cost */
+            bits += 1.0;
+            if (emd->out != NULL)
+            {
+                output_bits(emd->out, 1, mp->offset == prev_offset);
+            }
         }
         bits += data->len_f(mp->len, data->len_f_priv, emd->out, eib_len);
         if (bits > (9.0 * mp->len))

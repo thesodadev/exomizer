@@ -13,7 +13,7 @@ DECR_OBJSP+16 = ../exodecrunch.osP+16
 DECR_OBJSM256 = ../exodecrunch.osM256
 DECR_OBJSi = ../exodecrunch.osi
 DECR_OBJSiM256 = ../exodecrunch.osiM256
-CRUNCHER = ../../src/exomizer mem -P7 -q $<@0x1010 -o $@
+CRUNCHER = ../../src/exomizer mem -q $<@0x1010 -o $@
 CRUNCHERP+16 = ../../src/exomizer mem -P+16 -q $<@0x1010 -o $@
 CRUNCHERM256 = ../../src/exomizer mem -M256 -q $<@0x1010 -o $@
 
@@ -37,28 +37,29 @@ build: data.test
 #
 # use .stat for jsr getbit decruncher
 # use .stati for inlined getbit decruncher
+# use .statP+16 for a decruncher with separate table for seq len 3
 # use .statM256 for a decruncher with sequence length <= 256
 # use .statiM256 for inlined getbit decruncher with sequence length <= 256
 #
 %.stat:	test.prg ../testrun
 	@$(MAKE) $(sort $(patsubst %.raw,%.cru,$(wildcard $**.raw)))
-	@../testrun test.prg $(sort $(patsubst %.raw,%.cru,$(wildcard $**.raw)))
+	@../testrun $(foreach file, $(sort $(patsubst %.raw,%.cru,$(wildcard $**.raw))), test.prg $(file))
 
 %.statP+16:	test.prgP+16 ../testrun
 	@$(MAKE) $(sort $(patsubst %.raw,%.cruP+16,$(wildcard $**.raw)))
-	@../testrun test.prgP+16 $(sort $(patsubst %.raw,%.cruP+16,$(wildcard $**.raw)))
+	@../testrun $(foreach file, $(sort $(patsubst %.raw,%.cruP+16,$(wildcard $**.raw))), test.prgP+16 $(file))
 
 %.stati:	test.prgi ../testrun
 	@$(MAKE) $(sort $(patsubst %.raw,%.crui,$(wildcard $**.raw)))
-	@../testrun test.prgi $(sort $(patsubst %.raw,%.crui,$(wildcard $**.raw)))
+	@../testrun $(foreach file, $(sort $(patsubst %.raw,%.crui,$(wildcard $**.raw))), test.prgi $(file))
 
 %.statM256:	test.prgM256 ../testrun
 	@$(MAKE) $(sort $(patsubst %.raw,%.cruM256,$(wildcard $**.raw)))
-	@../testrun test.prgM256 $(sort $(patsubst %.raw,%.cruM256,$(wildcard $**.raw)))
+	@../testrun $(foreach file, $(sort $(patsubst %.raw,%.cruM256,$(wildcard $**.raw))), test.prgM256 $(file))
 
 %.statiM256:	test.prgiM256 ../testrun
 	@$(MAKE) $(sort $(patsubst %.raw,%.cruiM256,$(wildcard $**.raw)))
-	@../testrun test.prgiM256 $(sort $(patsubst %.raw,%.cruiM256,$(wildcard $**.raw)))
+	@../testrun $(foreach file, $(sort $(patsubst %.raw,%.cruiM256,$(wildcard $**.raw))), test.prgiM256 $(file))
 
 ../testrun: $(TEST_OBJS)
 	@echo "Linking $@"

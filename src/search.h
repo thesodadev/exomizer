@@ -47,6 +47,7 @@ struct search_node {
     unsigned int total_offset;
     float total_score;
     struct search_node *prev;
+    unsigned short latest_offset;
 };
 
 struct _encode_match_data {
@@ -88,6 +89,7 @@ typedef struct _encode_match_priv *encode_match_privp;
 typedef
 float encode_match_f(const_matchp mp,
                      encode_match_data emd,     /* IN */
+                     unsigned short prev_offset,
                      struct encode_match_buckets *embp);    /* OUT */
 
 void search_node_dump(const struct search_node *snp);        /* IN */
@@ -96,6 +98,7 @@ void search_node_dump(const struct search_node *snp);        /* IN */
 void search_buffer(match_ctx ctx,       /* IN */
                    encode_match_f * f,  /* IN */
                    encode_match_data emd,       /* IN */
+                   int flags_proto,             /* IN */
                    int flags_notrait,           /* IN */
                    int max_sequence_length,     /* IN */
                    int pass,   /* IN */

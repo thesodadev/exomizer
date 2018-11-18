@@ -33,6 +33,7 @@
 
 float optimal_encode(const_matchp mp,   /* IN */
                      encode_match_data emp,     /* IN */
+                     unsigned short prev_offset, /* IN */
                      struct encode_match_buckets *embp);/* OUT */
 
 void optimal_init(encode_match_data emp,        /* IN/OUT */

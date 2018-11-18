@@ -36,13 +36,15 @@
 
 #define DECRUNCH_OPTIONS_DEFAULT {NULL, PFLAG_BITS_ORDER_BE |    \
                                   PFLAG_BITS_COPY_GT_7 | \
-                                  PFLAG_IMPL_1LITERAL, \
+                                  PFLAG_IMPL_1LITERAL |  \
+                                  PFLAG_REUSE_OFFSET,    \
                                   1}
 
 #define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 0, 1, \
-                                PFLAG_BITS_ORDER_BE | \
-                                PFLAG_BITS_COPY_GT_7 | \
-                                PFLAG_IMPL_1LITERAL, \
+                                PFLAG_BITS_ORDER_BE |            \
+                                PFLAG_BITS_COPY_GT_7 |           \
+                                PFLAG_IMPL_1LITERAL |            \
+                                PFLAG_REUSE_OFFSET,              \
                                 0}
 
 struct common_flags

@@ -117,7 +117,7 @@ data. They share the following option flags:
         Bit-field that disables bit stream protocol modifications. A value of
         0 makes the bit stream compatible with exomizer 2.0. You can prefix the
 	value with a + or - to set/clear the bits the value represents. Valid
-	values are 0 - 31.
+	values are 0 - 63.
         0 bit: Big endian bit orientation, 1=enable (default), 0=disable
         1 bit: Copy byte when reading > 7 bits, 1=enable (default), 0=disable
         2 bit: Implicit first literal byte, 1=enable (default), 0=disable

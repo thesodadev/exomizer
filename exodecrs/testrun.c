@@ -163,20 +163,17 @@ int main(int argc, char *argv[])
     int cycles_sum = 0;
     int inlen_sum = 0;
     int outlen_sum = 0;
-    const char *prg_name;
 
     /* init logging */
     LOG_INIT_CONSOLE(LOG_TERSE);
-
-    prg_name = argv[1];
 
     LOG(LOG_TERSE, ("|File name                   "
                     "|Size    |Reduced |Cycles    |C/B out|C/B in |\n"));
     LOG(LOG_TERSE, ("|----------------------------"
                     "|--------|--------|----------|-------|-------|\n"));
-    for (i = 2; i < argc; ++i)
+    for (i = 1; i < argc; i += 2)
     {
-        test_single(prg_name, argv[i], &cycles, &inlen, &outlen);
+        test_single(argv[i], argv[i + 1], &cycles, &inlen, &outlen);
         LOG(LOG_TERSE,
             ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
              argv[i], inlen, 100.0 * (outlen - inlen) / outlen, cycles,

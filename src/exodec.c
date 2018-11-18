@@ -287,9 +287,11 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
     int val;
     int i;
     int len;
-    int offset;
+    int literal = 1;
+    int offset = 0;
     int src = 0;
     int treshold = (ctx->flags_proto & PFLAG_4_OFFSET_TABLES)? 4: 3;
+    int reuse_offset_state = 1;
 
     if (ctx->flags_proto & PFLAG_IMPL_1LITERAL)
     {
@@ -298,7 +300,11 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
 
     for(;;)
     {
-        int literal = 0;
+        int reuse_offset;
+        reuse_offset_state <<= 1;
+        reuse_offset_state |= literal;
+
+        literal = 0;
         bits = ctx->bits_read;
         LOG(LOG_DEBUG, ("[%02X]",ctx->bitbuf));
         if(get_bits(ctx, 1))
@@ -312,6 +318,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
                             ctx->inbuf[ctx->inpos]));
 
             literal = 1;
+
             goto literal;
         }
 
@@ -334,10 +341,22 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
 
         len = get_cooked_code_phase2(ctx, val);
 
-        i = (len > treshold ? treshold : len) - 1;
-        val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
-        offset = get_cooked_code_phase2(ctx, val);
-
+        reuse_offset = 0;
+        if ((ctx->flags_proto & PFLAG_REUSE_OFFSET) != 0 &&
+            (reuse_offset_state & 3) == 1)
+        {
+            /* offset reuse state, read a bit */
+            reuse_offset = get_bits(ctx, 1);
+            LOG(LOG_DEBUG, ("[%d] offset reuse bit = %d, latest = %d\n",
+                            membuf_memlen(ctx->outbuf), reuse_offset,
+                            offset));
+        }
+        if (!reuse_offset)
+        {
+            i = (len > treshold ? treshold : len) - 1;
+            val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
+            offset = get_cooked_code_phase2(ctx, val);
+        }
         LOG(LOG_DEBUG, ("[%d] sequence offset = %d, len = %d\n",
                         membuf_memlen(ctx->outbuf), offset, len));
 

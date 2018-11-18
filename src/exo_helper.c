@@ -146,9 +146,17 @@ void do_output(match_ctx ctx,
                     }
                 } else
                 {
+                    unsigned short latest_offset = snp->prev->latest_offset;
+                    if (latest_offset > 0)
+                    {
+                        LOG(LOG_DUMP,
+                            ("[%d] offset reuse bit = %d, latest = %d\n",
+                             out->pos, mp->offset == latest_offset,
+                             latest_offset));
+                    }
                     LOG(LOG_DUMP, ("[%d] sequence offset = %d, len = %d\n",
-                                    out->pos, mp->offset, mp->len));
-                    optimal_encode(mp, emd, NULL);
+                                   out->pos, mp->offset, mp->len));
+                    optimal_encode(mp, emd, latest_offset, NULL);
                     output_bits(out, 1, 0);
                     if (mp->len == 1)
                     {
@@ -310,6 +318,7 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
             }
 
             search_buffer(ctxp + i, optimal_encode, emd,
+                      options->flags_proto,
                           options->flags_notrait,
                           options->max_len,
                           pass, &snpp[i]);
@@ -600,7 +609,7 @@ void print_license(void)
 {
     LOG(LOG_WARNING,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v3.0.2shenc Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v3.1.0 Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_WARNING,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -651,7 +660,7 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"
          "  -T <options>  bitfield that controls bit stream traits. [0-7]\n"
-         "  -P <options>  bitfield that controls bit stream format. [0-31]\n"));
+         "  -P <options>  bitfield that controls bit stream format. [0-63]\n"));
     print_base_flags(level, default_outfile);
 }
 
@@ -771,11 +780,11 @@ void handle_crunch_flags(int flag_char, /* IN */
                 ++flag_arg;
             }
             if (str_to_int(flag_arg, &flags_proto) != 0 ||
-                options->flags_proto < 0 || options->flags_proto > 31)
+                options->flags_proto < 0 || options->flags_proto > 63)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid value for -P option, "
-                     "must be in the range of [0 - 31]\n"));
+                     "must be in the range of [0 - 63]\n"));
                 print_usage(appl, LOG_NORMAL, flags->outfile);
                 exit(1);
             }

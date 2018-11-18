@@ -1022,6 +1022,10 @@ void sfx(const char *appl, int argc, char *argv[])
     {
         set_initial_symbol("i_fourth_offset_table", 1);
     }
+    if (options->flags_proto & PFLAG_REUSE_OFFSET)
+    {
+        set_initial_symbol("i_reuse_offset", 1);
+    }
 
     do_effect(appl, no_effect, fast, slow);
     if(enter_custom != NULL)
@@ -1318,7 +1322,7 @@ void sfx(const char *appl, int argc, char *argv[])
             i32 highest_addr_out;
             i32 i_table_addr;
             i32 stage3end, zp_len_lo, zp_len_hi, zp_src_lo, zp_bits_hi;
-            i32 i_effect;
+            i32 zp_ro_state, i_effect;
             i32 i_ram_enter, i_ram_during, i_ram_exit;
             i32 i_irq_enter, i_irq_during, i_irq_exit;
             i32 i_nmi_enter, i_nmi_during, i_nmi_exit;
@@ -1339,6 +1343,10 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("zp_len_hi", NULL, &zp_len_hi);
             resolve_symbol("zp_src_lo", NULL, &zp_src_lo);
             resolve_symbol("zp_bits_hi", NULL, &zp_bits_hi);
+            if (options->flags_proto & PFLAG_REUSE_OFFSET)
+            {
+                resolve_symbol("zp_ro_state", NULL, &zp_ro_state);
+            }
             resolve_symbol("i_effect2", NULL, &i_effect);
             resolve_symbol("i_irq_enter", NULL, &i_irq_enter);
             resolve_symbol("i_irq_during", NULL, &i_irq_during);
@@ -1358,8 +1366,28 @@ void sfx(const char *appl, int argc, char *argv[])
                              i_table_addr, i_table_addr + table_size));
             LOG(LOG_NORMAL, (" Decruncher      | $00FD| $%04X| and ",
                              stage3end));
-            LOG(LOG_NORMAL, ("$%02X,$%02X,$%02X,$%02X,$%02X\n", zp_bits_hi,
-                             zp_len_lo, zp_len_hi, zp_src_lo, zp_src_lo + 1));
+            if (options->flags_proto & PFLAG_REUSE_OFFSET)
+            {
+                LOG(LOG_NORMAL,
+                    ("$%02X,$%02X,$%02X,$%02X,$%02X,$%02X\n", zp_bits_hi,
+                     zp_len_lo, zp_len_hi, zp_src_lo, zp_src_lo + 1,
+                     zp_ro_state));
+            }
+            else
+            {
+                LOG(LOG_NORMAL,
+                    ("$%02X,$%02X,$%02X,$%02X,$%02X\n", zp_bits_hi,
+                     zp_len_lo, zp_len_hi, zp_src_lo, zp_src_lo + 1));
+            }
+            if (stage3end > 0x1f2)
+            {
+                LOG(LOG_ERROR,
+                    ("ERROR: The generated decruncher is too b"
+                     "ig. It will be overwritten by its own\n"
+                     "stack usage. Please use options or disab"
+                     "le features to make it smaller.\n."));
+                exit(1);
+            }
             if(i_effect == 0 && !resolve_symbol("i_effect_custom", NULL, NULL))
             {
                 resolve_symbol("c_effect_color", NULL, &c_effect_color);

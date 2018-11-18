@@ -41,37 +41,57 @@
 ; -------------------------------------------------------------------
 ; Controls if the shared get_bits routines should be inlined or not.
 ;INLINE_GET_BITS=1
+.IFNDEF INLINE_GET_BITS
+INLINE_GET_BITS = 0
+.ENDIF
 ; -------------------------------------------------------------------
 ; if literal sequences is not used (the data was crunched with the -c
 ; flag) then the following line can be uncommented for shorter and.
 ; slightly faster code.
 ;LITERAL_SEQUENCES_NOT_USED = 1
+.IFNDEF LITERAL_SEQUENCES_NOT_USED
+LITERAL_SEQUENCES_NOT_USED = 0
+.ENDIF
 ; -------------------------------------------------------------------
 ; if the sequence length is limited to 256 (the data was crunched with
 ; the -M256 flag) then the following line can be uncommented for
 ; shorter and slightly faster code.
 ;MAX_SEQUENCE_LENGTH_256 = 1
+.IFNDEF MAX_SEQUENCE_LENGTH_256
+MAX_SEQUENCE_LENGTH_256 = 0
+.ENDIF
 ; -------------------------------------------------------------------
-; if the sequence length 3 has its own offset table then the following
-; line can be uncommented for in some situations slightly better
-; compression at the cost of a larger decrunch table.
+; if the sequence length 3 has its own offset table (the data was
+; crunched with the -P+16 flag) then the following
+; line must be uncommented.
 ;EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE = 1
+.IFNDEF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE
+EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE = 0
+.ENDIF
+; -------------------------------------------------------------------
+; if sequence offsets are not reused (the data was crunched with the
+; -P-32 flag) then the following line must be uncommented.
+;DONT_REUSE_OFFSET = 1
+.IFNDEF DONT_REUSE_OFFSET
+DONT_REUSE_OFFSET = 0
+.ENDIF
 ; -------------------------------------------------------------------
 ; zero page addresses used
 ; -------------------------------------------------------------------
-zp_len_lo = $a7
-zp_len_hi = $a8
+zp_len_lo = $9e
+zp_len_hi = $9f
 
 zp_src_lo  = $ae
 zp_src_hi  = zp_src_lo + 1
 
-zp_bits_hi = $fc
+zp_bits_hi = $a7
+zp_ro_state = $a8
 
 zp_bitbuf  = $fd
 zp_dest_lo = zp_bitbuf + 1      ; dest addr lo
 zp_dest_hi = zp_bitbuf + 2      ; dest addr hi
 
-.IFDEF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE
+.IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE <> 0
 encoded_entries = 68
 .ELSE
 encoded_entries = 52
@@ -90,7 +110,7 @@ tabl_hi = decrunch_table + encoded_entries * 2
         pla
 .ENDMACRO
 
-.IFDEF INLINE_GET_BITS
+.IF INLINE_GET_BITS <> 0
 .MACRO mac_get_bits
 .SCOPE
         adc #$80                ; needs c=0, affects v
@@ -219,6 +239,9 @@ literal_start1:
         tya
         bne no_hi_decr
         dec zp_dest_hi
+.IF DONT_REUSE_OFFSET = 0
+        dec zp_src_hi
+.ENDIF
 no_hi_decr:
         dey
         jsr get_crunched_byte
@@ -228,6 +251,9 @@ no_hi_decr:
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
 next_round:
+.IF DONT_REUSE_OFFSET = 0
+	ror zp_ro_state
+.ENDIF
         dex
         lda zp_bitbuf
 no_literal1:
@@ -247,7 +273,7 @@ nofetch8:
 ; check for decrunch done and literal sequences (4 bytes)
 ;
         cpx #$11
-.IFDEF INLINE_GET_BITS
+.IF INLINE_GET_BITS <> 0
         bcc skip_jmp
         jmp exit_or_lit_seq
 skip_jmp:
@@ -261,7 +287,7 @@ skip_jmp:
         mac_get_bits
         adc tabl_lo - 1,x       ; we have now calculated zp_len_lo
         sta zp_len_lo
-.IFNDEF MAX_SEQUENCE_LENGTH_256
+.IF MAX_SEQUENCE_LENGTH_256 = 0
         lda zp_bits_hi
         adc tabl_hi - 1,x       ; c = 0 after this.
         sta zp_len_hi
@@ -273,8 +299,25 @@ skip_jmp:
 .ELSE
         tax
 .ENDIF
+.IF MAX_SEQUENCE_LENGTH_256 = 0
+        lda #0
+.ENDIF
+.IF DONT_REUSE_OFFSET = 0
+; -------------------------------------------------------------------
+; here we decide to reuse latest offset or not (13(15) bytes)
+;
+        bit <zp_ro_state
+        bmi test_reuse
+no_reuse:
+.ENDIF
+; -------------------------------------------------------------------
+; here we decide what offset table to use (17(15) bytes)
+;
+.IF MAX_SEQUENCE_LENGTH_256 = 0
+        sta <zp_bits_hi
+.ENDIF
         lda #$e1
-.IFDEF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE
+.IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE <> 0
         cpx #$04
 .ELSE
         cpx #$03
@@ -294,12 +337,8 @@ gbnc2_ok:
         bcs gbnc2_next
         tax
 ; -------------------------------------------------------------------
-; calulate absolute offset (zp_src) (21 bytes) + get_bits macro
+; calulate absolute offset (zp_src) (17 bytes) + get_bits macro
 ;
-.IFNDEF MAX_SEQUENCE_LENGTH_256
-        lda #0
-        sta zp_bits_hi
-.ENDIF
         lda tabl_bi,x
         mac_get_bits
         adc tabl_lo,x
@@ -323,7 +362,7 @@ copy_next:
         dec zp_src_hi
 copy_skip_hi:
         dey
-.IFNDEF LITERAL_SEQUENCES_NOT_USED
+.IF LITERAL_SEQUENCES_NOT_USED = 0
         bcs get_literal_byte
 .ENDIF
         lda (zp_src_lo),y
@@ -331,37 +370,58 @@ literal_byte_gotten:
         sta (zp_dest_lo),y
         dex
         bne copy_next
-.IFNDEF MAX_SEQUENCE_LENGTH_256
+.IF MAX_SEQUENCE_LENGTH_256 = 0
         lda zp_len_hi
-.IFDEF INLINE_GET_BITS
+.IF INLINE_GET_BITS <> 0
         bne copy_next_hi
 .ENDIF
 .ENDIF
 begin_stx:
         stx zp_bits_hi
-.IFNDEF INLINE_GET_BITS
+.IF INLINE_GET_BITS = 0
         beq next_round
 .ELSE
         jmp next_round
 .ENDIF
-.IFNDEF MAX_SEQUENCE_LENGTH_256
+.IF MAX_SEQUENCE_LENGTH_256 = 0
 copy_next_hi:
         dec zp_len_hi
         jmp copy_next
 .ENDIF
-.IFNDEF LITERAL_SEQUENCES_NOT_USED
+.IF LITERAL_SEQUENCES_NOT_USED = 0
 get_literal_byte:
         jsr get_crunched_byte
         bcs literal_byte_gotten
+.ENDIF
+.IF DONT_REUSE_OFFSET = 0
+; -------------------------------------------------------------------
+; test for offset reuse (11 bytes)
+;
+test_reuse:
+        bvs no_reuse
+.IF MAX_SEQUENCE_LENGTH_256 <> 0
+        lda #$00                ; fetch one bit
+.ENDIF
+        asl zp_bitbuf
+        bne gbnc1_ok
+        pha
+        jsr get_crunched_byte
+        rol
+        sta zp_bitbuf
+        pla
+gbnc1_ok:
+	rol
+        beq no_reuse            ; bit == 0 => C=0, no reuse
+        bne copy_next           ; bit != 0 => C=0, reuse previous offset
 .ENDIF
 ; -------------------------------------------------------------------
 ; exit or literal sequence handling (16(12) bytes)
 ;
 exit_or_lit_seq:
-.IFNDEF LITERAL_SEQUENCES_NOT_USED
+.IF LITERAL_SEQUENCES_NOT_USED = 0
         beq decr_exit
         jsr get_crunched_byte
-.IFNDEF MAX_SEQUENCE_LENGTH_256
+.IF MAX_SEQUENCE_LENGTH_256 = 0
         sta zp_len_hi
 .ENDIF
         jsr get_crunched_byte
@@ -370,7 +430,7 @@ exit_or_lit_seq:
 decr_exit:
 .ENDIF
         rts
-.IFDEF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE
+.IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE <> 0
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset for lengths 1, 2 and 3 (3 bytes)
 ; bits 2, 4, 4 and offsets 64, 48, 32 corresponding to
@@ -396,7 +456,7 @@ decrunch_table:
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-.IFDEF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE
+.IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE <> 0
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
         .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
