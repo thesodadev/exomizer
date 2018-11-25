@@ -69,7 +69,7 @@ void search_buffer(match_ctx ctx,       /* IN */
     snp->prev = NULL;
 
     best_copy_snp = snp;
-    best_copy_len = 0.0;
+    best_copy_len = 0;
 
     best_rle_snp = NULL;
 
@@ -94,7 +94,7 @@ void search_buffer(match_ctx ctx,       /* IN */
                 LOG(LOG_DEBUG,
                     ("best copy start moved to index %d\n", snp->index));
                 best_copy_snp = snp;
-                best_copy_len = 0.0;
+                best_copy_len = 0;
             } else
             {
                 float copy_score = best_copy_len * 8.0 + (1.0 + 17.0 + 17.0);
@@ -106,6 +106,7 @@ void search_buffer(match_ctx ctx,       /* IN */
                      snp->total_score, total_copy_score));
 
                 if (snp->total_score > total_copy_score &&
+                    best_copy_len <= max_sequence_length &&
                     !(skip_len0123_mirrors &&
                       /* must be < 2 due to PBIT_IMPL_1LITERAL adjustment */
                       best_copy_len > 255 && (best_copy_len & 255) < 2))
