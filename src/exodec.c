@@ -223,13 +223,18 @@ table_dump(struct dec_table *tp, struct membuf *target)
 
 void
 dec_ctx_init(struct dec_ctx ctx[1],
-             struct membuf *inbuf, struct membuf *outbuf, int flags_proto,
-             struct membuf *enc_out)
+             struct membuf *enc_in, /* optional */
+             struct membuf *inbuf, struct membuf *outbuf, int flags_proto)
 {
-    ctx->bits_read = 0;
+    struct membuf *enc = enc_in;
 
-    ctx->inbuf = membuf_get(inbuf);
-    ctx->inend = membuf_memlen(inbuf);
+    if (enc_in == NULL)
+    {
+        enc = inbuf;
+    }
+    ctx->bits_read = 0;
+    ctx->inbuf = membuf_get(enc);
+    ctx->inend = membuf_memlen(enc);
     ctx->inpos = 0;
     ctx->flags_proto = flags_proto;
 
@@ -247,6 +252,28 @@ dec_ctx_init(struct dec_ctx ctx[1],
 
     /* init tables */
     table_init(ctx, ctx->t);
+    if (enc_in != NULL)
+    {
+        /* switch to inbuf */
+        ctx->inbuf = membuf_get(inbuf);
+        ctx->inend = membuf_memlen(inbuf);
+        ctx->inpos = 0;
+
+        if (flags_proto & PFLAG_BITS_ALIGN_START)
+        {
+            ctx->bitbuf = 0;
+        }
+        else
+        {
+            /* init bitbuf */
+            ctx->bitbuf = get_byte(ctx);
+        }
+    }
+}
+
+void
+dec_ctx_table_dump(struct dec_ctx ctx[1], struct membuf enc_out[1])
+{
     table_dump(ctx->t, enc_out);
 }
 

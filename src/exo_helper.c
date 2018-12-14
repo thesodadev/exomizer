@@ -28,6 +28,7 @@
 #include "log.h"
 #include "output.h"
 #include "membuf.h"
+#include "membuf_io.h"
 #include "match.h"
 #include "search.h"
 #include "optimal.h"
@@ -80,19 +81,22 @@ void do_output(match_ctx ctx,
         pos_diff = pos;
         max_diff = 0;
 
-        LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-        output_gamma_code(out, 16);
-        output_bits(out, 1, 0); /* 1 bit out */
-
-        diff = output_get_pos(out) - pos_diff;
-        if(diff > max_diff)
+        if (snp != NULL)
         {
-            max_diff = diff;
+            LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+
+            output_gamma_code(out, 16);
+            output_bits(out, 1, 0); /* 1 bit out */
+
+            diff = output_get_pos(out) - pos_diff;
+            if(diff > max_diff)
+            {
+                max_diff = diff;
+            }
+
+            LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+            LOG(LOG_DUMP, ("------------\n"));
         }
-
-        LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
-        LOG(LOG_DUMP, ("------------\n"));
-
         while (snp != NULL)
         {
             const_matchp mp;
@@ -203,18 +207,68 @@ void do_output(match_ctx ctx,
     }
 }
 
-struct search_node*
-do_compress(match_ctx ctx, encode_match_data emd,
+static void read_encoding_to_membuf(const char *exported_enc,
+                                    int flags_proto,
+                                    struct membuf enc_buf[1])
+{
+    if (exported_enc[0] == '@')
+    {
+        ++exported_enc;
+        LOG(LOG_BRIEF, (" Reading encoding from \"%s\".\n", exported_enc));
+        read_file(exported_enc, enc_buf);
+    }
+    else
+    {
+        encode_match_data emd;
+        struct crunch_options options = *default_options;
+
+        options.flags_proto = flags_proto;
+        options.output_header = 1;
+        options.exported_encoding = exported_enc;
+        emd->out = NULL;
+
+        optimal_init(emd, options.flags_notrait, options.flags_proto);
+        optimal_encoding_import(emd, options.exported_encoding);
+        do_output(NULL, NULL, emd, &options, enc_buf, NULL);
+        optimal_free(emd);
+    }
+}
+
+static void read_encoding_to_emd(encode_match_data emd,
+                                 const char *exported_enc)
+{
+    struct membuf enc_buf = STATIC_MEMBUF_INIT;
+    if (exported_enc[0] == '@')
+    {
+        struct dec_ctx ctx;
+        read_encoding_to_membuf(exported_enc, 0, &enc_buf);
+        dec_ctx_init(&ctx, &enc_buf, &enc_buf, NULL, 0);
+
+        membuf_clear(&enc_buf);
+        dec_ctx_table_dump(&ctx, &enc_buf);
+        dec_ctx_free(&ctx);
+
+        exported_enc = membuf_get(&enc_buf);
+    }
+    optimal_encoding_import(emd, exported_enc);
+    membuf_free(&enc_buf);
+}
+
+static struct search_node**
+do_compress(struct match_ctx *ctxp, int ctx_count,
+            encode_match_data emd,
             const struct crunch_options *options,
             struct membuf *enc) /* IN */
 {
-    matchp_cache_enum mpce;
-    matchp_snp_enum snpe;
-    struct search_node *snp = NULL;
-    int pass;
+    struct vec snpev = STATIC_VEC_INIT(sizeof(matchp_snp_enum));
+    struct matchp_concat_enum mpcce;
+    struct search_node **snpp;
+    int pass, i;
     float size;
     float old_size;
     char prev_enc[100];
+
+    snpp = calloc(ctx_count, sizeof(struct search_node *));
 
     pass = 1;
     prev_enc[0] = '\0';
@@ -222,14 +276,22 @@ do_compress(match_ctx ctx, encode_match_data emd,
     LOG(LOG_NORMAL, (" pass %d: ", pass));
     if(options->exported_encoding != NULL)
     {
-        LOG(LOG_NORMAL, ("importing %s\n", options->exported_encoding));
-        optimal_encoding_import(emd, options->exported_encoding);
+        LOG(LOG_NORMAL, (" Using imported encoding\n Enc: %s\n",
+                         options->exported_encoding));
+        read_encoding_to_emd(emd, options->exported_encoding);
     }
     else
     {
+        struct vec mpcev = STATIC_VEC_INIT(sizeof(matchp_cache_enum));
         LOG(LOG_NORMAL, ("optimizing ..\n"));
-        matchp_cache_get_enum(ctx, mpce);
-        optimal_optimize(emd, matchp_cache_enum_get_next, mpce);
+        for (i = 0; i < ctx_count; ++i)
+        {
+            struct matchp_cache_enum *mp_enum = vec_push(&mpcev, NULL);
+            matchp_cache_get_enum(ctxp + i, mp_enum);
+        }
+        matchp_concat_get_enum(matchp_cache_enum_get_next, &mpcev, &mpcce);
+        optimal_optimize(emd, matchp_concat_enum_get_next, &mpcce);
+        vec_free(&mpcev, NULL);
     }
     optimal_encoding_export(emd, enc);
     strcpy(prev_enc, membuf_get(enc));
@@ -238,22 +300,26 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
     for (;;)
     {
-        if (snp != NULL)
+        size = 0.0;
+        for (i = 0; i < ctx_count; ++i)
         {
-            free(snp);
-        }
-        snp = NULL;
-        search_buffer(ctx, optimal_encode, emd,
-                      options->flags_notrait,
-                      options->max_len,
-                      pass, &snp);
-        if (snp == NULL)
-        {
-            LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
-            exit(1);
-        }
+            if (snpp[i] != NULL)
+            {
+                free(snpp[i]);
+                snpp[i] = NULL;
+            }
 
-        size = snp->total_score;
+            search_buffer(ctxp + i, optimal_encode, emd,
+                          options->flags_notrait,
+                          options->max_len,
+                          pass, &snpp[i]);
+            if (snpp[i] == NULL)
+            {
+                LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));
+                exit(1);
+            }
+            size += snpp[i]->total_score;
+        }
         LOG(LOG_NORMAL, ("  size %0.1f bits ~%d bytes\n",
                          size, (((int) size) + 7) >> 3));
 
@@ -275,8 +341,14 @@ do_compress(match_ctx ctx, encode_match_data emd,
 
         LOG(LOG_NORMAL, (" pass %d: optimizing ..\n", pass));
 
-        matchp_snp_get_enum(snp, snpe);
-        optimal_optimize(emd, matchp_snp_enum_get_next, snpe);
+        for (i = 0; i < ctx_count; ++i)
+        {
+            matchp_snp_enump mp_enum = vec_push(&snpev, NULL);
+            matchp_snp_get_enum(snpp[i], mp_enum);
+        }
+        matchp_concat_get_enum(matchp_snp_enum_get_next, &snpev, &mpcce);
+        optimal_optimize(emd, matchp_concat_enum_get_next, &mpcce);
+        vec_clear(&snpev, NULL);
 
         optimal_encoding_export(emd, enc);
         if (strcmp(membuf_get(enc), prev_enc) == 0)
@@ -286,41 +358,46 @@ do_compress(match_ctx ctx, encode_match_data emd,
         strcpy(prev_enc, membuf_get(enc));
     }
 
-    return snp;
+    vec_free(&snpev, NULL);
+
+    return snpp;
 }
 
-void crunch_backwards(struct membuf *inbuf,
-                      struct membuf *outbuf,
-                      const struct crunch_options *options, /* IN */
-                      struct crunch_info *infop) /* OUT */
+void crunch_backwards_multi(struct vec *io_bufs,
+                            struct membuf *enc_buf,
+                            const struct crunch_options *options, /* IN */
+                            struct crunch_info *infop) /* OUT */
 {
-    match_ctx ctx;
+    struct match_ctx *ctxp;
     encode_match_data emd;
-    struct search_node *snp;
-    struct crunch_info info;
-    int outlen;
-    int inlen;
+    struct search_node **snpp;
+    struct crunch_info merged_info = STATIC_CRUNCH_INFO_INIT;
     struct membuf exported_enc = STATIC_MEMBUF_INIT;
+    int buf_count = vec_count(io_bufs);
+    int outlen = 0;
+    int inlen = 0;
+    int i;
 
+    ctxp = malloc(sizeof(struct match_ctx) * buf_count);
     if(options == NULL)
     {
         options = default_options;
     }
 
-    inlen = membuf_memlen(inbuf);
-    outlen = membuf_memlen(outbuf);
-    emd->out = NULL;
-    optimal_init(emd, options->flags_notrait, options->flags_proto);
-
     LOG(LOG_NORMAL,
         ("\nPhase 1: Instrumenting file"
          "\n-----------------------------\n"));
+    for (i = 0; i < buf_count; ++i)
+    {
+        struct io_bufs *io = vec_get(io_bufs, i);
+        struct membuf *in =  &io->in;
+        inlen += membuf_memlen(in);
+        match_ctx_init(ctxp + i, in, options->max_len,
+                       options->max_offset, options->favor_speed);
+    }
     LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", inlen));
-
-    match_ctx_init(ctx, inbuf, options->max_len, options->max_offset,
-                   options->favor_speed);
-
-    LOG(LOG_NORMAL, (" Instrumenting file, done.\n"));
+    LOG(LOG_NORMAL, (" Instrumenting file%s, done.\n",
+                     (buf_count == 1 ? "" : "s")));
 
     emd->out = NULL;
     optimal_init(emd, options->flags_notrait, options->flags_proto);
@@ -328,29 +405,99 @@ void crunch_backwards(struct membuf *inbuf,
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snp = do_compress(ctx, emd, options, &exported_enc);
+    snpp = do_compress(ctxp, buf_count, emd, options, &exported_enc);
+
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
     LOG(LOG_NORMAL,
-        ("\nPhase 3: Generating output file"
-         "\n------------------------------\n"));
+        ("\nPhase 3: Generating output file%s"
+         "\n------------------------------\n",
+         (buf_count == 1 ? "" : "s")));
     LOG(LOG_NORMAL, (" Enc: %s\n", (char*)membuf_get(&exported_enc)));
-    do_output(ctx, snp, emd, options, outbuf, &info);
-    outlen = membuf_memlen(outbuf) - outlen;
-    LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));
 
+    if (enc_buf != NULL)
+    {
+        struct crunch_options enc_opts = *options;
+        enc_opts.output_header = 1;
+        do_output(NULL, NULL, emd, &enc_opts, enc_buf, NULL);
+    }
+
+    for (i = 0; i < buf_count; ++i)
+    {
+        struct io_bufs *io = vec_get(io_bufs, i);
+        struct membuf *out = &io->out;
+        struct crunch_info *info = &io->info;
+
+        outlen -= membuf_memlen(out);
+        do_output(ctxp + i, snpp[i], emd, options, out, info);
+        outlen += membuf_memlen(out);
+
+        merged_info.traits_used |= info->traits_used;
+        if (merged_info.max_len < info->max_len)
+        {
+            merged_info.max_len = info->max_len;
+        }
+        if (merged_info.needed_safety_offset < info->needed_safety_offset)
+        {
+            merged_info.needed_safety_offset = info->needed_safety_offset;
+        }
+    }
+    LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));
     LOG(LOG_BRIEF, (" Crunched data reduced %d bytes (%0.2f%%)\n",
                     inlen - outlen, 100.0 * (inlen - outlen) / inlen));
 
     optimal_free(emd);
-    free(snp);
-    match_ctx_free(ctx);
+    for (i = 0; i < buf_count; ++i)
+    {
+        free(snpp[i]);
+        match_ctx_free(ctxp + i);
+    }
+    free(snpp);
+    free(ctxp);
     membuf_free(&exported_enc);
 
     if(infop != NULL)
     {
-        *infop = info;
+        *infop = merged_info;
     }
+}
+
+void crunch_multi(struct vec *io_bufs,
+                  struct membuf *enc_buf,
+                  const struct crunch_options *options, /* IN */
+                  struct crunch_info *infop) /* OUT */
+{
+    int buf_count = vec_count(io_bufs);
+    int *outpos;
+    int i;
+
+    outpos = malloc(sizeof(int) * buf_count);
+    for (i = 0; i < buf_count; ++i)
+    {
+        struct io_bufs *io = vec_get(io_bufs, i);
+        struct membuf *in = &io->in;
+        struct membuf *out = &io->out;
+        reverse_buffer(membuf_get(in), membuf_memlen(in));
+        outpos[i] = membuf_memlen(out);
+    }
+
+    crunch_backwards_multi(io_bufs, enc_buf, options, infop);
+
+    for (i = 0; i < buf_count; ++i)
+    {
+        struct io_bufs *io = vec_get(io_bufs, i);
+        struct membuf *in = &io->in;
+        struct membuf *out = &io->out;
+        reverse_buffer(membuf_get(in), membuf_memlen(in));
+        reverse_buffer((char*)membuf_get(out) + outpos[i],
+                       membuf_memlen(out) - outpos[i]);
+    }
+
+    if (enc_buf != NULL)
+    {
+        reverse_buffer(membuf_get(enc_buf), membuf_memlen(enc_buf));
+    }
+    free(outpos);
 }
 
 void reverse_buffer(char *start, int len)
@@ -369,20 +516,38 @@ void reverse_buffer(char *start, int len)
     }
 }
 
+void crunch_backwards(struct membuf *inbuf,
+                      struct membuf *outbuf,
+                      const struct crunch_options *options, /* IN */
+                      struct crunch_info *info) /* OUT */
+{
+    struct vec io_bufs = STATIC_VEC_INIT(sizeof(struct io_bufs));
+
+    struct io_bufs *io = vec_push(&io_bufs, NULL);
+    io->in = *inbuf;
+    io->out = *outbuf;
+    crunch_backwards_multi(&io_bufs, NULL, options, info);
+    *inbuf = io->in;
+    *outbuf = io->out;
+
+    vec_free(&io_bufs, NULL);
+}
+
 void crunch(struct membuf *inbuf,
             struct membuf *outbuf,
             const struct crunch_options *options, /* IN */
             struct crunch_info *info) /* OUT */
 {
-    int outpos;
-    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
-    outpos = membuf_memlen(outbuf);
+    struct vec io_bufs = STATIC_VEC_INIT(sizeof(struct io_bufs));
 
-    crunch_backwards(inbuf, outbuf, options, info);
+    struct io_bufs *io = vec_push(&io_bufs, NULL);
+    io->in = *inbuf;
+    io->out = *outbuf;
+    crunch_multi(&io_bufs, NULL, options, info);
+    *inbuf = io->in;
+    *outbuf = io->out;
 
-    reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
-    reverse_buffer((char*)membuf_get(outbuf) + outpos,
-                   membuf_memlen(outbuf) - outpos);
+    vec_free(&io_bufs, NULL);
 }
 
 void decrunch(int level,
@@ -390,8 +555,9 @@ void decrunch(int level,
               struct membuf *outbuf,
               struct decrunch_options *dopts)
 {
-    struct dec_ctx ctx[1];
-    struct membuf enc_buf[1] = {STATIC_MEMBUF_INIT};
+    struct dec_ctx ctx;
+    struct membuf enc_buf = STATIC_MEMBUF_INIT;
+    struct membuf *encp;
     int outpos;
 
     if (dopts->direction == 0)
@@ -400,13 +566,27 @@ void decrunch(int level,
     }
     outpos = membuf_memlen(outbuf);
 
-    dec_ctx_init(ctx, inbuf, outbuf, dopts->flags_proto, enc_buf);
+    encp = NULL;
+    if(dopts->exported_encoding != NULL)
+    {
+        read_encoding_to_membuf(dopts->exported_encoding,
+                                dopts->flags_proto, &enc_buf);
+        if (dopts->direction == 0)
+        {
+            reverse_buffer(membuf_get(&enc_buf), membuf_memlen(&enc_buf));
+        }
+        encp = &enc_buf;
+    }
 
-    LOG(level, (" Encoding: %s\n", (char*)membuf_get(enc_buf)));
+    dec_ctx_init(&ctx, encp, inbuf, outbuf, dopts->flags_proto);
 
-    membuf_free(enc_buf);
-    dec_ctx_decrunch(ctx);
-    dec_ctx_free(ctx);
+    membuf_clear(&enc_buf);
+    dec_ctx_table_dump(&ctx, &enc_buf);
+    LOG(level, (" Enc: %s\n", (char*)membuf_get(&enc_buf)));
+
+    membuf_free(&enc_buf);
+    dec_ctx_decrunch(&ctx);
+    dec_ctx_free(&ctx);
 
     if (dopts->direction == 0)
     {
@@ -420,7 +600,7 @@ void print_license(void)
 {
     LOG(LOG_WARNING,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v3.0.2 Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v3.0.2shenc Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_WARNING,
         ("This software is provided 'as-is', without any express or implied warranty.\n"

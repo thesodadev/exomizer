@@ -29,6 +29,7 @@
 
 #include "chunkpool.h"
 #include "membuf.h"
+#include "vec.h"
 
 struct match {
     unsigned short int offset;
@@ -92,5 +93,17 @@ void matchp_cache_get_enum(match_ctx ctx,       /* IN */
 typedef const_matchp matchp_enum_get_next_f(void *matchp_enum); /* IN/OUT */
 
 const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum);       /* IN */
+
+struct matchp_concat_enum {
+    struct vec_iterator enum_iterator;
+    matchp_enum_get_next_f *enum_next_f;
+    void *enum_current;
+};
+
+void matchp_concat_get_enum(matchp_enum_get_next_f *f,
+                            struct vec *data_vec,
+                            struct matchp_concat_enum mpcce[1]);
+
+const_matchp matchp_concat_enum_get_next(void *matchp_concat_enum);     /* IN */
 
 #endif

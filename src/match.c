@@ -540,3 +540,33 @@ const_matchp matchp_cache_enum_get_next(void *matchp_cache_enum)
     }
     return val;
 }
+
+void matchp_concat_get_enum(matchp_enum_get_next_f *f,
+                            struct vec *data_vec,
+                            struct matchp_concat_enum mpcce[1])
+{
+    vec_get_iterator(data_vec, &mpcce->enum_iterator);
+    mpcce->enum_next_f = f;
+    mpcce->enum_current = vec_iterator_next(&mpcce->enum_iterator);
+}
+
+const_matchp matchp_concat_enum_get_next(void *matchp_concat_enum)      /* IN */
+{
+    struct matchp_concat_enum *e = matchp_concat_enum;
+    const struct match *mp = NULL;
+restart:
+    if (e->enum_current == NULL)
+    {
+        e->enum_current = vec_iterator_next(&e->enum_iterator);
+    }
+    else
+    {
+        mp = e->enum_next_f(e->enum_current);
+        if (mp == NULL)
+        {
+            e->enum_current = vec_iterator_next(&e->enum_iterator);
+            goto restart;
+        }
+    }
+    return mp;
+}

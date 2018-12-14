@@ -328,21 +328,24 @@ void matchp_snp_get_enum(const struct search_node *snp, /* IN */
 
 const_matchp matchp_snp_enum_get_next(void *matchp_snp_enum)
 {
-    matchp_snp_enump snpe;
+    matchp_snp_enump snpe = matchp_snp_enum;
     const_matchp val;
-
-    snpe = matchp_snp_enum;
-
-    val = NULL;
-    while (snpe->currp != NULL && val == NULL)
-    {
-        val = snpe->currp->match;
-        snpe->currp = snpe->currp->prev;
-    }
 
     if (snpe->currp == NULL)
     {
+    restart:
+        val = NULL;
         snpe->currp = snpe->startp;
+    }
+    else
+    {
+        val = snpe->currp->match;
+        if (val->len == 0)
+        {
+            /* restart here too */
+            goto restart;
+        }
+        snpe->currp = snpe->currp->prev;
     }
     return val;
 }

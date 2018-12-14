@@ -218,6 +218,7 @@ void *vec_iterator_next(struct vec_iterator *i)
     int count = vec_count(i->vec);
     if (i->pos >= count)
     {
+        i->pos = 0;
         return NULL;
     }
     out = vec_get(i->vec, i->pos);

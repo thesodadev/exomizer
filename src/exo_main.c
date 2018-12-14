@@ -361,7 +361,7 @@ void print_mem_usage(const char *appl, enum log_level level,
          "  memory after being loaded or assembled there.\n", appl));
     LOG(level,
         ("  -l <address>  adds load address to the outfile, using \"none\" as <address>\n"
-         "                will skip the load address.\n"));
+         "                will skip the load address, defaults to \"auto\".\n"));
     LOG(level,
         ("  -f            crunch forward\n"));
     print_crunch_flags(level, default_outfile);
@@ -1428,12 +1428,13 @@ void raw(const char *appl, int argc, char *argv[])
     int reverse_mode = 0;
     int c, infilec;
     char **infilev;
+    struct membuf name_buf = STATIC_MEMBUF_INIT;
+    struct membuf enc_buf = STATIC_MEMBUF_INIT;
 
     static struct crunch_options options[1] = { CRUNCH_OPTIONS_DEFAULT };
     struct common_flags flags[1] = { {options, DEFAULT_OUTFILE} };
 
-    struct membuf inbuf[1];
-    struct membuf outbuf[1];
+    struct vec entries = STATIC_VEC_INIT(sizeof(struct io_bufs));
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     sprintf(flags_arr, "brd%s", CRUNCH_FLAGS);
@@ -1459,27 +1460,53 @@ void raw(const char *appl, int argc, char *argv[])
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if (infilec != 1)
+    if (options->output_header == 0)
+    {
+        if (decrunch_mode)
+        {
+            LOG(LOG_ERROR, ("Error: Can't combine -E and -d.\n"));
+            print_level_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(1);
+        }
+        if (infilec == 0)
+        {
+            LOG(LOG_ERROR, ("Error: no input files to process.\n"));
+            print_level_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(1);
+        }
+    }
+    else if (infilec != 1)
     {
         LOG(LOG_ERROR, ("Error: exactly one input file must be given.\n"));
         print_raw_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
         exit(1);
     }
 
-    membuf_init(inbuf);
-    membuf_init(outbuf);
+    for (c = 0; c < infilec; ++c)
+    {
+        struct io_bufs *io = vec_push(&entries, NULL);
+        struct membuf *inbuf = &io->in;
+        struct membuf *outbuf = &io->out;
+        membuf_init(inbuf);
+        membuf_init(outbuf);
 
-    load_plain_file(infilev[0], inbuf);
-    LOG(LOG_BRIEF, (" Reading %d bytes from \"%s\".\n",
-                    membuf_memlen(inbuf), infilev[0]));
+        load_plain_file(infilev[c], inbuf);
+        LOG(LOG_BRIEF, (" Reading %d bytes from \"%s\".\n",
+                        membuf_memlen(inbuf), infilev[c]));
+    }
 
     if(decrunch_mode)
     {
         int inlen;
         int outlen;
         struct decrunch_options dopts;
+        struct io_bufs *io = vec_get(&entries, 0);
+        struct membuf *inbuf = &io->in;
+        struct membuf *outbuf = &io->out;
+
         dopts.direction = !backwards_mode;
         dopts.flags_proto = options->flags_proto;
+        dopts.exported_encoding = options->exported_encoding;
 
         if(reverse_mode)
         {
@@ -1498,27 +1525,55 @@ void raw(const char *appl, int argc, char *argv[])
         struct crunch_info info;
         if(backwards_mode)
         {
-            crunch_backwards(inbuf, outbuf, options, &info);
+            crunch_backwards_multi(&entries, &enc_buf, options, &info);
         }
         else
         {
-            crunch(inbuf, outbuf, options, &info);
+            crunch_multi(&entries, &enc_buf, options, &info);
         }
 
         output_crunch_info(&info);
+
+    for (c = 0; c < infilec; ++c)
+    {
+        struct io_bufs *io = vec_get(&entries, c);
+        struct membuf *inbuf = &io->in;
+        struct membuf *outbuf = &io->out;
+        const char *p;
 
         if(reverse_mode)
         {
             reverse_buffer(membuf_get(outbuf), membuf_memlen(outbuf));
         }
+        }
+
+        p = flags->outfile;
+        if (options->output_header == 0)
+        {
+            membuf_clear(&name_buf);
+            membuf_printf(&name_buf, "%s.exo", infilev[c]);
+            p = membuf_get(&name_buf);
+        }
+        LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
+                        membuf_memlen(outbuf), p));
+        write_file(p, outbuf);
+
+        membuf_free(outbuf);
+        membuf_free(inbuf);
     }
 
-    LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
-                    membuf_memlen(outbuf), flags->outfile));
-    write_file(flags->outfile, outbuf);
-
-    membuf_free(outbuf);
-    membuf_free(inbuf);
+    if (options->output_header == 0)
+    {
+        if(reverse_mode)
+        {
+            reverse_buffer(membuf_get(&enc_buf), membuf_memlen(&enc_buf));
+        }
+        LOG(LOG_BRIEF, (" Writing encoding to \"%s\".\n", flags->outfile));
+        write_file(flags->outfile, &enc_buf);
+    }
+    membuf_free(&enc_buf);
+    membuf_free(&name_buf);
+    vec_free(&entries, NULL);
 }
 
 static

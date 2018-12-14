@@ -616,7 +616,6 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     int treshold;
 
     int i, j;
-    void *priv1;
 
     data = emd->priv;
 
@@ -627,8 +626,7 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     offset = data->offset_f_priv;
 
     /* first the lens */
-    priv1 = matchp_enum;
-    while ((mp = f(priv1)) != NULL && mp->len > 0)
+    while ((mp = f(matchp_enum)) != NULL)
     {
         if (mp->offset > 0)
         {
@@ -652,8 +650,7 @@ void optimal_optimize(encode_match_data emd,    /* IN/OUT */
     data->len_f_priv = optimize(len_arr, NULL, 16, -1);
 
     /* then the offsets */
-    priv1 = matchp_enum;
-    while ((mp = f(priv1)) != NULL && mp->len > 0)
+    while ((mp = f(matchp_enum)) != NULL)
     {
         if (mp->offset > 0)
         {

@@ -34,7 +34,7 @@
 #include "optimal.h"
 #include "flags.h"
 
-#define DECRUNCH_OPTIONS_DEFAULT {PFLAG_BITS_ORDER_BE | \
+#define DECRUNCH_OPTIONS_DEFAULT {NULL, PFLAG_BITS_ORDER_BE |    \
                                   PFLAG_BITS_COPY_GT_7 | \
                                   PFLAG_IMPL_1LITERAL, \
                                   1}
@@ -95,6 +95,23 @@ struct crunch_info
 
 void print_license(void);
 
+struct io_bufs
+{
+    struct membuf in;
+    struct membuf out;
+    struct crunch_info info;
+};
+
+void crunch_backwards_multi(struct vec *io_bufs,
+                            struct membuf *enc_buf,
+                            const struct crunch_options *options, /* IN */
+                            struct crunch_info *merged_info); /* OUT */
+
+void crunch_multi(struct vec *io_bufs,
+                  struct membuf *enc_buf,
+                  const struct crunch_options *options, /* IN */
+                  struct crunch_info *merged_info); /* OUT */
+
 void crunch_backwards(struct membuf *inbuf,
                       struct membuf *outbuf,
                       const struct crunch_options *options, /* IN */
@@ -107,6 +124,7 @@ void crunch(struct membuf *inbuf,
 
 struct decrunch_options
 {
+    const char *exported_encoding;
     /* see crunch_options flags field */
     int flags_proto;
     /* 0 backward, 1 forward */
