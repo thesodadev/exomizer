@@ -32,7 +32,7 @@
 #include "flags.h"
 #include <stdio.h>
 
-struct _output_ctx {
+struct output_ctx {
     unsigned char bitbuf;
     unsigned char bitcount;
     int pos;
@@ -41,30 +41,27 @@ struct _output_ctx {
     int flags_proto;
 };
 
-typedef struct _output_ctx output_ctx[1];
-typedef struct _output_ctx *output_ctxp;
-
-void output_ctx_init(output_ctx ctx,    /* IN/OUT */
+void output_ctx_init(struct output_ctx *ctx,    /* IN/OUT */
                      int flags_proto, /* IN */
                      struct membuf *out);       /* IN/OUT */
 
-unsigned int output_get_pos(output_ctx ctx);    /* IN */
+unsigned int output_get_pos(struct output_ctx *ctx);    /* IN */
 
-void output_byte(output_ctx ctx,        /* IN/OUT */
+void output_byte(struct output_ctx *ctx,        /* IN/OUT */
                  unsigned char byte);   /* IN */
 
-void output_word(output_ctx ctx,        /* IN/OUT */
+void output_word(struct output_ctx *ctx,        /* IN/OUT */
                  unsigned short int word);      /* IN */
 
-void output_bits_flush(output_ctx ctx,  /* IN/OUT */
+void output_bits_flush(struct output_ctx *ctx,  /* IN/OUT */
                        int add_marker_bit);     /* IN */
 
-int output_bits_alignment(output_ctx ctx);      /* IN */
+int output_bits_alignment(struct output_ctx *ctx);      /* IN */
 
-void output_bits(output_ctx ctx,        /* IN/OUT */
+void output_bits(struct output_ctx *ctx,        /* IN/OUT */
                  int count,     /* IN */
                  int val);      /* IN */
 
-void output_gamma_code(output_ctx ctx,  /* IN/OUT */
+void output_gamma_code(struct output_ctx *ctx,  /* IN/OUT */
                        int code);       /* IN */
 #endif

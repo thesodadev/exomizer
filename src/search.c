@@ -44,14 +44,14 @@ static void update_snp(struct search_node *snp,
     snp->total_score = total_score;
     snp->total_offset = total_offset;
     snp->prev = prev;
-    *snp->match = *match;
+    snp->match = *match;
 
     if ((flags_proto & PFLAG_REUSE_OFFSET) != 0)
     {
         if (match->offset == 0)
         {
             /* we are a literal */
-            struct match *prev_match = prev->match;
+            struct match *prev_match = &prev->match;
             if (prev_match->offset > 0)
             {
                 /* and the previous was a sequence, set the offset */
@@ -62,9 +62,9 @@ static void update_snp(struct search_node *snp,
     snp->latest_offset = latest_offset;
 }
 
-void search_buffer(match_ctx ctx,       /* IN */
+void search_buffer(struct match_ctx *ctx,       /* IN */
                    encode_match_f * f,  /* IN */
-                   encode_match_data emd,       /* IN */
+                   struct encode_match_data *emd,       /* IN */
                    int flags_proto,             /* IN */
                    int flags_notrait,           /* IN */
                    int max_sequence_length,     /* IN */
@@ -73,7 +73,7 @@ void search_buffer(match_ctx ctx,       /* IN */
 {
     struct progress prog[1];
     struct search_node *sn_arr;
-    const_matchp mp = NULL;
+    const struct match *mp = NULL;
     struct search_node *snp;
     struct search_node *best_copy_snp;
     int best_copy_len;
@@ -92,8 +92,8 @@ void search_buffer(match_ctx ctx,       /* IN */
     --len;
     snp = &sn_arr[len];
     snp->index = len;
-    snp->match->offset = 0;
-    snp->match->len = 0;
+    snp->match.offset = 0;
+    snp->match.len = 0;
     snp->total_offset = 0;
     snp->total_score = 0;
     snp->prev = NULL;
@@ -117,7 +117,7 @@ void search_buffer(match_ctx ctx,       /* IN */
         {
             /* check if we can do even better with copy */
             snp = &sn_arr[len];
-            if((snp->match->offset != 0 || snp->match->len != 1) &&
+            if((snp->match.offset != 0 || snp->match.len != 1) &&
                (best_copy_snp->total_score+best_copy_len * 8.0 -
                 snp->total_score > 0.0 ||
                 best_copy_len > max_sequence_length))
@@ -143,7 +143,7 @@ void search_buffer(match_ctx ctx,       /* IN */
                       /* must be < 2 due to PBIT_IMPL_1LITERAL adjustment */
                       best_copy_len > 255 && (best_copy_len & 255) < 2))
                 {
-                    match local_mp;
+                    struct match local_m;
                     /* here it is good to just copy instead of crunch */
 
                     LOG(LOG_DEBUG,
@@ -151,15 +151,15 @@ void search_buffer(match_ctx ctx,       /* IN */
                          snp->index, best_copy_len,
                          snp->total_score, total_copy_score));
 
-                    local_mp->len = best_copy_len;
-                    local_mp->offset = 0;
-                    local_mp->next = NULL;
+                    local_m.len = best_copy_len;
+                    local_m.offset = 0;
+                    local_m.next = NULL;
 
                     update_snp(snp,
                                total_copy_score,
                                best_copy_snp->total_offset,
                                best_copy_snp,
-                               local_mp,
+                               &local_m,
                                flags_proto);
                 }
             }
@@ -191,7 +191,7 @@ void search_buffer(match_ctx ctx,       /* IN */
             float total_best_rle_score;
             float snp_rle_score;
             float total_snp_rle_score;
-            match rle_mp;
+            struct match rle_m;
 
             LOG(LOG_DEBUG, ("challenger len %d, index %d, "
                              "ruling len %d, index %d\n",
@@ -201,15 +201,15 @@ void search_buffer(match_ctx ctx,       /* IN */
 
             /* snp and best_rle_snp is the same rle area,
              * let's see which is best */
-            rle_mp->len = ctx->rle[best_rle_snp->index];
-            rle_mp->offset = 1;
-            best_rle_score = f(rle_mp, emd, best_rle_snp->latest_offset, NULL);
+            rle_m.len = ctx->rle[best_rle_snp->index];
+            rle_m.offset = 1;
+            best_rle_score = f(&rle_m, emd, best_rle_snp->latest_offset, NULL);
             total_best_rle_score = best_rle_snp->total_score +
                 best_rle_score;
 
-            rle_mp->len = ctx->rle[snp->index];
-            rle_mp->offset = 1;
-            snp_rle_score = f(rle_mp, emd, snp->latest_offset, NULL);
+            rle_m.len = ctx->rle[snp->index];
+            rle_m.offset = 1;
+            snp_rle_score = f(&rle_m, emd, snp->latest_offset, NULL);
             total_snp_rle_score = snp->total_score + snp_rle_score;
 
             if(total_snp_rle_score <= total_best_rle_score)
@@ -225,7 +225,7 @@ void search_buffer(match_ctx ctx,       /* IN */
                 best_rle_snp = snp;
                 LOG(LOG_DEBUG, ("setting current best_rle: "
                                  "index %d, len %d\n",
-                                 snp->index, rle_mp->len));
+                                 snp->index, rle_m.len));
             }
         }
         if(best_rle_snp != NULL && best_rle_snp != snp)
@@ -233,17 +233,17 @@ void search_buffer(match_ctx ctx,       /* IN */
             float rle_score;
             float total_rle_score;
             /* check if rle is better */
-            match local_mp;
-            local_mp->len = best_rle_snp->index - snp->index;
-            local_mp->offset = 1;
+            struct match local_m;
+            local_m.len = best_rle_snp->index - snp->index;
+            local_m.offset = 1;
 
-            rle_score = f(local_mp, emd, best_rle_snp->latest_offset, NULL);
+            rle_score = f(&local_m, emd, best_rle_snp->latest_offset, NULL);
             total_rle_score = best_rle_snp->total_score + rle_score;
 
             LOG(LOG_DEBUG, ("comparing index %d (%0.1f) with "
                              "rle index %d, len %d, total score %0.1f %0.1f\n",
                              snp->index, snp->total_score,
-                             best_rle_snp->index, local_mp->len,
+                             best_rle_snp->index, local_m.len,
                              best_rle_snp->total_score, rle_score));
 
             if(snp->total_score > total_rle_score)
@@ -251,14 +251,14 @@ void search_buffer(match_ctx ctx,       /* IN */
                 /*here it is good to do rle instead of crunch */
                 LOG(LOG_DEBUG,
                     ("rle index %d, len %d, total %0.1f, rle %0.1f\n",
-                     snp->index, local_mp->len,
+                     snp->index, local_m.len,
                      snp->total_score, total_rle_score));
 
                 update_snp(snp,
                            total_rle_score,
                            best_rle_snp->total_offset + 1,
                            best_rle_snp,
-                           local_mp,
+                           &local_m,
                            flags_proto);
             }
         }
@@ -272,21 +272,21 @@ void search_buffer(match_ctx ctx,       /* IN */
         latest_offset_sum = sn_arr[len].total_offset;
         while (mp != NULL)
         {
-            matchp next;
+            struct match *next;
             int end_len;
-            match tmp;
+            struct match tmp;
             int bucket_len_start;
             float score;
             struct search_node *prev_snp;
 
             next = mp->next;
             end_len = 1;
-            *tmp = *mp;
-            tmp->next = NULL;
+            tmp = *mp;
+            tmp.next = NULL;
             bucket_len_start = 0;
             prev_snp = &sn_arr[len];
 
-            for(tmp->len = mp->len; tmp->len >= end_len; --(tmp->len))
+            for(tmp.len = mp->len; tmp.len >= end_len; --(tmp.len))
             {
                 float total_score;
                 unsigned int total_offset;
@@ -294,52 +294,52 @@ void search_buffer(match_ctx ctx,       /* IN */
 
                 LOG(LOG_DUMP, ("mp[%d, %d], tmp[%d, %d]\n",
                                mp->offset, mp->len,
-                               tmp->offset, tmp->len));
+                               tmp.offset, tmp.len));
                 if (bucket_len_start == 0 ||
-                    tmp->len < 4 ||
-                    tmp->len < bucket_len_start ||
-                    (skip_len0123_mirrors && tmp->len > 255 &&
-                     (tmp->len & 255) < 4))
+                    tmp.len < 4 ||
+                    tmp.len < bucket_len_start ||
+                    (skip_len0123_mirrors && tmp.len > 255 &&
+                     (tmp.len & 255) < 4))
                 {
-                    score = f(tmp, emd, prev_snp->latest_offset,
+                    score = f(&tmp, emd, prev_snp->latest_offset,
                               &match_buckets);
                     bucket_len_start = match_buckets.len.start;
                 }
 
                 total_score = prev_score + score;
-                total_offset = latest_offset_sum + tmp->offset;
-                snp = &sn_arr[len - tmp->len];
+                total_offset = latest_offset_sum + tmp.offset;
+                snp = &sn_arr[len - tmp.len];
 
                 LOG(LOG_DUMP,
                     ("[%05d] cmp [%05d, %05d score %.1f + %.1f] with %.1f",
-                     len, tmp->offset, tmp->len,
+                     len, tmp.offset, tmp.len,
                      prev_score, score, snp->total_score));
 
                 if (total_score < 100000000.0 &&
-                    (snp->match->len == 0 ||
+                    (snp->match.len == 0 ||
                      total_score < snp->total_score ||
                      (total_score == snp->total_score &&
                       total_offset < snp->total_offset &&
                       ((pass & 1) == 0 ||
-                       (snp->match->len == 1 && snp->match->offset > 8) ||
-                       tmp->offset > 48 ||
-                       tmp->len > 15))))
+                       (snp->match.len == 1 && snp->match.offset > 8) ||
+                       tmp.offset > 48 ||
+                       tmp.len > 15))))
                 {
                     LOG(LOG_DUMP, (", replaced"));
-                    snp->index = len - tmp->len;
+                    snp->index = len - tmp.len;
 
                     update_snp(snp,
                                total_score,
                                total_offset,
                                prev_snp,
-                               tmp,
+                               &tmp,
                                flags_proto);
                 }
                 LOG(LOG_DUMP, ("\n"));
             }
-            LOG(LOG_DUMP, ("tmp->len %d, ctx->rle[%d] %d\n",
-                           tmp->len, len - tmp->len,
-                           ctx->rle[len - tmp->len]));
+            LOG(LOG_DUMP, ("tmp.len %d, ctx->rle[%d] %d\n",
+                           tmp.len, len - tmp.len,
+                           ctx->rle[len - tmp.len]));
 
             mp = next;
         }
@@ -361,17 +361,17 @@ void search_buffer(match_ctx ctx,       /* IN */
     *result = sn_arr;
 }
 
-void matchp_snp_get_enum(const struct search_node *snp, /* IN */
-                         matchp_snp_enum snpe)  /* IN/OUT */
+void match_snp_get_enum(const struct search_node *snp, /* IN */
+                        struct match_snp_enum *snpe)  /* IN/OUT */
 {
     snpe->startp = snp;
     snpe->currp = snp;
 }
 
-const_matchp matchp_snp_enum_get_next(void *matchp_snp_enum)
+const struct match *match_snp_enum_get_next(void *match_snp_enum)
 {
-    matchp_snp_enump snpe = matchp_snp_enum;
-    const_matchp val;
+    struct match_snp_enum *snpe = match_snp_enum;
+    const struct match *val;
 
     if (snpe->currp == NULL)
     {
@@ -381,7 +381,7 @@ const_matchp matchp_snp_enum_get_next(void *matchp_snp_enum)
     }
     else
     {
-        val = snpe->currp->match;
+        val = &snpe->currp->match;
         if (val->len == 0)
         {
             /* restart here too */

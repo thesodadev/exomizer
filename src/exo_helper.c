@@ -42,9 +42,9 @@
 
 static struct crunch_options default_options[1] = { CRUNCH_OPTIONS_DEFAULT };
 
-void do_output(match_ctx ctx,
+void do_output(struct match_ctx *ctx,
                struct search_node *snp,
-               encode_match_data emd,
+               struct encode_match_data *emd,
                const struct crunch_options *options,
                struct membuf *outbuf,
                struct crunch_info *infop)
@@ -55,15 +55,15 @@ void do_output(match_ctx ctx,
     int diff;
     int traits_used = 0;
     int max_len = 0;
-    output_ctxp old;
-    output_ctx out;
+    struct output_ctx *old;
+    struct output_ctx out;
     struct search_node *initial_snp;
     int initial_len;
     int alignment = 0;
     int measure_alignment;
 
     old = emd->out;
-    emd->out = out;
+    emd->out = &out;
 
     initial_len = membuf_memlen(outbuf);
     initial_snp = snp;
@@ -72,42 +72,42 @@ void do_output(match_ctx ctx,
     {
         membuf_truncate(outbuf, initial_len);
         snp = initial_snp;
-        output_ctx_init(out, options->flags_proto, outbuf);
+        output_ctx_init(&out, options->flags_proto, outbuf);
 
-        output_bits(out, alignment, 0);
+        output_bits(&out, alignment, 0);
 
-        pos = output_get_pos(out);
+        pos = output_get_pos(&out);
 
         pos_diff = pos;
         max_diff = 0;
 
         if (snp != NULL)
         {
-            LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+            LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
 
-            output_gamma_code(out, 16);
-            output_bits(out, 1, 0); /* 1 bit out */
+            output_gamma_code(&out, 16);
+            output_bits(&out, 1, 0); /* 1 bit out */
 
-            diff = output_get_pos(out) - pos_diff;
+            diff = output_get_pos(&out) - pos_diff;
             if(diff > max_diff)
             {
                 max_diff = diff;
             }
 
-            LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+            LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
             LOG(LOG_DUMP, ("------------\n"));
         }
         while (snp != NULL)
         {
-            const_matchp mp;
+            const struct match *mp;
 
-            mp = snp->match;
+            mp = &snp->match;
             if (mp != NULL && mp->len > 0)
             {
                 if (mp->offset == 0)
                 {
                     int splitLitSeq =
-                        snp->prev->match->len == 0 &&
+                        snp->prev->match.len == 0 &&
                         (options->flags_proto & PFLAG_IMPL_1LITERAL);
                     int i = 0;
                     if (mp->len > 1)
@@ -119,13 +119,13 @@ void do_output(match_ctx ctx,
                         }
                         for(; i < len; ++i)
                         {
-                            output_byte(out, ctx->buf[snp->index + i]);
+                            output_byte(&out, ctx->buf[snp->index + i]);
                         }
-                        output_bits(out, 16, len);
-                        output_gamma_code(out, 17);
-                        output_bits(out, 1, 0);
+                        output_bits(&out, 16, len);
+                        output_gamma_code(&out, 17);
+                        output_bits(&out, 1, 0);
                         /* literal sequence */
-                        LOG(LOG_DUMP, ("[%d] literal copy len %d\n", out->pos,
+                        LOG(LOG_DUMP, ("[%d] literal copy len %d\n", out.pos,
                                        len));
                         traits_used |= TFLAG_LIT_SEQ;
                         if (len > max_len)
@@ -136,12 +136,12 @@ void do_output(match_ctx ctx,
                     if (i < mp->len)
                     {
                         /* literal */
-                        LOG(LOG_DUMP, ("[%d] literal $%02X\n", out->pos,
+                        LOG(LOG_DUMP, ("[%d] literal $%02X\n", out.pos,
                                        ctx->buf[snp->index + i]));
-                        output_byte(out, ctx->buf[snp->index + i]);
+                        output_byte(&out, ctx->buf[snp->index + i]);
                         if (!splitLitSeq)
                         {
-                            output_bits(out, 1, 1);
+                            output_bits(&out, 1, 1);
                         }
                     }
                 } else
@@ -151,13 +151,13 @@ void do_output(match_ctx ctx,
                     {
                         LOG(LOG_DUMP,
                             ("[%d] offset reuse bit = %d, latest = %d\n",
-                             out->pos, mp->offset == latest_offset,
+                             out.pos, mp->offset == latest_offset,
                              latest_offset));
                     }
                     LOG(LOG_DUMP, ("[%d] sequence offset = %d, len = %d\n",
-                                   out->pos, mp->offset, mp->len));
+                                   out.pos, mp->offset, mp->len));
                     optimal_encode(mp, emd, latest_offset, NULL);
-                    output_bits(out, 1, 0);
+                    output_bits(&out, 1, 0);
                     if (mp->len == 1)
                     {
                         traits_used |= TFLAG_LEN1_SEQ;
@@ -178,7 +178,7 @@ void do_output(match_ctx ctx,
                 }
 
                 pos_diff += mp->len;
-                diff = output_get_pos(out) - pos_diff;
+                diff = output_get_pos(&out) - pos_diff;
                 if(diff > max_diff)
                 {
                     max_diff = diff;
@@ -188,22 +188,22 @@ void do_output(match_ctx ctx,
             snp = snp->prev;
         }
 
-        LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+        LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
         if (options->output_header)
         {
             /* output header here */
-            optimal_out(out, emd);
-            LOG(LOG_DUMP, ("pos $%04X\n", out->pos));
+            optimal_out(&out, emd);
+            LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
         }
 
         if (!measure_alignment)
         {
             break;
         }
-        alignment = output_bits_alignment(out);
+        alignment = output_bits_alignment(&out);
         measure_alignment = 0;
     }
-    output_bits_flush(out, !(options->flags_proto & PFLAG_BITS_ALIGN_START));
+    output_bits_flush(&out, !(options->flags_proto & PFLAG_BITS_ALIGN_START));
 
     emd->out = old;
 
@@ -227,22 +227,22 @@ static void read_encoding_to_membuf(const char *exported_enc,
     }
     else
     {
-        encode_match_data emd;
+        struct encode_match_data emd;
         struct crunch_options options = *default_options;
 
         options.flags_proto = flags_proto;
         options.output_header = 1;
         options.exported_encoding = exported_enc;
-        emd->out = NULL;
+        emd.out = NULL;
 
-        optimal_init(emd, options.flags_notrait, options.flags_proto);
-        optimal_encoding_import(emd, options.exported_encoding);
-        do_output(NULL, NULL, emd, &options, enc_buf, NULL);
-        optimal_free(emd);
+        optimal_init(&emd, options.flags_notrait, options.flags_proto);
+        optimal_encoding_import(&emd, options.exported_encoding);
+        do_output(NULL, NULL, &emd, &options, enc_buf, NULL);
+        optimal_free(&emd);
     }
 }
 
-static void read_encoding_to_emd(encode_match_data emd,
+static void read_encoding_to_emd(struct encode_match_data *emd,
                                  const char *exported_enc)
 {
     struct membuf enc_buf = STATIC_MEMBUF_INIT;
@@ -264,12 +264,12 @@ static void read_encoding_to_emd(encode_match_data emd,
 
 static struct search_node**
 do_compress(struct match_ctx *ctxp, int ctx_count,
-            encode_match_data emd,
+            struct encode_match_data *emd,
             const struct crunch_options *options,
             struct membuf *enc) /* IN */
 {
-    struct vec snpev = STATIC_VEC_INIT(sizeof(matchp_snp_enum));
-    struct matchp_concat_enum mpcce;
+    struct vec snpev = STATIC_VEC_INIT(sizeof(struct match_snp_enum));
+    struct match_concat_enum mpcce;
     struct search_node **snpp;
     int pass, i;
     float size;
@@ -290,15 +290,15 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
     }
     else
     {
-        struct vec mpcev = STATIC_VEC_INIT(sizeof(matchp_cache_enum));
+        struct vec mpcev = STATIC_VEC_INIT(sizeof(struct match_cache_enum));
         LOG(LOG_NORMAL, ("optimizing ..\n"));
         for (i = 0; i < ctx_count; ++i)
         {
-            struct matchp_cache_enum *mp_enum = vec_push(&mpcev, NULL);
-            matchp_cache_get_enum(ctxp + i, mp_enum);
+            struct match_cache_enum *mp_enum = vec_push(&mpcev, NULL);
+            match_cache_get_enum(ctxp + i, mp_enum);
         }
-        matchp_concat_get_enum(matchp_cache_enum_get_next, &mpcev, &mpcce);
-        optimal_optimize(emd, matchp_concat_enum_get_next, &mpcce);
+        match_concat_get_enum(match_cache_enum_get_next, &mpcev, &mpcce);
+        optimal_optimize(emd, match_concat_enum_get_next, &mpcce);
         vec_free(&mpcev, NULL);
     }
     optimal_encoding_export(emd, enc);
@@ -352,11 +352,11 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
 
         for (i = 0; i < ctx_count; ++i)
         {
-            matchp_snp_enump mp_enum = vec_push(&snpev, NULL);
-            matchp_snp_get_enum(snpp[i], mp_enum);
+            struct match_snp_enum *mp_enum = vec_push(&snpev, NULL);
+            match_snp_get_enum(snpp[i], mp_enum);
         }
-        matchp_concat_get_enum(matchp_snp_enum_get_next, &snpev, &mpcce);
-        optimal_optimize(emd, matchp_concat_enum_get_next, &mpcce);
+        match_concat_get_enum(match_snp_enum_get_next, &snpev, &mpcce);
+        optimal_optimize(emd, match_concat_enum_get_next, &mpcce);
         vec_clear(&snpev, NULL);
 
         optimal_encoding_export(emd, enc);
@@ -378,7 +378,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
                             struct crunch_info *infop) /* OUT */
 {
     struct match_ctx *ctxp;
-    encode_match_data emd;
+    struct encode_match_data emd;
     struct search_node **snpp;
     struct crunch_info merged_info = STATIC_CRUNCH_INFO_INIT;
     struct membuf exported_enc = STATIC_MEMBUF_INIT;
@@ -408,13 +408,13 @@ void crunch_backwards_multi(struct vec *io_bufs,
     LOG(LOG_NORMAL, (" Instrumenting file%s, done.\n",
                      (buf_count == 1 ? "" : "s")));
 
-    emd->out = NULL;
-    optimal_init(emd, options->flags_notrait, options->flags_proto);
+    emd.out = NULL;
+    optimal_init(&emd, options->flags_notrait, options->flags_proto);
 
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snpp = do_compress(ctxp, buf_count, emd, options, &exported_enc);
+    snpp = do_compress(ctxp, buf_count, &emd, options, &exported_enc);
 
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
@@ -428,7 +428,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
     {
         struct crunch_options enc_opts = *options;
         enc_opts.output_header = 1;
-        do_output(NULL, NULL, emd, &enc_opts, enc_buf, NULL);
+        do_output(NULL, NULL, &emd, &enc_opts, enc_buf, NULL);
     }
 
     for (i = 0; i < buf_count; ++i)
@@ -438,7 +438,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
         struct crunch_info *info = &io->info;
 
         outlen -= membuf_memlen(out);
-        do_output(ctxp + i, snpp[i], emd, options, out, info);
+        do_output(ctxp + i, snpp[i], &emd, options, out, info);
         outlen += membuf_memlen(out);
 
         merged_info.traits_used |= info->traits_used;
@@ -455,7 +455,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
     LOG(LOG_BRIEF, (" Crunched data reduced %d bytes (%0.2f%%)\n",
                     inlen - outlen, 100.0 * (inlen - outlen) / inlen));
 
-    optimal_free(emd);
+    optimal_free(&emd);
     for (i = 0; i < buf_count; ++i)
     {
         free(snpp[i]);

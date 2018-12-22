@@ -35,11 +35,11 @@
 #define RADIX_TREE_NODE_RADIX 11U
 #define RADIX_TREE_NODE_MASK  ((1U << RADIX_TREE_NODE_RADIX) - 1U)
 
-struct _radix_node {
-    struct _radix_node *rn;
+struct radix_node {
+    struct radix_node *rn;
 };
 
-void radix_tree_init(radix_root rr)     /* IN */
+void radix_tree_init(struct radix_root *rr)     /* IN */
 {
     rr->depth = 0;
     rr->root = NULL;
@@ -48,7 +48,8 @@ void radix_tree_init(radix_root rr)     /* IN */
 }
 
 static
-void radix_tree_free_helper(int depth, radix_nodep rnp, free_callback * f,      /* IN */
+void radix_tree_free_helper(int depth, struct radix_node *rnp,
+                            free_callback * f,      /* IN */
                             void *priv) /* IN */
 {
     int i;
@@ -78,7 +79,7 @@ void radix_tree_free_helper(int depth, radix_nodep rnp, free_callback * f,      
     while (0);
 }
 
-void radix_tree_free(radix_root rr,     /* IN */
+void radix_tree_free(struct radix_root *rr,     /* IN */
                      free_callback * f, /* IN */
                      void *priv)        /* IN */
 {
@@ -88,12 +89,12 @@ void radix_tree_free(radix_root rr,     /* IN */
     chunkpool_free(rr->mem);
 }
 
-void radix_node_set(radix_rootp rrp,    /* IN */
+void radix_node_set(struct radix_root *rrp,    /* IN */
                     unsigned int index, /* IN */
                     void *data) /* IN */
 {
-    radix_nodep rnp;
-    radix_nodep *rnpp;
+    struct radix_node *rnp;
+    struct radix_node **rnpp;
     unsigned int mask;
     int depth;
 
@@ -131,10 +132,10 @@ void radix_node_set(radix_rootp rrp,    /* IN */
     *rnpp = data;
 }
 
-void *radix_node_get(radix_root rr,     /* IN */
+void *radix_node_get(struct radix_root *rr,     /* IN */
                      unsigned int index)        /* IN */
 {
-    radix_nodep rnp;
+    struct radix_node *rnp;
     unsigned short int depth;
 
     /* go down */

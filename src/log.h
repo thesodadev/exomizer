@@ -49,11 +49,10 @@ enum log_level {
     LOG_MAX = 99
 };
 
-typedef
-void log_formatter_f(FILE * out,        /* IN */
-                     enum log_level level,      /* IN */
-                     const char *context,       /* IN */
-                     const char *);     /* IN */
+typedef void log_formatter_f(FILE * out,        /* IN */
+                             enum log_level level,      /* IN */
+                             const char *context,       /* IN */
+                             const char *);     /* IN */
 
 /*
  * this log output function adds nothing
