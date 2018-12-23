@@ -1,5 +1,9 @@
 #ifndef ALREADY_INCLUDED_MATCH
 #define ALREADY_INCLUDED_MATCH
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Copyright (c) 2002 - 2005, 2013 Magnus Lind.
  *
@@ -28,7 +32,7 @@
  */
 
 #include "chunkpool.h"
-#include "membuf.h"
+#include "buf.h"
 #include "vec.h"
 
 struct match {
@@ -54,7 +58,7 @@ struct match_ctx {
 };
 
 void match_ctx_init(struct match_ctx *ctx,          /* IN/OUT */
-                    struct membuf *inbuf,   /* IN */
+                    struct buf *inbuf,   /* IN */
                     int max_len,            /* IN */
                     int max_offset,         /* IN */
                     int favor_speed);       /* IN */
@@ -96,4 +100,7 @@ void match_concat_get_enum(match_enum_next_f *next_f,
 
 const struct match *match_concat_enum_get_next(void *match_concat_enum); /*IN*/
 
+#ifdef __cplusplus
+}
+#endif
 #endif

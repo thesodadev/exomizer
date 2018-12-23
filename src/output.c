@@ -61,11 +61,11 @@ static void bitbuf_bit(struct output_ctx *ctx, int bit)
 
 void output_ctx_init(struct output_ctx *ctx,    /* IN/OUT */
                      int flags_proto, /* IN */
-                     struct membuf *out)/* IN/OUT */
+                     struct buf *out)/* IN/OUT */
 {
     ctx->bitbuf = 0;
     ctx->bitcount = 0;
-    ctx->pos = membuf_memlen(out);
+    ctx->pos = buf_size(out);
     ctx->buf = out;
     ctx->flags_proto = flags_proto;
 }
@@ -79,19 +79,19 @@ void output_byte(struct output_ctx *ctx,        /* IN/OUT */
                  unsigned char byte)    /* IN */
 {
     /*LOG(LOG_DUMP, ("output_byte: $%02X\n", byte)); */
-    if(ctx->pos < membuf_memlen(ctx->buf))
+    if(ctx->pos < buf_size(ctx->buf))
     {
         char *p;
-        p = membuf_get(ctx->buf);
+        p = buf_data(ctx->buf);
         p[ctx->pos] = byte;
     }
     else
     {
-        while(ctx->pos > membuf_memlen(ctx->buf))
+        while(ctx->pos > buf_size(ctx->buf))
         {
-            membuf_append_char(ctx->buf, '\0');
+            buf_append_char(ctx->buf, '\0');
         }
-        membuf_append_char(ctx->buf, byte);
+        buf_append_char(ctx->buf, byte);
     }
     ++(ctx->pos);
 }

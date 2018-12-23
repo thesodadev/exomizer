@@ -1,5 +1,8 @@
 #ifndef ALREADY_INCLUDED_CHUNKPOOL
 #define ALREADY_INCLUDED_CHUNKPOOL
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Copyright (c) 2003 - 2005, 2015 Magnus Lind.
@@ -54,4 +57,7 @@ chunkpool_malloc(struct chunkpool *ctx);
 void *
 chunkpool_calloc(struct chunkpool *ctx);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

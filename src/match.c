@@ -33,7 +33,7 @@
 #include "match.h"
 #include "chunkpool.h"
 #include "radix.h"
-#include "membuf.h"
+#include "buf.h"
 #include "progress.h"
 
 struct match_node {
@@ -74,16 +74,16 @@ struct match *match_new(struct match_ctx *ctx, /* IN/OUT */
 
 
 void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
-                    struct membuf *inbuf,  /* IN */
+                    struct buf *inbuf,  /* IN */
                     int max_len,           /* IN */
                     int max_offset,        /* IN */
                     int favor_speed) /* IN */
 {
     struct match_node *np;
-    struct progress prog[1];
+    struct progress prog;
 
-    int buf_len = membuf_memlen(inbuf);
-    const unsigned char *buf = membuf_get(inbuf);
+    int buf_len = buf_size(inbuf);
+    const unsigned char *buf = buf_data(inbuf);
     char *rle_map;
 
     int c, i;
@@ -220,7 +220,7 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
     }
     free(rle_map);
 
-    progress_init(prog, "building.directed.acyclic.graph.", buf_len - 1, 0);
+    progress_init(&prog, "building.directed.acyclic.graph.", buf_len - 1, 0);
 
     for (i = buf_len - 1; i >= 0; --i)
     {
@@ -232,12 +232,12 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
         /* add to cache */
         ctx->info[i].cache = matches;
 
-        progress_bump(prog, i);
+        progress_bump(&prog, i);
     }
 
     LOG(LOG_NORMAL, ("\n"));
 
-    progress_free(prog);
+    progress_free(&prog);
 }
 
 void match_ctx_free(struct match_ctx *ctx)      /* IN/OUT */

@@ -27,8 +27,8 @@
 
 #include "log.h"
 #include "output.h"
-#include "membuf.h"
-#include "membuf_io.h"
+#include "buf.h"
+#include "buf_io.h"
 #include "match.h"
 #include "search.h"
 #include "optimal.h"
@@ -40,13 +40,13 @@
 #include <string.h>
 #include <ctype.h>
 
-static struct crunch_options default_options[1] = { CRUNCH_OPTIONS_DEFAULT };
+static const struct crunch_options default_options = CRUNCH_OPTIONS_DEFAULT;
 
 void do_output(struct match_ctx *ctx,
                struct search_node *snp,
                struct encode_match_data *emd,
                const struct crunch_options *options,
-               struct membuf *outbuf,
+               struct buf *outbuf,
                struct crunch_info *infop)
 {
     int pos;
@@ -65,12 +65,12 @@ void do_output(struct match_ctx *ctx,
     old = emd->out;
     emd->out = &out;
 
-    initial_len = membuf_memlen(outbuf);
+    initial_len = buf_size(outbuf);
     initial_snp = snp;
     measure_alignment = options->flags_proto & PFLAG_BITS_ALIGN_START;
     for (;;)
     {
-        membuf_truncate(outbuf, initial_len);
+        buf_remove(outbuf, initial_len, -1);
         snp = initial_snp;
         output_ctx_init(&out, options->flags_proto, outbuf);
 
@@ -215,9 +215,9 @@ void do_output(struct match_ctx *ctx,
     }
 }
 
-static void read_encoding_to_membuf(const char *exported_enc,
-                                    int flags_proto,
-                                    struct membuf enc_buf[1])
+static void read_encoding_to_buf(const char *exported_enc,
+                                 int flags_proto,
+                                 struct buf *enc_buf)
 {
     if (exported_enc[0] == '@')
     {
@@ -228,7 +228,7 @@ static void read_encoding_to_membuf(const char *exported_enc,
     else
     {
         struct encode_match_data emd;
-        struct crunch_options options = *default_options;
+        struct crunch_options options = default_options;
 
         options.flags_proto = flags_proto;
         options.output_header = 1;
@@ -245,28 +245,28 @@ static void read_encoding_to_membuf(const char *exported_enc,
 static void read_encoding_to_emd(struct encode_match_data *emd,
                                  const char *exported_enc)
 {
-    struct membuf enc_buf = STATIC_MEMBUF_INIT;
+    struct buf enc_buf = STATIC_BUF_INIT;
     if (exported_enc[0] == '@')
     {
         struct dec_ctx ctx;
-        read_encoding_to_membuf(exported_enc, 0, &enc_buf);
+        read_encoding_to_buf(exported_enc, 0, &enc_buf);
         dec_ctx_init(&ctx, &enc_buf, &enc_buf, NULL, 0);
 
-        membuf_clear(&enc_buf);
+        buf_clear(&enc_buf);
         dec_ctx_table_dump(&ctx, &enc_buf);
         dec_ctx_free(&ctx);
 
-        exported_enc = membuf_get(&enc_buf);
+        exported_enc = buf_data(&enc_buf);
     }
     optimal_encoding_import(emd, exported_enc);
-    membuf_free(&enc_buf);
+    buf_free(&enc_buf);
 }
 
 static struct search_node**
 do_compress(struct match_ctx *ctxp, int ctx_count,
             struct encode_match_data *emd,
             const struct crunch_options *options,
-            struct membuf *enc) /* IN */
+            struct buf *enc) /* IN */
 {
     struct vec snpev = STATIC_VEC_INIT(sizeof(struct match_snp_enum));
     struct match_concat_enum mpcce;
@@ -302,7 +302,7 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
         vec_free(&mpcev, NULL);
     }
     optimal_encoding_export(emd, enc);
-    strcpy(prev_enc, membuf_get(enc));
+    strcpy(prev_enc, buf_data(enc));
 
     old_size = 100000000.0;
 
@@ -360,11 +360,11 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
         vec_clear(&snpev, NULL);
 
         optimal_encoding_export(emd, enc);
-        if (strcmp(membuf_get(enc), prev_enc) == 0)
+        if (strcmp(buf_data(enc), prev_enc) == 0)
         {
             break;
         }
-        strcpy(prev_enc, membuf_get(enc));
+        strcpy(prev_enc, buf_data(enc));
     }
 
     vec_free(&snpev, NULL);
@@ -373,7 +373,7 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
 }
 
 void crunch_backwards_multi(struct vec *io_bufs,
-                            struct membuf *enc_buf,
+                            struct buf *enc_buf,
                             const struct crunch_options *options, /* IN */
                             struct crunch_info *infop) /* OUT */
 {
@@ -381,8 +381,8 @@ void crunch_backwards_multi(struct vec *io_bufs,
     struct encode_match_data emd;
     struct search_node **snpp;
     struct crunch_info merged_info = STATIC_CRUNCH_INFO_INIT;
-    struct membuf exported_enc = STATIC_MEMBUF_INIT;
-    int buf_count = vec_count(io_bufs);
+    struct buf exported_enc = STATIC_BUF_INIT;
+    int buf_count = vec_size(io_bufs);
     int outlen = 0;
     int inlen = 0;
     int i;
@@ -390,7 +390,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
     ctxp = malloc(sizeof(struct match_ctx) * buf_count);
     if(options == NULL)
     {
-        options = default_options;
+        options = &default_options;
     }
 
     LOG(LOG_NORMAL,
@@ -399,8 +399,8 @@ void crunch_backwards_multi(struct vec *io_bufs,
     for (i = 0; i < buf_count; ++i)
     {
         struct io_bufs *io = vec_get(io_bufs, i);
-        struct membuf *in =  &io->in;
-        inlen += membuf_memlen(in);
+        struct buf *in = &io->in;
+        inlen += buf_size(in);
         match_ctx_init(ctxp + i, in, options->max_len,
                        options->max_offset, options->favor_speed);
     }
@@ -422,7 +422,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
         ("\nPhase 3: Generating output file%s"
          "\n------------------------------\n",
          (buf_count == 1 ? "" : "s")));
-    LOG(LOG_NORMAL, (" Enc: %s\n", (char*)membuf_get(&exported_enc)));
+    LOG(LOG_NORMAL, (" Enc: %s\n", (char*)buf_data(&exported_enc)));
 
     if (enc_buf != NULL)
     {
@@ -434,12 +434,12 @@ void crunch_backwards_multi(struct vec *io_bufs,
     for (i = 0; i < buf_count; ++i)
     {
         struct io_bufs *io = vec_get(io_bufs, i);
-        struct membuf *out = &io->out;
+        struct buf *out = &io->out;
         struct crunch_info *info = &io->info;
 
-        outlen -= membuf_memlen(out);
+        outlen -= buf_size(out);
         do_output(ctxp + i, snpp[i], &emd, options, out, info);
-        outlen += membuf_memlen(out);
+        outlen += buf_size(out);
 
         merged_info.traits_used |= info->traits_used;
         if (merged_info.max_len < info->max_len)
@@ -463,7 +463,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
     }
     free(snpp);
     free(ctxp);
-    membuf_free(&exported_enc);
+    buf_free(&exported_enc);
 
     if(infop != NULL)
     {
@@ -472,11 +472,11 @@ void crunch_backwards_multi(struct vec *io_bufs,
 }
 
 void crunch_multi(struct vec *io_bufs,
-                  struct membuf *enc_buf,
+                  struct buf *enc_buf,
                   const struct crunch_options *options, /* IN */
                   struct crunch_info *infop) /* OUT */
 {
-    int buf_count = vec_count(io_bufs);
+    int buf_count = vec_size(io_bufs);
     int *outpos;
     int i;
 
@@ -484,10 +484,10 @@ void crunch_multi(struct vec *io_bufs,
     for (i = 0; i < buf_count; ++i)
     {
         struct io_bufs *io = vec_get(io_bufs, i);
-        struct membuf *in = &io->in;
-        struct membuf *out = &io->out;
-        reverse_buffer(membuf_get(in), membuf_memlen(in));
-        outpos[i] = membuf_memlen(out);
+        struct buf *in = &io->in;
+        struct buf *out = &io->out;
+        reverse_buffer(buf_data(in), buf_size(in));
+        outpos[i] = buf_size(out);
     }
 
     crunch_backwards_multi(io_bufs, enc_buf, options, infop);
@@ -495,16 +495,16 @@ void crunch_multi(struct vec *io_bufs,
     for (i = 0; i < buf_count; ++i)
     {
         struct io_bufs *io = vec_get(io_bufs, i);
-        struct membuf *in = &io->in;
-        struct membuf *out = &io->out;
-        reverse_buffer(membuf_get(in), membuf_memlen(in));
-        reverse_buffer((char*)membuf_get(out) + outpos[i],
-                       membuf_memlen(out) - outpos[i]);
+        struct buf *in = &io->in;
+        struct buf *out = &io->out;
+        reverse_buffer(buf_data(in), buf_size(in));
+        reverse_buffer((char*)buf_data(out) + outpos[i],
+                       buf_size(out) - outpos[i]);
     }
 
     if (enc_buf != NULL)
     {
-        reverse_buffer(membuf_get(enc_buf), membuf_memlen(enc_buf));
+        reverse_buffer(buf_data(enc_buf), buf_size(enc_buf));
     }
     free(outpos);
 }
@@ -525,8 +525,8 @@ void reverse_buffer(char *start, int len)
     }
 }
 
-void crunch_backwards(struct membuf *inbuf,
-                      struct membuf *outbuf,
+void crunch_backwards(struct buf *inbuf,
+                      struct buf *outbuf,
                       const struct crunch_options *options, /* IN */
                       struct crunch_info *info) /* OUT */
 {
@@ -542,8 +542,8 @@ void crunch_backwards(struct membuf *inbuf,
     vec_free(&io_bufs, NULL);
 }
 
-void crunch(struct membuf *inbuf,
-            struct membuf *outbuf,
+void crunch(struct buf *inbuf,
+            struct buf *outbuf,
             const struct crunch_options *options, /* IN */
             struct crunch_info *info) /* OUT */
 {
@@ -560,48 +560,48 @@ void crunch(struct membuf *inbuf,
 }
 
 void decrunch(int level,
-              struct membuf *inbuf,
-              struct membuf *outbuf,
+              struct buf *inbuf,
+              struct buf *outbuf,
               struct decrunch_options *dopts)
 {
     struct dec_ctx ctx;
-    struct membuf enc_buf = STATIC_MEMBUF_INIT;
-    struct membuf *encp;
+    struct buf enc_buf = STATIC_BUF_INIT;
+    struct buf *encp;
     int outpos;
 
     if (dopts->direction == 0)
     {
-        reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
+        reverse_buffer(buf_data(inbuf), buf_size(inbuf));
     }
-    outpos = membuf_memlen(outbuf);
+    outpos = buf_size(outbuf);
 
     encp = NULL;
     if(dopts->exported_encoding != NULL)
     {
-        read_encoding_to_membuf(dopts->exported_encoding,
+        read_encoding_to_buf(dopts->exported_encoding,
                                 dopts->flags_proto, &enc_buf);
         if (dopts->direction == 0)
         {
-            reverse_buffer(membuf_get(&enc_buf), membuf_memlen(&enc_buf));
+            reverse_buffer(buf_data(&enc_buf), buf_size(&enc_buf));
         }
         encp = &enc_buf;
     }
 
     dec_ctx_init(&ctx, encp, inbuf, outbuf, dopts->flags_proto);
 
-    membuf_clear(&enc_buf);
+    buf_clear(&enc_buf);
     dec_ctx_table_dump(&ctx, &enc_buf);
-    LOG(level, (" Enc: %s\n", (char*)membuf_get(&enc_buf)));
+    LOG(level, (" Enc: %s\n", (char*)buf_data(&enc_buf)));
 
-    membuf_free(&enc_buf);
+    buf_free(&enc_buf);
     dec_ctx_decrunch(&ctx);
     dec_ctx_free(&ctx);
 
     if (dopts->direction == 0)
     {
-        reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
-        reverse_buffer((char*)membuf_get(outbuf) + outpos,
-                       membuf_memlen(outbuf) - outpos);
+        reverse_buffer(buf_data(inbuf), buf_size(inbuf));
+        reverse_buffer((char*)buf_data(outbuf) + outpos,
+                       buf_size(outbuf) - outpos);
     }
 }
 
@@ -609,7 +609,7 @@ void print_license(void)
 {
     LOG(LOG_WARNING,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v3.1.0 Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v3.1.0pre1 Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_WARNING,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -662,6 +662,20 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
          "  -T <options>  bitfield that controls bit stream traits. [0-7]\n"
          "  -P <options>  bitfield that controls bit stream format. [0-63]\n"));
     print_base_flags(level, default_outfile);
+}
+
+void print_crunch_info(enum log_level level, struct crunch_info *info)
+{
+        LOG(level, ("  Literal sequences are %sused",
+                    info->traits_used & TFLAG_LIT_SEQ ? "" : "not "));
+        LOG(level, (", length 1 sequences are %sused",
+                    info->traits_used & TFLAG_LEN1_SEQ ? "" : "not "));
+        LOG(level, (",\n  length 123 mirrors are %sused",
+                    info->traits_used & TFLAG_LEN0123_SEQ_MIRRORS ?
+                    "" : "not "));
+        LOG(level, (", max length used is %d", info->max_len));
+        LOG(level, (" and\n  the safety offset is %d.\n",
+                    info->needed_safety_offset));
 }
 
 void handle_base_flags(int flag_char, /* IN */

@@ -1,5 +1,8 @@
 #ifndef ALREADY_INCLUDED_SEARCH
 #define ALREADY_INCLUDED_SEARCH
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Copyright (c) 2002 - 2005 Magnus Lind.
@@ -108,4 +111,7 @@ void match_snp_get_enum(const struct search_node *snp,   /* IN */
 
 const struct match *match_snp_enum_get_next(void *matchp_snp_enum);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

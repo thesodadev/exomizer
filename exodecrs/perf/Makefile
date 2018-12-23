@@ -17,7 +17,7 @@ CRUNCHER = ../../src/exomizer mem -q $<@0x1010 -o $@
 CRUNCHERP+16 = ../../src/exomizer mem -P+16 -q $<@0x1010 -o $@
 CRUNCHERM256 = ../../src/exomizer mem -M256 -q $<@0x1010 -o $@
 
-TEST_OBJS = ../testrun.o ../../src/6502emu.o ../../src/exo_util.o ../../src/log.o ../../src/areatrace.o ../../src/vec.o ../../src/membuf_io.o ../../src/membuf.o
+TEST_OBJS = ../testrun.o ../../src/6502emu.o ../../src/exo_util.o ../../src/log.o ../../src/areatrace.o ../../src/vec.o ../../src/buf_io.o ../../src/buf.o
 
 OBJS = ../main.os $(DECR_OBJS)
 OBJSP+16 = ../main.os $(DECR_OBJSP+16)

@@ -409,41 +409,41 @@ static struct interval_node *optimize(int stats[65536], int stats2[65536],
 }
 
 static void export_helper(struct interval_node *np, int depth,
-                          struct membuf *target)
+                          struct buf *target)
 {
     while(np != NULL)
     {
-        membuf_printf(target, "%X", np->bits);
+        buf_printf(target, "%X", np->bits);
         np = np->next;
         --depth;
     }
     while(depth-- > 0)
     {
-        membuf_printf(target, "0");
+        buf_printf(target, "0");
     }
 }
 
 
 void optimal_encoding_export(struct encode_match_data *emd,
-                             struct membuf *target)
+                             struct buf *target)
 {
     struct interval_node **offsets;
     struct encode_match_priv *data;
 
-    membuf_truncate(target, 0);
+    buf_clear(target);
     data = emd->priv;
     offsets = data->offset_f_priv;
     export_helper(data->len_f_priv, 16, target);
-    membuf_append_char(target, ',');
+    buf_append_char(target, ',');
     export_helper(offsets[0], 4, target);
-    membuf_append_char(target, ',');
+    buf_append_char(target, ',');
     export_helper(offsets[1], 16, target);
     if (data->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
-        membuf_append_char(target, ',');
+        buf_append_char(target, ',');
         export_helper(offsets[2], 16, target);
     }
-    membuf_append_char(target, ',');
+    buf_append_char(target, ',');
     export_helper(offsets[7], 16, target);
 }
 

@@ -1,5 +1,8 @@
 #ifndef ALREADY_INCLUDED_OUTPUT
 #define ALREADY_INCLUDED_OUTPUT
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Copyright (c) 2002 - 2005 Magnus Lind.
@@ -28,7 +31,7 @@
  *
  */
 
-#include "membuf.h"
+#include "buf.h"
 #include "flags.h"
 #include <stdio.h>
 
@@ -37,13 +40,13 @@ struct output_ctx {
     unsigned char bitcount;
     int pos;
     int start;
-    struct membuf *buf;
+    struct buf *buf;
     int flags_proto;
 };
 
 void output_ctx_init(struct output_ctx *ctx,    /* IN/OUT */
                      int flags_proto, /* IN */
-                     struct membuf *out);       /* IN/OUT */
+                     struct buf *out);       /* IN/OUT */
 
 unsigned int output_get_pos(struct output_ctx *ctx);    /* IN */
 
@@ -64,4 +67,7 @@ void output_bits(struct output_ctx *ctx,        /* IN/OUT */
 
 void output_gamma_code(struct output_ctx *ctx,  /* IN/OUT */
                        int code);       /* IN */
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include "log.h"
 #include "search.h"
-#include "membuf.h"
 #include "progress.h"
 
 static void update_snp(struct search_node *snp,
@@ -71,7 +70,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
                    int pass,   /* IN */
                    struct search_node **result)/* OUT */
 {
-    struct progress prog[1];
+    struct progress prog;
     struct search_node *sn_arr;
     const struct match *mp = NULL;
     struct search_node *snp;
@@ -84,7 +83,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
     int skip_len0123_mirrors = flags_notrait & TFLAG_LEN0123_SEQ_MIRRORS;
     int len = ctx->len + 1;
 
-    progress_init(prog, "finding.shortest.path.",len, 0);
+    progress_init(&prog, "finding.shortest.path.",len, 0);
 
     sn_arr = malloc(len * sizeof(struct search_node));
     memset(sn_arr, 0, len * sizeof(struct search_node));
@@ -348,7 +347,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
         --len;
         ++best_copy_len;
 
-        progress_bump(prog, len);
+        progress_bump(&prog, len);
     }
     if(len > 0 && mp == NULL)
     {
@@ -356,7 +355,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
     }
     LOG(LOG_NORMAL, ("\n"));
 
-    progress_free(prog);
+    progress_free(&prog);
 
     *result = sn_arr;
 }

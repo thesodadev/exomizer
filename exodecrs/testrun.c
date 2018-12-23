@@ -30,7 +30,7 @@
 #include "../src/6502emu.h"
 #include "../src/areatrace.h"
 #include "../src/int.h"
-#include "../src/membuf_io.h"
+#include "../src/buf_io.h"
 
 #include <stdlib.h>
 
@@ -53,22 +53,22 @@ static u8 mem_access_read(struct mem_access *this, u16 address)
     return ctx->mem[address];
 }
 
-void save_single(const char *in_name, struct membuf *mem, int start, int end)
+void save_single(const char *in_name, struct buf *mem, int start, int end)
 {
-    struct membuf mb_name;
+    struct buf mb_name;
     const char *out_name;
 
-    membuf_init(&mb_name);
+    buf_init(&mb_name);
 
-    membuf_printf(&mb_name, "%s.out", in_name);
-    out_name = (const char *)membuf_get(&mb_name);
+    buf_printf(&mb_name, "%s.out", in_name);
+    out_name = (const char *)buf_data(&mb_name);
 
-    membuf_truncate(mem, end);
-    membuf_trim(mem, start);
+    buf_remove(mem, end, -1);
+    buf_remove(mem, 0, start);
 
     write_file(out_name, mem);
 
-    membuf_free(&mb_name);
+    buf_free(&mb_name);
 }
 
 void test_single(const char *prg_name, const char *data_name,
@@ -77,15 +77,15 @@ void test_single(const char *prg_name, const char *data_name,
     struct cpu_ctx r;
     struct load_info prg_info;
     struct load_info data_info;
-    struct membuf mem_mb;
+    struct buf mem_mb;
     u8 *mem;
     struct mem_ctx mem_ctx;
     int start;
     int end;
 
-    membuf_init(&mem_mb);
-    membuf_atleast(&mem_mb, 65536);
-    mem = membuf_get(&mem_mb);
+    buf_init(&mem_mb);
+    buf_append(&mem_mb, NULL, 65536);
+    mem = buf_data(&mem_mb);
     memset(mem, 0, 65536);
     mem_ctx.mem = mem;
 
@@ -138,7 +138,7 @@ void test_single(const char *prg_name, const char *data_name,
     save_single(data_name, &mem_mb, start, end);
 
     areatrace_free(&mem_ctx.at);
-    membuf_free(&mem_mb);
+    buf_free(&mem_mb);
 
     if (cyclesp != NULL)
     {
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
         test_single(argv[i], argv[i + 1], &cycles, &inlen, &outlen);
         LOG(LOG_TERSE,
             ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
-             argv[i], inlen, 100.0 * (outlen - inlen) / outlen, cycles,
+             argv[i + 1], inlen, 100.0 * (outlen - inlen) / outlen, cycles,
              (float)cycles / outlen, (float)cycles / inlen));
         cycles_sum += cycles;
         inlen_sum += inlen;

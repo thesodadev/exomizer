@@ -1,5 +1,9 @@
 #ifndef ALREADY_INCLUDED_LOG
 #define ALREADY_INCLUDED_LOG
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Copyright (c) 2002, 2003 Magnus Lind.
  *
@@ -148,4 +152,7 @@ do { \
 
 void hex_dump(int level, unsigned char *p, int len);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

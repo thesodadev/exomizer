@@ -52,9 +52,9 @@ static int bitbuf_rotate(struct dec_ctx *ctx, int carry)
     return carry_out;
 }
 
-static char *get(struct membuf *buf)
+static char *get(struct buf *buf)
 {
-    return membuf_get(buf);
+    return buf_data(buf);
 }
 
 static int
@@ -133,7 +133,7 @@ get_cooked_code_phase2(struct dec_ctx *ctx, int index)
 {
     int base;
     struct dec_table *tp;
-    tp = ctx->t;
+    tp = &ctx->t;
 
     base = tp->table_lo[index] | (tp->table_hi[index] << 8);
     return base + get_bits(ctx, tp->table_bi[index]);
@@ -195,46 +195,46 @@ table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
 }
 
 static void
-table_dump(struct dec_table *tp, struct membuf *target)
+table_dump(struct dec_table *tp, struct buf *target)
 {
     if (target != NULL)
     {
         int i, j;
 
-        membuf_truncate(target, 0);
+        buf_clear(target);
         for(i = 0; i < 16; ++i)
         {
-            membuf_printf(target, "%X", tp->table_bi[i]);
+            buf_printf(target, "%X", tp->table_bi[i]);
         }
         for(j = 0; j < 3; ++j)
         {
             int start;
             int end;
-            membuf_append_char(target, ',');
+            buf_append_char(target, ',');
             start = tp->table_off[j];
             end = start + (1 << tp->table_bit[j]);
             for(i = start; i < end; ++i)
             {
-                membuf_printf(target, "%X", tp->table_bi[i]);
+                buf_printf(target, "%X", tp->table_bi[i]);
             }
         }
     }
 }
 
 void
-dec_ctx_init(struct dec_ctx ctx[1],
-             struct membuf *enc_in, /* optional */
-             struct membuf *inbuf, struct membuf *outbuf, int flags_proto)
+dec_ctx_init(struct dec_ctx *ctx,
+             struct buf *enc_in, /* optional */
+             struct buf *inbuf, struct buf *outbuf, int flags_proto)
 {
-    struct membuf *enc = enc_in;
+    struct buf *enc = enc_in;
 
     if (enc_in == NULL)
     {
         enc = inbuf;
     }
     ctx->bits_read = 0;
-    ctx->inbuf = membuf_get(enc);
-    ctx->inend = membuf_memlen(enc);
+    ctx->inbuf = buf_data(enc);
+    ctx->inend = buf_size(enc);
     ctx->inpos = 0;
     ctx->flags_proto = flags_proto;
 
@@ -251,12 +251,12 @@ dec_ctx_init(struct dec_ctx ctx[1],
     }
 
     /* init tables */
-    table_init(ctx, ctx->t);
+    table_init(ctx, &ctx->t);
     if (enc_in != NULL)
     {
         /* switch to inbuf */
-        ctx->inbuf = membuf_get(inbuf);
-        ctx->inend = membuf_memlen(inbuf);
+        ctx->inbuf = buf_data(inbuf);
+        ctx->inend = buf_size(inbuf);
         ctx->inpos = 0;
 
         if (flags_proto & PFLAG_BITS_ALIGN_START)
@@ -272,16 +272,16 @@ dec_ctx_init(struct dec_ctx ctx[1],
 }
 
 void
-dec_ctx_table_dump(struct dec_ctx ctx[1], struct membuf enc_out[1])
+dec_ctx_table_dump(struct dec_ctx *ctx, struct buf *enc_out)
 {
-    table_dump(ctx->t, enc_out);
+    table_dump(&ctx->t, enc_out);
 }
 
 void dec_ctx_free(struct dec_ctx *ctx)
 {
 }
 
-void dec_ctx_decrunch(struct dec_ctx ctx[1])
+void dec_ctx_decrunch(struct dec_ctx *ctx)
 {
     int bits = ctx->bits_read;
     int val;
@@ -314,7 +314,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             len = 1;
 
             LOG(LOG_DEBUG, ("[%d] literal $%02X\n",
-                            membuf_memlen(ctx->outbuf),
+                            buf_size(ctx->outbuf),
                             ctx->inbuf[ctx->inpos]));
 
             literal = 1;
@@ -334,7 +334,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             literal = 1;
 
             LOG(LOG_DEBUG, ("[%d] literal copy len %d\n",
-                            membuf_memlen(ctx->outbuf), len));
+                            buf_size(ctx->outbuf), len));
 
             goto literal;
         }
@@ -348,19 +348,19 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             /* offset reuse state, read a bit */
             reuse_offset = get_bits(ctx, 1);
             LOG(LOG_DEBUG, ("[%d] offset reuse bit = %d, latest = %d\n",
-                            membuf_memlen(ctx->outbuf), reuse_offset,
+                            buf_size(ctx->outbuf), reuse_offset,
                             offset));
         }
         if (!reuse_offset)
         {
             i = (len > treshold ? treshold : len) - 1;
-            val = ctx->t->table_off[i] + get_bits(ctx, ctx->t->table_bit[i]);
+            val = ctx->t.table_off[i] + get_bits(ctx, ctx->t.table_bit[i]);
             offset = get_cooked_code_phase2(ctx, val);
         }
         LOG(LOG_DEBUG, ("[%d] sequence offset = %d, len = %d\n",
-                        membuf_memlen(ctx->outbuf), offset, len));
+                        buf_size(ctx->outbuf), offset, len));
 
-        src = membuf_memlen(ctx->outbuf) - offset;
+        src = buf_size(ctx->outbuf) - offset;
 
     literal:
         do {
@@ -372,7 +372,7 @@ void dec_ctx_decrunch(struct dec_ctx ctx[1])
             {
                 val = get(ctx->outbuf)[src++];
             }
-            membuf_append_char(ctx->outbuf, val);
+            buf_append_char(ctx->outbuf, val);
         } while (--len > 0);
 
         if (ctx->flags_proto & PFLAG_4_OFFSET_TABLES)

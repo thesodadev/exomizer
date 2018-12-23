@@ -804,9 +804,9 @@ static int try_load_bbc_inf(unsigned char mem[65536],
     unsigned int run;
 
     /* try to open shadowing .inf file */
-    struct membuf name_buf = STATIC_MEMBUF_INIT;
-    membuf_printf(&name_buf, "%s.inf", filename);
-    p = membuf_get(&name_buf);
+    struct buf name_buf = STATIC_BUF_INIT;
+    buf_printf(&name_buf, "%s.inf", filename);
+    p = buf_data(&name_buf);
     inf = fopen(p, "rb");
     if (inf == NULL)
     {
@@ -837,7 +837,7 @@ static int try_load_bbc_inf(unsigned char mem[65536],
     }
 
     /* success */
-    membuf_free(&name_buf);
+    buf_free(&name_buf);
     return 1;
 }
 

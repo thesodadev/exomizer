@@ -1,5 +1,9 @@
 #ifndef ALREADY_INCLUDED_RADIX
 #define ALREADY_INCLUDED_RADIX
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Copyright (c) 2002, 2003 Magnus Lind.
  *
@@ -32,7 +36,7 @@
 struct radix_root {
     int depth;
     struct radix_node *root;
-    struct chunkpool mem[1];
+    struct chunkpool mem;
 };
 
 typedef void free_callback(void *data, void *priv);
@@ -51,4 +55,7 @@ void radix_node_set(struct radix_root *rr,      /* IN */
 void *radix_node_get(struct radix_root *rr,     /* IN */
                      unsigned int index);       /* IN */
 
+#ifdef __cplusplus
+}
+#endif
 #endif

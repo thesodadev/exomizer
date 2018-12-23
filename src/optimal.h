@@ -1,5 +1,8 @@
 #ifndef ALREADY_INCLUDED_OPTIMAL
 #define ALREADY_INCLUDED_OPTIMAL
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Copyright (c) 2002 - 2005 Magnus Lind.
@@ -50,11 +53,14 @@ void optimal_encoding_import(struct encode_match_data *emd,     /* IN/OUT */
                              const char *encoding);     /* IN */
 
 void optimal_encoding_export(struct encode_match_data *emd,     /* IN */
-                             struct membuf *export);    /* OUT */
+                             struct buf *export);    /* OUT */
 
 void optimal_dump(int level, struct encode_match_data *emp);       /* IN */
 
 void optimal_out(struct output_ctx *out,        /* IN/OUT */
                  struct encode_match_data *emd);        /* IN */
 
+#ifdef __cplusplus
+}
+#endif
 #endif

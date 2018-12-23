@@ -1,5 +1,8 @@
 #ifndef INCLUDED_FLAGS
 #define INCLUDED_FLAGS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Copyright (c) 2018 Magnus Lind.
@@ -65,4 +68,7 @@
 #define TFLAG_LEN1_SEQ           (1 << TBIT_LEN1_SEQ)
 #define TFLAG_LEN0123_SEQ_MIRRORS (1 << TBIT_LEN0123_SEQ_MIRRORS)
 
+#ifdef __cplusplus
+}
+#endif
 #endif

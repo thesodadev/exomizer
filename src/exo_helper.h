@@ -1,5 +1,8 @@
 #ifndef EXO_HELPER_ALREADY_INCLUDED
 #define EXO_HELPER_ALREADY_INCLUDED
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Copyright (c) 2005, 2013, 2015 Magnus Lind.
@@ -29,7 +32,7 @@
  */
 
 #include "log.h"
-#include "membuf.h"
+#include "buf.h"
 #include "search.h"
 #include "optimal.h"
 #include "flags.h"
@@ -53,12 +56,22 @@ struct common_flags
     const char *outfile;
 };
 
+#define STATIC_CRUNCH_INFO_INIT {0, 0, 0}
+struct crunch_info
+{
+    int traits_used;
+    int max_len;
+    int needed_safety_offset;
+};
+
 #define CRUNCH_FLAGS "cCe:Em:M:p:P:T:o:qBv"
 #define BASE_FLAGS "o:qBv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
 
 void print_base_flags(enum log_level level, const char *default_outfile);
+
+void print_crunch_info(enum log_level level, struct crunch_info *info);
 
 typedef void print_usage_f(const char *appl, enum log_level level,
                            const char *default_outfile);
@@ -87,40 +100,32 @@ struct crunch_options
     int flags_notrait;
 };
 
-#define STATIC_CRUNCH_INFO_INIT {0, 0, 0}
-struct crunch_info
-{
-    int traits_used;
-    int max_len;
-    int needed_safety_offset;
-};
-
 void print_license(void);
 
 struct io_bufs
 {
-    struct membuf in;
-    struct membuf out;
+    struct buf in;
+    struct buf out;
     struct crunch_info info;
 };
 
 void crunch_backwards_multi(struct vec *io_bufs,
-                            struct membuf *enc_buf,
+                            struct buf *enc_buf,
                             const struct crunch_options *options, /* IN */
                             struct crunch_info *merged_info); /* OUT */
 
 void crunch_multi(struct vec *io_bufs,
-                  struct membuf *enc_buf,
+                  struct buf *enc_buf,
                   const struct crunch_options *options, /* IN */
                   struct crunch_info *merged_info); /* OUT */
 
-void crunch_backwards(struct membuf *inbuf,
-                      struct membuf *outbuf,
+void crunch_backwards(struct buf *inbuf,
+                      struct buf *outbuf,
                       const struct crunch_options *options, /* IN */
                       struct crunch_info *info); /* OUT */
 
-void crunch(struct membuf *inbuf,
-            struct membuf *outbuf,
+void crunch(struct buf *inbuf,
+            struct buf *outbuf,
             const struct crunch_options *options, /* IN */
             struct crunch_info *info); /* OUT */
 
@@ -134,10 +139,13 @@ struct decrunch_options
 };
 
 void decrunch(int level,
-              struct membuf *inbuf,
-              struct membuf *outbuf,
+              struct buf *inbuf,
+              struct buf *outbuf,
               struct decrunch_options *dopts);
 
 void reverse_buffer(char *start, int len);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

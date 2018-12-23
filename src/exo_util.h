@@ -1,5 +1,8 @@
 #ifndef EXO_UTIL_ALREADY_INCLUDED
 #define EXO_UTIL_ALREADY_INCLUDED
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Copyright (c) 2008 - 2018 Magnus Lind.
@@ -29,7 +32,7 @@
  */
 
 #include "log.h"
-#include "membuf.h"
+#include "buf.h"
 
 /*
  * target is the basic token for the sys/call basic command
@@ -56,4 +59,7 @@ int str_to_int(const char *str, int *value);
 
 const char *fixup_appl(char *appl);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
