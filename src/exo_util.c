@@ -823,6 +823,8 @@ static int try_load_bbc_inf(unsigned char mem[65536],
         exit(1);
     }
     fclose(inf);
+    load &= 0xffff;
+    run &= 0xffff;
     LOG(LOG_DEBUG, ("BBC inf: load %06X, run %06X.", load, run));
 
     /* read data file here */
