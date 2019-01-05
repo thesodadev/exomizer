@@ -1,5 +1,7 @@
-
 Release of 3.0.2 source code and Win32 binaries.
+2019-01-05
++ Add documentation about level, mem and raw outfile structure.
++ Fix raw -d -r combination to reverse the inbuffer before decrunch.
 + Fix -P0 literal sequences bug in exodec.c, Bug reported by Nino Porcino.
 + improved cruncher tuning for slightly improved compression on average.
 + Added sfx support for a new target, BBC Micro B (-t 0xbbcb).
