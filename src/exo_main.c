@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 - 2018 Magnus Lind.
+ * Copyright (c) 2002 - 2019 Magnus Lind.
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -1481,6 +1481,11 @@ void raw(const char *appl, int argc, char *argv[])
         dopts.direction = !backwards_mode;
         dopts.flags_proto = options->flags_proto;
 
+        if(reverse_mode)
+        {
+            reverse_buffer(membuf_get(inbuf), membuf_memlen(inbuf));
+        }
+
         inlen = membuf_memlen(inbuf);
         decrunch(LOG_NORMAL, inbuf, outbuf, &dopts);
 
@@ -1501,11 +1506,11 @@ void raw(const char *appl, int argc, char *argv[])
         }
 
         output_crunch_info(&info);
-    }
 
-    if(reverse_mode)
-    {
-        reverse_buffer(membuf_get(outbuf), membuf_memlen(outbuf));
+        if(reverse_mode)
+        {
+            reverse_buffer(membuf_get(outbuf), membuf_memlen(outbuf));
+        }
     }
 
     LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
