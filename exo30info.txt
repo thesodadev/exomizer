@@ -31,6 +31,11 @@ o  The bit stream format is controlled by a new -P<bit-field> flag. The bits
    work out of the box. Only the built in decruncher src/exodec.c handles all
    possible bit combinations. Please check it out for implementation details.
 
+   It is also possible to only affect certain bits by inserting a + or a -
+   between the -P and the <bit-field>. Ie -P+16 will set bit 4 but leave the
+   other bits as they were. Likewise, -P-16 does the same but clears bit 4
+   instead of setting it.
+
 o  There is a new -T<bit-field> flag that controls traits of the bit stream that
    don't affect the bit stream format. Typically traits are disallowed to make
    the decruncher faster and/or shorter. The raw mode defaults to -T0. The mem
@@ -45,7 +50,8 @@ o  The sfx decruncher and exodecrs/exodecrunch.s take advantage of the new bit
    stream format for decrunching speed improvements. They also become faster if
    the sequence length is limited to 256 by using -M256 when crunching.
    (exodecrs/exodecrunch.s has to be told by a define, see the comments in the
-   file for more info)
+   file for more info. It also needs the bit 2 trait (-T4) which is used by
+   default by the level and mem sub commands)
 
 o  The sfx decruncher now recognizes a new symbol, i_perf, that controls the
    decruncher size/speed performance trade-off. The valid values are -1 to 2
@@ -53,7 +59,7 @@ o  The sfx decruncher now recognizes a new symbol, i_perf, that controls the
    all are faster than exomizer 2.11 by some margin. None of the decrunchers
    will destroy zero-page.
 
-o  The sfx decruncher supports the -P16 flag to enable a dedicated offset table
+o  The sfx decruncher supports the -P+16 flag to enable a dedicated offset table
    for sequences of length 3. Using this flag might increase compression a
    bit for some files but will also make the decrunch table larger, 204
    bytes instead of the default 156 bytes.
