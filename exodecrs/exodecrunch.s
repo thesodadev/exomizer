@@ -85,7 +85,9 @@ zp_src_lo  = $ae
 zp_src_hi  = zp_src_lo + 1
 
 zp_bits_hi = $a7
+.IF DONT_REUSE_OFFSET = 0
 zp_ro_state = $a8
+.ENDIF
 
 zp_bitbuf  = $fd
 zp_dest_lo = zp_bitbuf + 1      ; dest addr lo
@@ -229,6 +231,10 @@ no_fixup_lohi:
         bne table_gen
 ; -------------------------------------------------------------------
 ; prepare for main decruncher
+.IF DONT_REUSE_OFFSET = 0
+	ror zp_ro_state
+	sec
+.ENDIF
         ldy zp_dest_lo
         stx zp_dest_lo
         stx zp_bits_hi
