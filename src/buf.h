@@ -83,10 +83,11 @@ void buf_clear(struct buf *b);
 void buf_remove(struct buf *b, int b_off, int b_n);
 
 /* Inserts b_n number of bytes, copied from mem, at offset b_off in
- * the given buffer. A value of NULL for m is allowed and will leave
- * the target buffer area uninitialized. Might invalidate previously
- * fetched internal buffer pointers. Returns a pointer to the inserted
- * area in the internal buffer. */
+ * the given buffer. Negative values for b_off are allowed and
+ * interpreted as size + b_off + 1. A value of NULL for m is allowed
+ * and will leave the target buffer area uninitialized. Might
+ * invalidate previously fetched internal buffer pointers. Returns a
+ * pointer to the inserted area in the internal buffer. */
 void *buf_insert(struct buf *b, int b_off, const void *m, int m_n);
 
 /* Appends to the end of the buffer. Returns a pointer to the internal

@@ -436,21 +436,191 @@ void print_desfx_usage(const char *appl, enum log_level level,
     print_base_flags(level, default_outfile);
 }
 
+struct io_bufs_located
+{
+    struct io_bufs io;
+    int write_location;
+};
+
+static
+void generic(const char *appl,
+             struct common_flags *flags,
+             print_usage_f *print_usage,
+             int decrunch_mode,
+             int backwards_mode,
+             int reverse_mode,
+             int located_mode,
+             int infilec, char *infilev[])
+{
+    struct buf name_buf = STATIC_BUF_INIT;
+    struct buf enc_buf = STATIC_BUF_INIT;
+
+    struct vec entries = STATIC_VEC_INIT(sizeof(struct io_bufs_located));
+    struct crunch_options *options = flags->options;
+    int c;
+
+    if (options->output_header == 0)
+    {
+        if (decrunch_mode)
+        {
+            LOG(LOG_ERROR, ("Error: Can't combine -E and -d.\n"));
+            print_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(1);
+        }
+        if (infilec == 0)
+        {
+            LOG(LOG_ERROR, ("Error: no input files to process.\n"));
+            print_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(1);
+        }
+    }
+    else if (infilec != 1)
+    {
+        LOG(LOG_ERROR, ("Error: exactly one input file must be given.\n"));
+        print_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(1);
+    }
+    else if (located_mode && decrunch_mode)
+    {
+        LOG(LOG_ERROR, ("Error: Can't combine located mode and -d.\n"));
+        print_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(1);
+    }
+
+    for (c = 0; c < infilec; ++c)
+    {
+        struct io_bufs_located *io = vec_push(&entries, NULL);
+        struct buf *inbuf = &io->io.in;
+        struct buf *outbuf = &io->io.out;
+        buf_init(inbuf);
+        buf_init(outbuf);
+        io->write_location = -1;
+
+        if (located_mode)
+        {
+            io->write_location = do_load(infilev[c], inbuf);
+            if (backwards_mode)
+            {
+                io->write_location += buf_size(inbuf);
+            }
+        }
+        else
+        {
+            load_plain_file(infilev[c], inbuf);
+            LOG(LOG_BRIEF, (" Reading %d bytes from \"%s\".\n",
+                            buf_size(inbuf), infilev[c]));
+        }
+
+        if(decrunch_mode && reverse_mode)
+        {
+            reverse_buffer(buf_data(inbuf), buf_size(inbuf));
+        }
+    }
+
+    if(decrunch_mode)
+    {
+        int inlen;
+        int outlen;
+        struct decrunch_options dopts;
+        struct io_bufs_located *io = vec_get(&entries, 0);
+        struct buf *inbuf = &io->io.in;
+        struct buf *outbuf = &io->io.out;
+
+        dopts.direction = !backwards_mode;
+        dopts.flags_proto = options->flags_proto;
+        dopts.exported_encoding = options->exported_encoding;
+
+        inlen = buf_size(inbuf);
+        decrunch(LOG_NORMAL, inbuf, outbuf, &dopts);
+
+        outlen = buf_size(outbuf);
+        LOG(LOG_BRIEF, (" Decrunched data expanded %d bytes (%0.2f%%)\n",
+                        outlen - inlen, 100.0 * (outlen - inlen) / inlen));
+    }
+    else
+    {
+        struct crunch_info info;
+        if(backwards_mode)
+        {
+            crunch_backwards_multi(&entries, &enc_buf, options, &info);
+        }
+        else
+        {
+            crunch_multi(&entries, &enc_buf, options, &info);
+        }
+
+        print_crunch_info(LOG_NORMAL, &info);
+    }
+    for (c = 0; c < infilec; ++c)
+    {
+        struct io_bufs_located *io = vec_get(&entries, c);
+        struct buf *inbuf = &io->io.in;
+        struct buf *outbuf = &io->io.out;
+        const char *p;
+
+        if (io->write_location != -1)
+        {
+            if (backwards_mode)
+            {
+                /* append the write location of decrunching */
+                unsigned char *p = buf_insert(outbuf, -1, NULL, 2);
+                p[0] = io->write_location & 255;
+                p[1] = io->write_location >> 8;
+            }
+            else
+            {
+                /* prepend the write location of decrunching */
+                unsigned char *p = buf_insert(outbuf, 0, NULL, 2);
+                p[0] = io->write_location >> 8;
+                p[1] = io->write_location & 255;
+            }
+        }
+
+        if(!decrunch_mode && reverse_mode)
+        {
+            reverse_buffer(buf_data(outbuf), buf_size(outbuf));
+        }
+
+        p = flags->outfile;
+        if (options->output_header == 0)
+        {
+            buf_clear(&name_buf);
+            buf_printf(&name_buf, "%s.exo", infilev[c]);
+            p = buf_data(&name_buf);
+        }
+        LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
+                        buf_size(outbuf), p));
+        write_file(p, outbuf);
+
+        buf_free(outbuf);
+        buf_free(inbuf);
+    }
+
+    if (options->output_header == 0)
+    {
+        if(reverse_mode)
+        {
+            reverse_buffer(buf_data(&enc_buf), buf_size(&enc_buf));
+        }
+        LOG(LOG_BRIEF, (" Writing encoding to \"%s\".\n", flags->outfile));
+        write_file(flags->outfile, &enc_buf);
+    }
+    buf_free(&enc_buf);
+    buf_free(&name_buf);
+    vec_free(&entries, NULL);
+}
+
 static
 void level(const char *appl, int argc, char *argv[])
 {
     char flags_arr[64];
     int forward_mode = 0;
-    struct crunch_info total = STATIC_CRUNCH_INFO_INIT;
     int c;
     int infilec;
     char **infilev;
 
     struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
     struct common_flags flags = {NULL, DEFAULT_OUTFILE};
-
-    struct buf in;
-    struct buf out;
 
     options.flags_notrait = TFLAG_LEN0123_SEQ_MIRRORS;
     flags.options = &options;
@@ -470,71 +640,89 @@ void level(const char *appl, int argc, char *argv[])
         }
     }
 
-    buf_init(&in);
-    buf_init(&out);
-
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if (infilec == 0)
+    if (options.output_header == 0)
     {
-        LOG(LOG_ERROR, ("Error: no input files to process.\n"));
-        print_level_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
-        exit(1);
+        generic(appl,
+                &flags,
+                print_level_usage,
+                0,
+                !forward_mode,
+                !forward_mode,
+                1,
+                infilec, infilev);
     }
-
-    /* append the files instead of merging them */
-    for(c = 0; c < infilec; ++c)
+    else
     {
-        struct crunch_info info;
-        int in_load;
-        int in_len;
-        int out_pos;
-        out_pos = buf_size(&out);
+        struct crunch_info total = STATIC_CRUNCH_INFO_INIT;
+        struct buf in;
+        struct buf out;
 
-        in_load = do_load(infilev[c], &in);
-        in_len = buf_size(&in);
-
-        if(forward_mode)
+        if (infilec == 0)
         {
-            /* append the starting address of decrunching */
-            buf_append_char(&out, in_load >> 8);
-            buf_append_char(&out, in_load & 255);
-
-            crunch(&in, &out, &options, &info);
-        }
-        else
-        {
-            crunch_backwards(&in, &out, &options, &info);
-
-            /* append the starting address of decrunching */
-            buf_append_char(&out, (in_load + in_len) & 255);
-            buf_append_char(&out, (in_load + in_len) >> 8);
-
-            /* reverse the just appended segment of the out buffer */
-            reverse_buffer((char*)buf_data(&out) + out_pos,
-                           buf_size(&out) - out_pos);
+            LOG(LOG_ERROR, ("Error: no input files to process.\n"));
+            print_level_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(1);
         }
 
-        total.traits_used |= info.traits_used;
-        if (info.max_len > total.max_len)
+        buf_init(&in);
+        buf_init(&out);
+
+        /* append the files instead of merging them */
+        for(c = 0; c < infilec; ++c)
         {
-            total.max_len = info.max_len;
+            struct crunch_info info;
+            int in_load;
+            int in_len;
+            int out_pos;
+            out_pos = buf_size(&out);
+
+            in_load = do_load(infilev[c], &in);
+            in_len = buf_size(&in);
+
+            if(forward_mode)
+            {
+                /* append the starting address of decrunching */
+                buf_append_char(&out, in_load >> 8);
+                buf_append_char(&out, in_load & 255);
+
+                crunch(&in, &out, &options, &info);
+            }
+            else
+            {
+                crunch_backwards(&in, &out, &options, &info);
+
+                /* append the starting address of decrunching */
+                buf_append_char(&out, (in_load + in_len) & 255);
+                buf_append_char(&out, (in_load + in_len) >> 8);
+
+                /* reverse the just appended segment of the out buffer */
+                reverse_buffer((char*)buf_data(&out) + out_pos,
+                               buf_size(&out) - out_pos);
+            }
+
+            total.traits_used |= info.traits_used;
+            if (info.max_len > total.max_len)
+            {
+                total.max_len = info.max_len;
+            }
+            if(info.needed_safety_offset > total.needed_safety_offset)
+            {
+                total.needed_safety_offset = info.needed_safety_offset;
+            }
         }
-        if(info.needed_safety_offset > total.needed_safety_offset)
-        {
-            total.needed_safety_offset = info.needed_safety_offset;
-        }
+
+        print_crunch_info(LOG_NORMAL, &total);
+
+        LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
+                        buf_size(&out), flags.outfile));
+        write_file(flags.outfile, &out);
+
+        buf_free(&out);
+        buf_free(&in);
     }
-
-    print_crunch_info(LOG_NORMAL, &total);
-
-    LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
-                    buf_size(&out), flags.outfile));
-    write_file(flags.outfile, &out);
-
-    buf_free(&out);
-    buf_free(&in);
 }
 
 static
@@ -543,6 +731,7 @@ void mem(const char *appl, int argc, char *argv[])
     char flags_arr[64];
     int forward_mode = 0;
     int load_addr = -1;
+    int load_addr_given = 0;
     int prepend_load_addr = 1;
     int c;
     int infilec;
@@ -550,9 +739,6 @@ void mem(const char *appl, int argc, char *argv[])
 
     struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
     struct common_flags flags = {NULL, DEFAULT_OUTFILE};
-
-    struct buf in;
-    struct buf out;
 
     options.flags_notrait = TFLAG_LEN0123_SEQ_MIRRORS;
     flags.options = &options;
@@ -568,9 +754,14 @@ void mem(const char *appl, int argc, char *argv[])
             forward_mode = 1;
             break;
         case 'l':
+            load_addr_given = 1;
             if(strcmp(flagarg, "none") == 0)
             {
                 prepend_load_addr = 0;
+            }
+            else if(strcmp(flagarg, "auto") == 0)
+            {
+                load_addr = -1;
             }
             else if(str_to_int(flagarg, &load_addr) != 0 ||
                     load_addr < 0 || load_addr >= 65536)
@@ -589,24 +780,46 @@ void mem(const char *appl, int argc, char *argv[])
 
     options.flags_notrait |= TFLAG_LEN0123_SEQ_MIRRORS;
 
-    buf_init(&in);
-    buf_init(&out);
-
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if (infilec == 0)
+    if (options.output_header == 0)
     {
-        LOG(LOG_ERROR, ("Error: no input files to process.\n"));
-        print_mem_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
-        exit(1);
-    }
+        if (load_addr_given && prepend_load_addr)
+        {
+            LOG(LOG_ERROR, ("Error: -E implies -lnone and can't be "
+                            "combined with a load address.\n"));
+            print_mem_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(1);
+        }
 
+        generic(appl,
+                &flags,
+                print_mem_usage,
+                0,
+                !forward_mode,
+                0,
+                1,
+                infilec, infilev);
+    }
+    else
     {
+        struct buf in;
+        struct buf out;
         struct crunch_info info;
         int in_load;
         int in_len;
         int safety;
+
+        if (infilec == 0)
+        {
+            LOG(LOG_ERROR, ("Error: no input files to process.\n"));
+            print_mem_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+            exit(1);
+        }
+
+        buf_init(&in);
+        buf_init(&out);
 
         in_load = do_loads(infilec, infilev, &in, -1, -1, 0, NULL, NULL, NULL);
         in_len = buf_size(&in);
@@ -669,23 +882,24 @@ void mem(const char *appl, int argc, char *argv[])
         }
 
         print_crunch_info(LOG_NORMAL, &info);
-    }
 
-    if (prepend_load_addr)
-    {
-        LOG(LOG_BRIEF, (" Writing \"%s\" as prg, saving from $%04X to $%04X.\n",
-                        flags.outfile, load_addr,
-                        load_addr + buf_size(&out) - 2));
-    }
-    else
-    {
-        LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
-                        buf_size(&out), flags.outfile));
-    }
-    write_file(flags.outfile, &out);
+        if (prepend_load_addr)
+        {
+            LOG(LOG_BRIEF,
+                (" Writing \"%s\" as prg, saving from $%04X to $%04X.\n",
+                 flags.outfile, load_addr,
+                 load_addr + buf_size(&out) - 2));
+        }
+        else
+        {
+            LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
+                            buf_size(&out), flags.outfile));
+        }
+        write_file(flags.outfile, &out);
 
-    buf_free(&out);
-    buf_free(&in);
+        buf_free(&out);
+        buf_free(&in);
+    }
 }
 
 static
@@ -1442,13 +1656,11 @@ void raw(const char *appl, int argc, char *argv[])
     int reverse_mode = 0;
     int c, infilec;
     char **infilev;
-    struct buf name_buf = STATIC_BUF_INIT;
-    struct buf enc_buf = STATIC_BUF_INIT;
 
-    static struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
-    struct common_flags flags = {&options, DEFAULT_OUTFILE};
+    struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
+    struct common_flags flags = {NULL, DEFAULT_OUTFILE};
 
-    struct vec entries = STATIC_VEC_INIT(sizeof(struct io_bufs));
+    flags.options = &options;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     sprintf(flags_arr, "brd%s", CRUNCH_FLAGS);
@@ -1474,119 +1686,14 @@ void raw(const char *appl, int argc, char *argv[])
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if (options.output_header == 0)
-    {
-        if (decrunch_mode)
-        {
-            LOG(LOG_ERROR, ("Error: Can't combine -E and -d.\n"));
-            print_level_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
-            exit(1);
-        }
-        if (infilec == 0)
-        {
-            LOG(LOG_ERROR, ("Error: no input files to process.\n"));
-            print_level_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
-            exit(1);
-        }
-    }
-    else if (infilec != 1)
-    {
-        LOG(LOG_ERROR, ("Error: exactly one input file must be given.\n"));
-        print_raw_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
-        exit(1);
-    }
-
-    for (c = 0; c < infilec; ++c)
-    {
-        struct io_bufs *io = vec_push(&entries, NULL);
-        struct buf *inbuf = &io->in;
-        struct buf *outbuf = &io->out;
-        buf_init(inbuf);
-        buf_init(outbuf);
-
-        load_plain_file(infilev[c], inbuf);
-        LOG(LOG_BRIEF, (" Reading %d bytes from \"%s\".\n",
-                        buf_size(inbuf), infilev[c]));
-
-        if(decrunch_mode && reverse_mode)
-        {
-            reverse_buffer(buf_data(inbuf), buf_size(inbuf));
-        }
-    }
-
-    if(decrunch_mode)
-    {
-        int inlen;
-        int outlen;
-        struct decrunch_options dopts;
-        struct io_bufs *io = vec_get(&entries, 0);
-        struct buf *inbuf = &io->in;
-        struct buf *outbuf = &io->out;
-
-        dopts.direction = !backwards_mode;
-        dopts.flags_proto = options.flags_proto;
-        dopts.exported_encoding = options.exported_encoding;
-
-        inlen = buf_size(inbuf);
-        decrunch(LOG_NORMAL, inbuf, outbuf, &dopts);
-
-        outlen = buf_size(outbuf);
-        LOG(LOG_BRIEF, (" Decrunched data expanded %d bytes (%0.2f%%)\n",
-                        outlen - inlen, 100.0 * (outlen - inlen) / inlen));
-    }
-    else
-    {
-        struct crunch_info info;
-        if(backwards_mode)
-        {
-            crunch_backwards_multi(&entries, &enc_buf, &options, &info);
-        }
-        else
-        {
-            crunch_multi(&entries, &enc_buf, &options, &info);
-        }
-
-        print_crunch_info(LOG_NORMAL, &info);
-    }
-    for (c = 0; c < infilec; ++c)
-    {
-        struct io_bufs *io = vec_get(&entries, c);
-        struct buf *inbuf = &io->in;
-        struct buf *outbuf = &io->out;
-        const char *p;
-
-        if(!decrunch_mode && reverse_mode)
-        {
-            reverse_buffer(buf_data(outbuf), buf_size(outbuf));
-        }
-
-        p = flags.outfile;
-        if (options.output_header == 0)
-        {
-            buf_clear(&name_buf);
-            buf_printf(&name_buf, "%s.exo", infilev[c]);
-            p = buf_data(&name_buf);
-        }
-        LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
-                        buf_size(outbuf), p));
-        write_file(p, outbuf);
-
-        buf_free(outbuf);
-        buf_free(inbuf);
-    }
-
-    if (options.output_header == 0)
-    {
-        if(reverse_mode)
-        {
-            reverse_buffer(buf_data(&enc_buf), buf_size(&enc_buf));
-        }
-        LOG(LOG_BRIEF, (" Writing encoding to \"%s\".\n", flags.outfile));
-        write_file(flags.outfile, &enc_buf);
-    }
-    buf_free(&enc_buf);
-    buf_free(&name_buf);
-    vec_free(&entries, NULL);
+    generic(appl,
+            &flags,
+            print_raw_usage,
+            decrunch_mode,
+            backwards_mode,
+            reverse_mode,
+            0,
+            infilec, infilev);
 }
 
 static
