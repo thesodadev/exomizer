@@ -271,7 +271,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
         latest_offset_sum = sn_arr[len].total_offset;
         while (mp != NULL)
         {
-            struct match *next;
+            const struct match *next;
             int end_len;
             struct match tmp;
             int bucket_len_start;

@@ -38,7 +38,7 @@ extern "C" {
 struct match {
     unsigned short int offset;
     unsigned short int len;
-    struct match *next;
+    const struct match *next;
 };
 
 struct pre_calc {

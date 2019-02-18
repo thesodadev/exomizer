@@ -38,7 +38,7 @@
 
 struct match_node {
     int index;
-    struct match_node *next;
+    const struct match_node *next;
 };
 
 static const struct match *matches_calc(struct match_ctx *ctx, /* IN/OUT */
@@ -248,7 +248,7 @@ void match_ctx_free(struct match_ctx *ctx)      /* IN/OUT */
     free(ctx->rle_r);
 }
 
-void dump_matches(int level, struct match *mp)
+void dump_matches(int level, const struct match *mp)
 {
     if (mp == NULL)
     {
@@ -282,7 +282,7 @@ const struct match *matches_calc(struct match_ctx *ctx,        /* IN/OUT */
 
     struct match *matches;
     struct match *mp;
-    struct match_node *np;
+    const struct match_node *np;
 
     buf = ctx->buf;
     matches = NULL;
