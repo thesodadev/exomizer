@@ -48,7 +48,7 @@ extern "C" {
                                 PFLAG_BITS_COPY_GT_7 |           \
                                 PFLAG_IMPL_1LITERAL |            \
                                 PFLAG_REUSE_OFFSET,              \
-                                0}
+                                0, 0}
 
 struct common_flags
 {
@@ -90,7 +90,7 @@ void handle_base_flags(int flag_char, /* IN */
 
 struct crunch_options
 {
-    const char *exported_encoding;
+    const char *imported_encoding;
     int max_passes;
     int max_len;
     int max_offset;
@@ -98,6 +98,8 @@ struct crunch_options
     int output_header;
     int flags_proto;
     int flags_notrait;
+    /* 0 backward, 1 forward */
+    int direction_forward;
 };
 
 void print_license(void);
@@ -109,20 +111,10 @@ struct io_bufs
     struct crunch_info info;
 };
 
-void crunch_backwards_multi(struct vec *io_bufs,
-                            struct buf *enc_buf,
-                            const struct crunch_options *options, /* IN */
-                            struct crunch_info *merged_info); /* OUT */
-
 void crunch_multi(struct vec *io_bufs,
                   struct buf *enc_buf,
                   const struct crunch_options *options, /* IN */
                   struct crunch_info *merged_info); /* OUT */
-
-void crunch_backwards(struct buf *inbuf,
-                      struct buf *outbuf,
-                      const struct crunch_options *options, /* IN */
-                      struct crunch_info *info); /* OUT */
 
 void crunch(struct buf *inbuf,
             struct buf *outbuf,
@@ -131,11 +123,11 @@ void crunch(struct buf *inbuf,
 
 struct decrunch_options
 {
-    const char *exported_encoding;
+    const char *imported_encoding;
     /* see crunch_options flags field */
     int flags_proto;
     /* 0 backward, 1 forward */
-    int direction;
+    int direction_forward;
 };
 
 void decrunch(int level,

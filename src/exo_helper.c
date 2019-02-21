@@ -42,12 +42,12 @@
 
 static const struct crunch_options default_options = CRUNCH_OPTIONS_DEFAULT;
 
-void do_output(struct match_ctx *ctx,
-               struct search_node *snp,
-               struct encode_match_data *emd,
-               const struct crunch_options *options,
-               struct buf *outbuf,
-               struct crunch_info *infop)
+void do_output_backwards(struct match_ctx *ctx,
+                         struct search_node *snp,
+                         struct encode_match_data *emd,
+                         const struct crunch_options *options,
+                         struct buf *outbuf,
+                         struct crunch_info *infop)
 {
     int pos;
     int pos_diff;
@@ -215,15 +215,27 @@ void do_output(struct match_ctx *ctx,
     }
 }
 
-static void read_encoding_to_buf(const char *exported_enc,
+/**
+ * Reads an exported encoding into the given enc_buf for access in
+ * forward direction. If read from file the file is read in the given
+ * direction_forward direction.
+ */
+static void read_encoding_to_buf(const char *imported_enc,
                                  int flags_proto,
+                                 int direction_forward,
                                  struct buf *enc_buf)
 {
-    if (exported_enc[0] == '@')
+    int needs_reversing = 1;
+    if (imported_enc[0] == '@')
     {
-        ++exported_enc;
-        LOG(LOG_BRIEF, (" Reading encoding from \"%s\".\n", exported_enc));
-        read_file(exported_enc, enc_buf);
+        ++imported_enc;
+        read_file(imported_enc, enc_buf);
+
+        if (direction_forward == 1)
+        {
+            /* enc_buf is assumed to be in forward direction */
+            needs_reversing = 0;
+        }
     }
     else
     {
@@ -232,41 +244,54 @@ static void read_encoding_to_buf(const char *exported_enc,
 
         options.flags_proto = flags_proto;
         options.output_header = 1;
-        options.exported_encoding = exported_enc;
+        options.imported_encoding = imported_enc;
         emd.out = NULL;
 
         optimal_init(&emd, options.flags_notrait, options.flags_proto);
-        optimal_encoding_import(&emd, options.exported_encoding);
-        do_output(NULL, NULL, &emd, &options, enc_buf, NULL);
+        optimal_encoding_import(&emd, options.imported_encoding);
+        do_output_backwards(NULL, NULL, &emd, &options, enc_buf, NULL);
+        /* enc_buf is in backward direction */
         optimal_free(&emd);
+    }
+
+    if (needs_reversing)
+    {
+        reverse_buffer(buf_data(enc_buf), buf_size(enc_buf));
     }
 }
 
 static void read_encoding_to_emd(struct encode_match_data *emd,
-                                 const char *exported_enc)
+                                 const struct crunch_options *options)
 {
     struct buf enc_buf = STATIC_BUF_INIT;
-    if (exported_enc[0] == '@')
+    const char *imported_enc = options->imported_encoding;
+
+    if (imported_enc[0] == '@')
     {
         struct dec_ctx ctx;
-        read_encoding_to_buf(exported_enc, 0, &enc_buf);
-        dec_ctx_init(&ctx, &enc_buf, &enc_buf, NULL, 0);
+        read_encoding_to_buf(imported_enc, options->flags_proto,
+                             options->direction_forward, &enc_buf);
+        /* enc_buf is in direction forward which is expected by dec_ctx */
+        dec_ctx_init(&ctx, &enc_buf, &enc_buf, NULL, options->flags_proto);
 
         buf_clear(&enc_buf);
         dec_ctx_table_dump(&ctx, &enc_buf);
         dec_ctx_free(&ctx);
 
-        exported_enc = buf_data(&enc_buf);
+        imported_enc = buf_data(&enc_buf);
     }
-    optimal_encoding_import(emd, exported_enc);
+
+    LOG(LOG_NORMAL, (" Using imported encoding\n Enc: %s\n", imported_enc));
+    optimal_encoding_import(emd, imported_enc);
+
     buf_free(&enc_buf);
 }
 
 static struct search_node**
-do_compress(struct match_ctx *ctxp, int ctx_count,
-            struct encode_match_data *emd,
-            const struct crunch_options *options,
-            struct buf *enc) /* IN */
+do_compress_backwards(struct match_ctx *ctxp, int ctx_count,
+                      struct encode_match_data *emd,
+                      const struct crunch_options *options,
+                      struct buf *enc) /* IN */
 {
     struct vec snpev = STATIC_VEC_INIT(sizeof(struct match_snp_enum));
     struct match_concat_enum mpcce;
@@ -282,11 +307,9 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
     prev_enc[0] = '\0';
 
     LOG(LOG_NORMAL, (" pass %d: ", pass));
-    if(options->exported_encoding != NULL)
+    if(options->imported_encoding != NULL)
     {
-        LOG(LOG_NORMAL, (" Using imported encoding\n Enc: %s\n",
-                         options->exported_encoding));
-        read_encoding_to_emd(emd, options->exported_encoding);
+        read_encoding_to_emd(emd, options);
     }
     else
     {
@@ -372,10 +395,10 @@ do_compress(struct match_ctx *ctxp, int ctx_count,
     return snpp;
 }
 
-void crunch_backwards_multi(struct vec *io_bufs,
-                            struct buf *enc_buf,
-                            const struct crunch_options *options, /* IN */
-                            struct crunch_info *infop) /* OUT */
+void crunch_multi(struct vec *io_bufs,
+                  struct buf *enc_buf,
+                  const struct crunch_options *options, /* IN */
+                  struct crunch_info *infop) /* OUT */
 {
     struct match_ctx *ctxp;
     struct encode_match_data emd;
@@ -386,6 +409,9 @@ void crunch_backwards_multi(struct vec *io_bufs,
     int outlen = 0;
     int inlen = 0;
     int i;
+    int *outpos;
+
+    outpos = malloc(sizeof(int) * buf_count);
 
     ctxp = malloc(sizeof(struct match_ctx) * buf_count);
     if(options == NULL)
@@ -400,6 +426,13 @@ void crunch_backwards_multi(struct vec *io_bufs,
     {
         struct io_bufs *io = vec_get(io_bufs, i);
         struct buf *in = &io->in;
+
+        if (options->direction_forward == 1)
+        {
+            struct buf *out = &io->out;
+            reverse_buffer(buf_data(in), buf_size(in));
+            outpos[i] = buf_size(out);
+        }
         inlen += buf_size(in);
         match_ctx_init(ctxp + i, in, options->max_len,
                        options->max_offset, options->favor_speed);
@@ -414,7 +447,7 @@ void crunch_backwards_multi(struct vec *io_bufs,
     LOG(LOG_NORMAL,
         ("\nPhase 2: Calculating encoding"
          "\n-----------------------------\n"));
-    snpp = do_compress(ctxp, buf_count, &emd, options, &exported_enc);
+    snpp = do_compress_backwards(ctxp, buf_count, &emd, options, &exported_enc);
 
     LOG(LOG_NORMAL, (" Calculating encoding, done.\n"));
 
@@ -428,18 +461,31 @@ void crunch_backwards_multi(struct vec *io_bufs,
     {
         struct crunch_options enc_opts = *options;
         enc_opts.output_header = 1;
-        do_output(NULL, NULL, &emd, &enc_opts, enc_buf, NULL);
+        do_output_backwards(NULL, NULL, &emd, &enc_opts, enc_buf, NULL);
+
+        if (options->direction_forward == 1)
+        {
+            reverse_buffer(buf_data(enc_buf), buf_size(enc_buf));
+        }
     }
 
     for (i = 0; i < buf_count; ++i)
     {
         struct io_bufs *io = vec_get(io_bufs, i);
+        struct buf *in = &io->in;
         struct buf *out = &io->out;
         struct crunch_info *info = &io->info;
 
         outlen -= buf_size(out);
-        do_output(ctxp + i, snpp[i], &emd, options, out, info);
+        do_output_backwards(ctxp + i, snpp[i], &emd, options, out, info);
         outlen += buf_size(out);
+
+        if (options->direction_forward == 1)
+        {
+            reverse_buffer(buf_data(in), buf_size(in));
+            reverse_buffer((char*)buf_data(out) + outpos[i],
+                           buf_size(out) - outpos[i]);
+        }
 
         merged_info.traits_used |= info->traits_used;
         if (merged_info.max_len < info->max_len)
@@ -464,49 +510,12 @@ void crunch_backwards_multi(struct vec *io_bufs,
     free(snpp);
     free(ctxp);
     buf_free(&exported_enc);
+    free(outpos);
 
     if(infop != NULL)
     {
         *infop = merged_info;
     }
-}
-
-void crunch_multi(struct vec *io_bufs,
-                  struct buf *enc_buf,
-                  const struct crunch_options *options, /* IN */
-                  struct crunch_info *infop) /* OUT */
-{
-    int buf_count = vec_size(io_bufs);
-    int *outpos;
-    int i;
-
-    outpos = malloc(sizeof(int) * buf_count);
-    for (i = 0; i < buf_count; ++i)
-    {
-        struct io_bufs *io = vec_get(io_bufs, i);
-        struct buf *in = &io->in;
-        struct buf *out = &io->out;
-        reverse_buffer(buf_data(in), buf_size(in));
-        outpos[i] = buf_size(out);
-    }
-
-    crunch_backwards_multi(io_bufs, enc_buf, options, infop);
-
-    for (i = 0; i < buf_count; ++i)
-    {
-        struct io_bufs *io = vec_get(io_bufs, i);
-        struct buf *in = &io->in;
-        struct buf *out = &io->out;
-        reverse_buffer(buf_data(in), buf_size(in));
-        reverse_buffer((char*)buf_data(out) + outpos[i],
-                       buf_size(out) - outpos[i]);
-    }
-
-    if (enc_buf != NULL)
-    {
-        reverse_buffer(buf_data(enc_buf), buf_size(enc_buf));
-    }
-    free(outpos);
 }
 
 void reverse_buffer(char *start, int len)
@@ -523,23 +532,6 @@ void reverse_buffer(char *start, int len)
         ++start;
         --end;
     }
-}
-
-void crunch_backwards(struct buf *inbuf,
-                      struct buf *outbuf,
-                      const struct crunch_options *options, /* IN */
-                      struct crunch_info *info) /* OUT */
-{
-    struct vec io_bufs = STATIC_VEC_INIT(sizeof(struct io_bufs));
-
-    struct io_bufs *io = vec_push(&io_bufs, NULL);
-    io->in = *inbuf;
-    io->out = *outbuf;
-    crunch_backwards_multi(&io_bufs, NULL, options, info);
-    *inbuf = io->in;
-    *outbuf = io->out;
-
-    vec_free(&io_bufs, NULL);
 }
 
 void crunch(struct buf *inbuf,
@@ -569,21 +561,18 @@ void decrunch(int level,
     struct buf *encp;
     int outpos;
 
-    if (dopts->direction == 0)
+    if (dopts->direction_forward == 0)
     {
         reverse_buffer(buf_data(inbuf), buf_size(inbuf));
     }
     outpos = buf_size(outbuf);
 
     encp = NULL;
-    if(dopts->exported_encoding != NULL)
+    if(dopts->imported_encoding != NULL)
     {
-        read_encoding_to_buf(dopts->exported_encoding,
-                                dopts->flags_proto, &enc_buf);
-        if (dopts->direction == 0)
-        {
-            reverse_buffer(buf_data(&enc_buf), buf_size(&enc_buf));
-        }
+        read_encoding_to_buf(dopts->imported_encoding, dopts->flags_proto,
+                             dopts->direction_forward, &enc_buf);
+        /* enc_buf is in direction forward which is expected by dec_ctx */
         encp = &enc_buf;
     }
 
@@ -597,7 +586,7 @@ void decrunch(int level,
     dec_ctx_decrunch(&ctx);
     dec_ctx_free(&ctx);
 
-    if (dopts->direction == 0)
+    if (dopts->direction_forward == 0)
     {
         reverse_buffer(buf_data(inbuf), buf_size(inbuf));
         reverse_buffer((char*)buf_data(outbuf) + outpos,
@@ -730,7 +719,7 @@ void handle_crunch_flags(int flag_char, /* IN */
         options->favor_speed = 1;
         break;
     case 'e':
-        options->exported_encoding = flag_arg;
+        options->imported_encoding = flag_arg;
         break;
     case 'E':
         options->output_header = 0;

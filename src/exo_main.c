@@ -447,7 +447,6 @@ void generic(const char *appl,
              struct common_flags *flags,
              print_usage_f *print_usage,
              int decrunch_mode,
-             int backwards_mode,
              int reverse_mode,
              int located_mode,
              int infilec, char *infilev[])
@@ -499,7 +498,7 @@ void generic(const char *appl,
         if (located_mode)
         {
             io->write_location = do_load(infilev[c], inbuf);
-            if (backwards_mode)
+            if (options->direction_forward == 0)
             {
                 io->write_location += buf_size(inbuf);
             }
@@ -526,9 +525,9 @@ void generic(const char *appl,
         struct buf *inbuf = &io->io.in;
         struct buf *outbuf = &io->io.out;
 
-        dopts.direction = !backwards_mode;
+        dopts.direction_forward = options->direction_forward;
         dopts.flags_proto = options->flags_proto;
-        dopts.exported_encoding = options->exported_encoding;
+        dopts.imported_encoding = options->imported_encoding;
 
         inlen = buf_size(inbuf);
         decrunch(LOG_NORMAL, inbuf, outbuf, &dopts);
@@ -540,14 +539,7 @@ void generic(const char *appl,
     else
     {
         struct crunch_info info;
-        if(backwards_mode)
-        {
-            crunch_backwards_multi(&entries, &enc_buf, options, &info);
-        }
-        else
-        {
-            crunch_multi(&entries, &enc_buf, options, &info);
-        }
+        crunch_multi(&entries, &enc_buf, options, &info);
 
         print_crunch_info(LOG_NORMAL, &info);
     }
@@ -560,7 +552,7 @@ void generic(const char *appl,
 
         if (io->write_location != -1)
         {
-            if (backwards_mode)
+            if (options->direction_forward == 0)
             {
                 /* append the write location of decrunching */
                 unsigned char *p = buf_insert(outbuf, -1, NULL, 2);
@@ -614,7 +606,6 @@ static
 void level(const char *appl, int argc, char *argv[])
 {
     char flags_arr[64];
-    int forward_mode = 0;
     int c;
     int infilec;
     char **infilev;
@@ -633,7 +624,7 @@ void level(const char *appl, int argc, char *argv[])
         switch (c)
         {
         case 'f':
-            forward_mode = 1;
+            options.direction_forward = 1;
             break;
         default:
             handle_crunch_flags(c, flagarg, print_level_usage, appl, &flags);
@@ -649,8 +640,7 @@ void level(const char *appl, int argc, char *argv[])
                 &flags,
                 print_level_usage,
                 0,
-                !forward_mode,
-                !forward_mode,
+                !options.direction_forward,
                 1,
                 infilec, infilev);
     }
@@ -682,18 +672,17 @@ void level(const char *appl, int argc, char *argv[])
             in_load = do_load(infilev[c], &in);
             in_len = buf_size(&in);
 
-            if(forward_mode)
+            if(options.direction_forward)
             {
                 /* append the starting address of decrunching */
                 buf_append_char(&out, in_load >> 8);
                 buf_append_char(&out, in_load & 255);
-
-                crunch(&in, &out, &options, &info);
             }
-            else
-            {
-                crunch_backwards(&in, &out, &options, &info);
 
+            crunch(&in, &out, &options, &info);
+
+            if(!options.direction_forward)
+            {
                 /* append the starting address of decrunching */
                 buf_append_char(&out, (in_load + in_len) & 255);
                 buf_append_char(&out, (in_load + in_len) >> 8);
@@ -729,7 +718,6 @@ static
 void mem(const char *appl, int argc, char *argv[])
 {
     char flags_arr[64];
-    int forward_mode = 0;
     int load_addr = -1;
     int load_addr_given = 0;
     int prepend_load_addr = 1;
@@ -751,7 +739,7 @@ void mem(const char *appl, int argc, char *argv[])
         switch(c)
         {
         case 'f':
-            forward_mode = 1;
+            options.direction_forward = 1;
             break;
         case 'l':
             load_addr_given = 1;
@@ -797,7 +785,6 @@ void mem(const char *appl, int argc, char *argv[])
                 &flags,
                 print_mem_usage,
                 0,
-                !forward_mode,
                 0,
                 1,
                 infilec, infilev);
@@ -833,20 +820,18 @@ void mem(const char *appl, int argc, char *argv[])
             buf_append(&out, NULL, 2);
         }
 
-        if(forward_mode)
+        if(options.direction_forward)
         {
             /* append the in_loading address of decrunching */
             buf_append_char(&out, in_load >> 8);
             buf_append_char(&out, in_load & 255);
-
-            crunch(&in, &out, &options, &info);
-            safety = info.needed_safety_offset;
         }
-        else
-        {
-            crunch_backwards(&in, &out, &options, &info);
-            safety = info.needed_safety_offset;
 
+        crunch(&in, &out, &options, &info);
+        safety = info.needed_safety_offset;
+
+        if(!options.direction_forward)
+        {
             /* append the in_loading address of decrunching */
             buf_append_char(&out, (in_load + in_len) & 255);
             buf_append_char(&out, (in_load + in_len) >> 8);
@@ -860,7 +845,7 @@ void mem(const char *appl, int argc, char *argv[])
             {
                 /* auto load addr specified */
                 load_addr = in_load;
-                if(forward_mode)
+                if(options.direction_forward)
                 {
                     load_addr += in_len + safety - buf_size(&out) + 2;
                 }
@@ -1416,7 +1401,7 @@ void sfx(const char *appl, int argc, char *argv[])
         /* make room for load addr */
         buf_append(out, NULL, 2);
 
-        crunch_backwards(in, out, &options, &info);
+        crunch(in, out, &options, &info);
 
         print_crunch_info(LOG_NORMAL, &info);
 
@@ -1652,7 +1637,6 @@ void raw(const char *appl, int argc, char *argv[])
 {
     char flags_arr[64];
     int decrunch_mode = 0;
-    int backwards_mode = 0;
     int reverse_mode = 0;
     int c, infilec;
     char **infilev;
@@ -1661,6 +1645,7 @@ void raw(const char *appl, int argc, char *argv[])
     struct common_flags flags = {NULL, DEFAULT_OUTFILE};
 
     flags.options = &options;
+    options.direction_forward = 1;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     sprintf(flags_arr, "brd%s", CRUNCH_FLAGS);
@@ -1670,7 +1655,7 @@ void raw(const char *appl, int argc, char *argv[])
         switch (c)
         {
         case 'b':
-            backwards_mode = 1;
+            options.direction_forward = 0;
             break;
         case 'r':
             reverse_mode = 1;
@@ -1690,7 +1675,6 @@ void raw(const char *appl, int argc, char *argv[])
             &flags,
             print_raw_usage,
             decrunch_mode,
-            backwards_mode,
             reverse_mode,
             0,
             infilec, infilev);

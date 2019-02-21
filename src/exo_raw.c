@@ -56,7 +56,6 @@ main(int argc, char *argv[])
 {
     char flags_arr[64];
     int decrunch_mode = 0;
-    int backwards_mode = 0;
     int reverse_mode = 0;
     int c, infilec;
     char **infilev;
@@ -70,6 +69,7 @@ main(int argc, char *argv[])
     const char *appl = fixup_appl(argv[0]);
 
     flags.options = &options;
+    options.direction_forward = 1;
 
     /* init logging */
     LOG_INIT_CONSOLE(LOG_NORMAL);
@@ -82,7 +82,7 @@ main(int argc, char *argv[])
         switch (c)
         {
         case 'b':
-            backwards_mode = 1;
+            options.direction_forward = 0;
             break;
         case 'r':
             reverse_mode = 1;
@@ -113,10 +113,10 @@ main(int argc, char *argv[])
     if(decrunch_mode)
     {
         struct decrunch_options dopts;
-        dopts.direction = !backwards_mode;
+        dopts.direction_forward = dopts.direction_forward;
         dopts.flags_proto = options.flags_proto;
 
-        if (dopts.direction == 0)
+        if (dopts.direction_forward == 0)
         {
             LOG(LOG_NORMAL, ("Decrunching infile \"%s\" to outfile \"%s\" "
                              " backwards.\n", infilev[0], flags.outfile));
@@ -132,18 +132,17 @@ main(int argc, char *argv[])
     else
     {
         struct crunch_info info = STATIC_CRUNCH_INFO_INIT;
-        if(backwards_mode)
+        if(options.direction_forward == 0)
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\" "
                              "backwards.\n", infilev[0], flags.outfile));
-            crunch_backwards(&inbuf, &outbuf, &options, &info);
         }
         else
         {
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
                              infilev[0], flags.outfile));
-            crunch(&inbuf, &outbuf, &options, &info);
         }
+        crunch(&inbuf, &outbuf, &options, &info);
 
         print_crunch_info(LOG_NORMAL, &info);
     }
