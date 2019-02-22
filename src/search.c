@@ -67,7 +67,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
                    int flags_proto,             /* IN */
                    int flags_notrait,           /* IN */
                    int max_sequence_length,     /* IN */
-                   int pass,   /* IN */
+                   int greedy,   /* IN */
                    struct search_node **result)/* OUT */
 {
     struct progress prog;
@@ -319,7 +319,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
                      total_score < snp->total_score ||
                      (total_score == snp->total_score &&
                       total_offset < snp->total_offset &&
-                      ((pass & 1) == 0 ||
+                      (greedy ||
                        (snp->match.len == 1 && snp->match.offset > 8) ||
                        tmp.offset > 48 ||
                        tmp.len > 15))))

@@ -310,6 +310,11 @@ do_compress_backwards(struct match_ctx *ctxp, int ctx_count,
     if(options->imported_encoding != NULL)
     {
         read_encoding_to_emd(emd, options);
+        if (options->max_passes == 1)
+        {
+            /* only one pass, use the greedy variant of search_buffer */
+            ++pass;
+        }
     }
     else
     {
@@ -341,10 +346,10 @@ do_compress_backwards(struct match_ctx *ctxp, int ctx_count,
             }
 
             search_buffer(ctxp + i, optimal_encode, emd,
-                      options->flags_proto,
+                          options->flags_proto,
                           options->flags_notrait,
                           options->max_len,
-                          pass, &snpp[i]);
+                          !(pass & 1), &snpp[i]);
             if (snpp[i] == NULL)
             {
                 LOG(LOG_ERROR, ("error: search_buffer() returned NULL\n"));

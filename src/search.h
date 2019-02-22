@@ -98,7 +98,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
                    int flags_proto,             /* IN */
                    int flags_notrait,           /* IN */
                    int max_sequence_length,     /* IN */
-                   int pass,   /* IN */
+                   int greedy,   /* IN */
                    struct search_node **result);       /* IN */
 
 struct match_snp_enum {
