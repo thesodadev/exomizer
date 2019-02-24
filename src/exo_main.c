@@ -447,7 +447,6 @@ void generic(const char *appl,
              struct common_flags *flags,
              print_usage_f *print_usage,
              int decrunch_mode,
-             int reverse_mode,
              int located_mode,
              int infilec, char *infilev[])
 {
@@ -510,7 +509,7 @@ void generic(const char *appl,
                             buf_size(inbuf), infilev[c]));
         }
 
-        if(decrunch_mode && reverse_mode)
+        if(decrunch_mode && options->write_reverse)
         {
             reverse_buffer(buf_data(inbuf), buf_size(inbuf));
         }
@@ -526,6 +525,7 @@ void generic(const char *appl,
         struct buf *outbuf = &io->io.out;
 
         dopts.direction_forward = options->direction_forward;
+        dopts.write_reverse = options->write_reverse;
         dopts.flags_proto = options->flags_proto;
         dopts.imported_encoding = options->imported_encoding;
 
@@ -568,7 +568,7 @@ void generic(const char *appl,
             }
         }
 
-        if(!decrunch_mode && reverse_mode)
+        if(!decrunch_mode && options->write_reverse)
         {
             reverse_buffer(buf_data(outbuf), buf_size(outbuf));
         }
@@ -590,7 +590,7 @@ void generic(const char *appl,
 
     if (options->output_header == 0)
     {
-        if(reverse_mode)
+        if(options->write_reverse)
         {
             reverse_buffer(buf_data(&enc_buf), buf_size(&enc_buf));
         }
@@ -615,6 +615,7 @@ void level(const char *appl, int argc, char *argv[])
 
     options.flags_notrait = TFLAG_LEN0123_SEQ_MIRRORS;
     flags.options = &options;
+    options.write_reverse = 1;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
     sprintf(flags_arr, "f%s", CRUNCH_FLAGS);
@@ -625,6 +626,7 @@ void level(const char *appl, int argc, char *argv[])
         {
         case 'f':
             options.direction_forward = 1;
+            options.write_reverse = 0;
             break;
         default:
             handle_crunch_flags(c, flagarg, print_level_usage, appl, &flags);
@@ -640,7 +642,6 @@ void level(const char *appl, int argc, char *argv[])
                 &flags,
                 print_level_usage,
                 0,
-                !options.direction_forward,
                 1,
                 infilec, infilev);
     }
@@ -784,7 +785,6 @@ void mem(const char *appl, int argc, char *argv[])
         generic(appl,
                 &flags,
                 print_mem_usage,
-                0,
                 0,
                 1,
                 infilec, infilev);
@@ -1637,7 +1637,6 @@ void raw(const char *appl, int argc, char *argv[])
 {
     char flags_arr[64];
     int decrunch_mode = 0;
-    int reverse_mode = 0;
     int c, infilec;
     char **infilev;
 
@@ -1658,7 +1657,7 @@ void raw(const char *appl, int argc, char *argv[])
             options.direction_forward = 0;
             break;
         case 'r':
-            reverse_mode = 1;
+            options.write_reverse = 1;
             break;
         case 'd':
             decrunch_mode = 1;
@@ -1675,7 +1674,6 @@ void raw(const char *appl, int argc, char *argv[])
             &flags,
             print_raw_usage,
             decrunch_mode,
-            reverse_mode,
             0,
             infilec, infilev);
 }

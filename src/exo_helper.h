@@ -41,14 +41,14 @@ extern "C" {
                                   PFLAG_BITS_COPY_GT_7 | \
                                   PFLAG_IMPL_1LITERAL |  \
                                   PFLAG_REUSE_OFFSET,    \
-                                  1}
+                                  1, 0}
 
 #define CRUNCH_OPTIONS_DEFAULT {NULL, 65535, 65535, 65535, 0, 1, \
                                 PFLAG_BITS_ORDER_BE |            \
                                 PFLAG_BITS_COPY_GT_7 |           \
                                 PFLAG_IMPL_1LITERAL |            \
                                 PFLAG_REUSE_OFFSET,              \
-                                0, 0}
+                                0, 0, 0}
 
 struct common_flags
 {
@@ -100,6 +100,7 @@ struct crunch_options
     int flags_notrait;
     /* 0 backward, 1 forward */
     int direction_forward;
+    int write_reverse;
 };
 
 void print_license(void);
@@ -128,6 +129,7 @@ struct decrunch_options
     int flags_proto;
     /* 0 backward, 1 forward */
     int direction_forward;
+    int write_reverse;
 };
 
 void decrunch(int level,

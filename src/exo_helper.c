@@ -217,25 +217,18 @@ void do_output_backwards(struct match_ctx *ctx,
 
 /**
  * Reads an exported encoding into the given enc_buf for access in
- * forward direction. If read from file the file is read in the given
- * direction_forward direction.
+ * forward direction. If read from file the file is read forward but
+ * reversed if needs_reversing != 0.
  */
 static void read_encoding_to_buf(const char *imported_enc,
                                  int flags_proto,
-                                 int direction_forward,
+                                 int needs_reversing,
                                  struct buf *enc_buf)
 {
-    int needs_reversing = 1;
     if (imported_enc[0] == '@')
     {
         ++imported_enc;
         read_file(imported_enc, enc_buf);
-
-        if (direction_forward == 1)
-        {
-            /* enc_buf is assumed to be in forward direction */
-            needs_reversing = 0;
-        }
     }
     else
     {
@@ -252,6 +245,7 @@ static void read_encoding_to_buf(const char *imported_enc,
         do_output_backwards(NULL, NULL, &emd, &options, enc_buf, NULL);
         /* enc_buf is in backward direction */
         optimal_free(&emd);
+        needs_reversing = 1;
     }
 
     if (needs_reversing)
@@ -270,7 +264,8 @@ static void read_encoding_to_emd(struct encode_match_data *emd,
     {
         struct dec_ctx ctx;
         read_encoding_to_buf(imported_enc, options->flags_proto,
-                             options->direction_forward, &enc_buf);
+                             !options->direction_forward ^
+                             (options->write_reverse != 0), &enc_buf);
         /* enc_buf is in direction forward which is expected by dec_ctx */
         dec_ctx_init(&ctx, &enc_buf, &enc_buf, NULL, options->flags_proto);
 
@@ -576,7 +571,8 @@ void decrunch(int level,
     if(dopts->imported_encoding != NULL)
     {
         read_encoding_to_buf(dopts->imported_encoding, dopts->flags_proto,
-                             dopts->direction_forward, &enc_buf);
+                             !dopts->direction_forward ^
+                             (dopts->write_reverse != 0), &enc_buf);
         /* enc_buf is in direction forward which is expected by dec_ctx */
         encp = &enc_buf;
     }

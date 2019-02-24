@@ -56,7 +56,6 @@ main(int argc, char *argv[])
 {
     char flags_arr[64];
     int decrunch_mode = 0;
-    int reverse_mode = 0;
     int c, infilec;
     char **infilev;
 
@@ -85,7 +84,7 @@ main(int argc, char *argv[])
             options.direction_forward = 0;
             break;
         case 'r':
-            reverse_mode = 1;
+            options.write_reverse = 1;
             break;
         case 'd':
             decrunch_mode = 1;
@@ -147,7 +146,7 @@ main(int argc, char *argv[])
         print_crunch_info(LOG_NORMAL, &info);
     }
 
-    if(reverse_mode)
+    if(options.write_reverse)
     {
         reverse_buffer(buf_data(&outbuf), buf_size(&outbuf));
     }
