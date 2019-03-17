@@ -112,8 +112,8 @@ tabl_hi = decrunch_table + encoded_entries * 2
         pla
 .ENDMACRO
 
-.IF INLINE_GET_BITS <> 0
 .MACRO mac_get_bits
+.IF INLINE_GET_BITS <> 0
 .SCOPE
         adc #$80                ; needs c=0, affects v
         asl
@@ -133,11 +133,12 @@ gb_get_hi:
         jsr get_crunched_byte
 skip:
 .ENDSCOPE
-.ENDMACRO
 .ELSE
-.MACRO mac_get_bits
         jsr get_bits
+.ENDIF
 .ENDMACRO
+
+.IF INLINE_GET_BITS = 0
 get_bits:
         adc #$80                ; needs c=0, affects v
         asl
@@ -356,7 +357,6 @@ gbnc2_ok:
 ; -------------------------------------------------------------------
 ; prepare for copy loop (2 bytes)
 ;
-pre_copy:
         ldx zp_len_lo
 ; -------------------------------------------------------------------
 ; main copy loop (30 bytes)
@@ -382,7 +382,6 @@ literal_byte_gotten:
         bne copy_next_hi
 .ENDIF
 .ENDIF
-begin_stx:
         stx zp_bits_hi
 .IF INLINE_GET_BITS = 0
         beq next_round

@@ -38,40 +38,40 @@
 ; -------------------------------------------------------------------
 ; Controls if the shared get_bits routines should be inlined or not.
 ;INLINE_GET_BITS=1
- IFNCONST INLINE_GET_BITS
+!ifndef INLINE_GET_BITS {
 INLINE_GET_BITS = 0
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; if literal sequences is not used (the data was crunched with the -c
 ; flag) then the following line can be uncommented for shorter and.
 ; slightly faster code.
 ;LITERAL_SEQUENCES_NOT_USED = 1
- IFNCONST LITERAL_SEQUENCES_NOT_USED
+!ifndef LITERAL_SEQUENCES_NOT_USED {
 LITERAL_SEQUENCES_NOT_USED = 0
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; if the sequence length is limited to 256 (the data was crunched with
 ; the -M256 flag) then the following line can be uncommented for
 ; shorter and slightly faster code.
 ;MAX_SEQUENCE_LENGTH_256 = 1
- IFNCONST MAX_SEQUENCE_LENGTH_256
+!ifndef MAX_SEQUENCE_LENGTH_256 {
 MAX_SEQUENCE_LENGTH_256 = 0
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; if the sequence length 3 has its own offset table (the data was
 ; crunched with the -P+16 flag) then the following
 ; line must be uncommented.
 ;EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE = 1
- IFNCONST EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE
+!ifndef EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE {
 EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE = 0
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; if sequence offsets are not reused (the data was crunched with the
 ; -P-32 flag) then the following line must be uncommented.
 ;DONT_REUSE_OFFSET = 1
- IFNCONST DONT_REUSE_OFFSET
+!ifndef DONT_REUSE_OFFSET {
 DONT_REUSE_OFFSET = 0
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; zero page addresses used
 ; -------------------------------------------------------------------
@@ -82,43 +82,43 @@ exod_zp_src_lo  = $ae
 exod_zp_src_hi  = exod_zp_src_lo + 1
 
 exod_zp_bits_hi = $a7
- IF DONT_REUSE_OFFSET == 0
+!if DONT_REUSE_OFFSET = 0 {
 exod_zp_ro_state = $a8
- ENDIF
+}
 
 exod_zp_bitbuf  = $fd
 exod_zp_dest_lo = exod_zp_bitbuf + 1      ; dest addr lo
 exod_zp_dest_hi = exod_zp_bitbuf + 2      ; dest addr hi
 
- SUBROUTINE exodecrunch
- IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0
+!zone exodecrunch
+!if EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0 {
 .encoded_entries = 68
- ELSE
+} else {
 .encoded_entries = 52
- ENDIF
+}
 
 .tabl_bi = exod_decrunch_table
 .tabl_lo = exod_decrunch_table + .encoded_entries
 .tabl_hi = exod_decrunch_table + .encoded_entries * 2
 
         ;; refill bits is always inlined
- MAC exod_mac_refill_bits
+!macro exod_mac_refill_bits {
         pha
         jsr exod_get_crunched_byte
         rol
         sta exod_zp_bitbuf
         pla
- ENDM
+}
 
- MAC exod_mac_get_bits
- IF INLINE_GET_BITS != 0
+!macro exod_mac_get_bits {
+!if INLINE_GET_BITS != 0 {
         adc #$80                ; needs c=0, affects v
         asl
         bpl .gb_skip
 .gb_next:
         asl exod_zp_bitbuf
         bne .gb_ok
-        exod_mac_refill_bits
+        +exod_mac_refill_bits
 .gb_ok:
         rol
         bmi .gb_next
@@ -129,12 +129,12 @@ exod_zp_dest_hi = exod_zp_bitbuf + 2      ; dest addr hi
         sta exod_zp_bits_hi
         jsr exod_get_crunched_byte
 .skip:
- ELSE
+} else {
         jsr exod_get_bits
- ENDIF
- ENDM
+}
+}
 
- IF INLINE_GET_BITS == 0
+!if INLINE_GET_BITS = 0 {
 exod_get_bits:
         adc #$80                ; needs c=0, affects v
         asl
@@ -142,7 +142,7 @@ exod_get_bits:
 .gb_next:
         asl exod_zp_bitbuf
         bne .gb_ok
-        exod_mac_refill_bits
+        +exod_mac_refill_bits
 .gb_ok:
         rol
         bmi .gb_next
@@ -153,7 +153,7 @@ exod_get_bits:
         sec
         sta exod_zp_bits_hi
         jmp exod_get_crunched_byte
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; no code below this comment has to be modified in order to generate
 ; a working decruncher of this source file.
@@ -200,7 +200,7 @@ exod_decrunch:
         lda #$01
         sta <exod_zp_len_hi
         lda #$78                ; %01111000
-        exod_mac_get_bits
+        +exod_mac_get_bits
 ; -------------------------------------------------------------------
         lsr
         tax
@@ -219,7 +219,7 @@ exod_decrunch:
         bmi .no_fixup_lohi
         lda exod_zp_len_hi
         stx exod_zp_len_hi
-        .BYTE $24
+        !byte $24
 .no_fixup_lohi:
         txa
 ; -------------------------------------------------------------------
@@ -228,10 +228,10 @@ exod_decrunch:
         bne .table_gen
 ; -------------------------------------------------------------------
 ; prepare for main decruncher
- IF DONT_REUSE_OFFSET == 0
+!if DONT_REUSE_OFFSET = 0 {
 	ror exod_zp_ro_state
 	sec
- ENDIF
+}
         ldy exod_zp_dest_lo
         stx exod_zp_dest_lo
         stx exod_zp_bits_hi
@@ -242,9 +242,9 @@ exod_decrunch:
         tya
         bne .no_hi_decr
         dec exod_zp_dest_hi
- IF DONT_REUSE_OFFSET == 0
+!if DONT_REUSE_OFFSET = 0 {
         dec exod_zp_src_hi
- ENDIF
+}
 .no_hi_decr:
         dey
         jsr exod_get_crunched_byte
@@ -254,9 +254,9 @@ exod_decrunch:
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
 .next_round:
- IF DONT_REUSE_OFFSET == 0
+!if DONT_REUSE_OFFSET = 0 {
 	ror exod_zp_ro_state
- ENDIF
+}
         dex
         lda exod_zp_bitbuf
 .no_literal1:
@@ -276,21 +276,21 @@ exod_decrunch:
 ; check for decrunch done and literal sequences (4 bytes)
 ;
         cpx #$11
- IF INLINE_GET_BITS != 0
+!if INLINE_GET_BITS != 0 {
         bcc .skip_jmp
         jmp .exit_or_lit_seq
 .skip_jmp:
- ELSE
+} else {
         bcs .exit_or_lit_seq
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; calulate length of sequence (zp_len) (18(11) bytes) + get_bits macro
 ;
         lda .tabl_bi - 1,x
-        exod_mac_get_bits
+        +exod_mac_get_bits
         adc .tabl_lo - 1,x       ; we have now calculated zp_len_lo
         sta exod_zp_len_lo
- IF MAX_SEQUENCE_LENGTH_256 == 0
+!if MAX_SEQUENCE_LENGTH_256 = 0 {
         lda exod_zp_bits_hi
         adc .tabl_hi - 1,x       ; c = 0 after this.
         sta exod_zp_len_hi
@@ -299,32 +299,32 @@ exod_decrunch:
 ; z-flag reflects zp_len_hi here
 ;
         ldx exod_zp_len_lo
- ELSE
+} else {
         tax
- ENDIF
- IF MAX_SEQUENCE_LENGTH_256 == 0
+}
+!if MAX_SEQUENCE_LENGTH_256 = 0 {
         lda #0
- ENDIF
- IF DONT_REUSE_OFFSET == 0
+}
+!if DONT_REUSE_OFFSET = 0 {
 ; -------------------------------------------------------------------
 ; here we decide to reuse latest offset or not (13(15) bytes)
 ;
         bit <exod_zp_ro_state
         bmi .test_reuse
 .no_reuse:
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; here we decide what offset table to use (17(15) bytes)
 ;
- IF MAX_SEQUENCE_LENGTH_256 == 0
+!if MAX_SEQUENCE_LENGTH_256 = 0 {
         sta <exod_zp_bits_hi
- ENDIF
+}
         lda #$e1
- IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0
+!if EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0 {
         cpx #$04
- ELSE
+} else {
         cpx #$03
- ENDIF
+}
         bcs .gbnc2_next
         lda .tabl_bit - 1,x
 .gbnc2_next:
@@ -343,7 +343,7 @@ exod_decrunch:
 ; calulate absolute offset (zp_src) (17 bytes) + get_bits macro
 ;
         lda .tabl_bi,x
-        exod_mac_get_bits
+        +exod_mac_get_bits
         adc .tabl_lo,x
         sta exod_zp_src_lo
         lda exod_zp_bits_hi
@@ -364,45 +364,45 @@ exod_decrunch:
         dec exod_zp_src_hi
 .copy_skip_hi:
         dey
- IF LITERAL_SEQUENCES_NOT_USED == 0
+!if LITERAL_SEQUENCES_NOT_USED = 0 {
         bcs .get_literal_byte
- ENDIF
+}
         lda (exod_zp_src_lo),y
 .literal_byte_gotten:
         sta (exod_zp_dest_lo),y
         dex
         bne .copy_next
- IF MAX_SEQUENCE_LENGTH_256 == 0
+!if MAX_SEQUENCE_LENGTH_256 = 0 {
         lda exod_zp_len_hi
- IF INLINE_GET_BITS != 0
+!if INLINE_GET_BITS != 0 {
         bne .copy_next_hi
- ENDIF
- ENDIF
+}
+}
         stx exod_zp_bits_hi
- IF INLINE_GET_BITS == 0
+!if INLINE_GET_BITS = 0 {
         beq .next_round
- ELSE
+} else {
         jmp .next_round
- ENDIF
- IF MAX_SEQUENCE_LENGTH_256 == 0
+}
+!if MAX_SEQUENCE_LENGTH_256 = 0 {
 .copy_next_hi:
         dec exod_zp_len_hi
         jmp .copy_next
- ENDIF
- IF LITERAL_SEQUENCES_NOT_USED == 0
+}
+!if LITERAL_SEQUENCES_NOT_USED = 0 {
 .get_literal_byte:
         jsr exod_get_crunched_byte
         bcs .literal_byte_gotten
- ENDIF
- IF DONT_REUSE_OFFSET == 0
+}
+!if DONT_REUSE_OFFSET = 0 {
 ; -------------------------------------------------------------------
 ; test for offset reuse (11 bytes)
 ;
 .test_reuse:
         bvs .no_reuse
- IF MAX_SEQUENCE_LENGTH_256 != 0
+!if MAX_SEQUENCE_LENGTH_256 != 0 {
         lda #$00                ; fetch one bit
- ENDIF
+}
         asl exod_zp_bitbuf
         bne .gbnc1_ok
         pha
@@ -414,37 +414,37 @@ exod_decrunch:
 	rol
         beq .no_reuse            ; bit == 0 => C=0, no reuse
         bne .copy_next           ; bit != 0 => C=0, reuse previous offset
- ENDIF
+}
 ; -------------------------------------------------------------------
 ; exit or literal sequence handling (16(12) bytes)
 ;
 .exit_or_lit_seq:
- IF LITERAL_SEQUENCES_NOT_USED == 0
+!if LITERAL_SEQUENCES_NOT_USED = 0 {
         beq .decr_exit
         jsr exod_get_crunched_byte
- IF MAX_SEQUENCE_LENGTH_256 == 0
+!if MAX_SEQUENCE_LENGTH_256 = 0 {
         sta exod_zp_len_hi
- ENDIF
+}
         jsr exod_get_crunched_byte
         tax
         bcs .copy_next
 .decr_exit:
- ENDIF
+}
         rts
- IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0
+!if EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0 {
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset for lengths 1, 2 and 3 (3 bytes)
 ; bits 2, 4, 4 and offsets 64, 48, 32 corresponding to
 ; %10010000, %11100011, %11100010
 .tabl_bit:
-        .BYTE $90, $e3, $e2
- ELSE
+        !byte $90, $e3, $e2
+} else {
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset for lengths 1 and 2 (2 bytes)
 ; bits 2, 4 and offsets 48, 32 corresponding to %10001100, %11100010
 .tabl_bit:
-        .BYTE $8c, $e2
- ENDIF
+        !byte $8c, $e2
+}
 ; -------------------------------------------------------------------
 ; end of decruncher
 ; -------------------------------------------------------------------
@@ -454,21 +454,21 @@ exod_decrunch:
 ; clobbered by other data between decrunches.
 ; -------------------------------------------------------------------
 exod_decrunch_table:
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
- IF EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
- ENDIF
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-        .byte 0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!if EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0 {
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+}
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        !byte 0,0,0,0,0,0,0,0,0,0,0,0
 ; -------------------------------------------------------------------
 ; end of decruncher
 ; -------------------------------------------------------------------
