@@ -13,9 +13,11 @@ DECR_OBJSP+16 = ../exodecrunch.osP+16
 DECR_OBJSM256 = ../exodecrunch.osM256
 DECR_OBJSi = ../exodecrunch.osi
 DECR_OBJSiM256 = ../exodecrunch.osiM256
+DECR_OBJSiM256-P32 = ../exodecrunch.osiM256-P32
 CRUNCHER = ../../src/exomizer mem -q $<@0x1010 -o $@
 CRUNCHERP+16 = ../../src/exomizer mem -P+16 -q $<@0x1010 -o $@
 CRUNCHERM256 = ../../src/exomizer mem -M256 -q $<@0x1010 -o $@
+CRUNCHERM256-P32 = ../../src/exomizer mem -P-32 -M256 -q $<@0x1010 -o $@
 
 TEST_OBJS = ../testrun.o ../../src/6502emu.o ../../src/exo_util.o ../../src/log.o ../../src/areatrace.o ../../src/vec.o ../../src/buf_io.o ../../src/buf.o
 
@@ -24,6 +26,7 @@ OBJSP+16 = ../main.os $(DECR_OBJSP+16)
 OBJSi = ../main.os $(DECR_OBJSi)
 OBJSM256 = ../main.os $(DECR_OBJSM256)
 OBJSiM256 = ../main.os $(DECR_OBJSiM256)
+OBJSiM256-P32 = ../main.os $(DECR_OBJSiM256-P32)
 
 
 .PHONY: build %.test %.stat
@@ -61,6 +64,10 @@ build: data.test
 	@$(MAKE) $(sort $(patsubst %.raw,%.cruiM256,$(wildcard $**.raw)))
 	@../testrun $(foreach file, $(sort $(patsubst %.raw,%.cruiM256,$(wildcard $**.raw))), test.prgiM256 $(file))
 
+%.statiM256-P32:	test.prgiM256-P32 ../testrun
+	@$(MAKE) $(sort $(patsubst %.raw,%.cruiM256-P32,$(wildcard $**.raw)))
+	@../testrun $(foreach file, $(sort $(patsubst %.raw,%.cruiM256-P32,$(wildcard $**.raw))), test.prgiM256-P32 $(file))
+
 ../testrun: $(TEST_OBJS)
 	@echo "Linking $@"
 	@$(CC) $(LDFLAGS) -o $@ $(TEST_OBJS)
@@ -95,6 +102,9 @@ build: data.test
 %.cruiM256.out: test.prgiM256 %.cruiM256 ../testrun
 	../testrun $< $*.cruiM256
 
+%.cruiM256-P32.out: test.prgiM256-P32 %.cruiM256-P32 ../testrun
+	../testrun $< $*.cruiM256-P32
+
 %.prg: $(OBJS) ../c64.cfg
 	ld65 $(OBJS) -o $@ -C../c64.cfg
 
@@ -110,6 +120,9 @@ build: data.test
 %.prgiM256: $(OBJSiM256) ../c64.cfg
 	ld65 $(OBJSiM256) -o $@ -C../c64.cfg
 
+%.prgiM256-P32: $(OBJSiM256-P32) ../c64.cfg
+	ld65 $(OBJSiM256-P32) -o $@ -C../c64.cfg
+
 %.os: %.s
 	ca65 $< -o $@
 
@@ -120,10 +133,13 @@ build: data.test
 	ca65 -DINLINE_GET_BITS=1 $< -o $@
 
 %.osM256: %.s
-	ca65 -DMAX_SEQUENCE_LENGTH_M256=1 $< -o $@
+	ca65 -DMAX_SEQUENCE_LENGTH_256=1 $< -o $@
 
 %.osiM256: %.s
-	ca65 -DINLINE_GET_BITS=1 -DMAX_SEQUENCE_LENGTH_M256=1 $< -o $@
+	ca65 -DINLINE_GET_BITS=1 -DMAX_SEQUENCE_LENGTH_256=1 $< -o $@
+
+%.osiM256-P32: %.s
+	ca65 -DINLINE_GET_BITS=1 -DMAX_SEQUENCE_LENGTH_256=1 -DDONT_REUSE_OFFSET=1 $< -o $@
 
 clean:
 	$(RM) *.out *.cru* test*.prg*
@@ -137,10 +153,16 @@ clean:
 %.cruM256: %.raw
 	$(CRUNCHERM256)
 
+%.cruM256-P32: %.raw
+	$(CRUNCHERM256-P32)
+
 %.crui: %.cru
 	cp $< $@
 
 %.cruiM256: %.cruM256
+	cp $< $@
+
+%.cruiM256-P32: %.cruM256-P32
 	cp $< $@
 
 %.o:	%.c

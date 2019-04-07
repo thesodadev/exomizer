@@ -2,11 +2,11 @@ Exomizer 2.0
 
 FEATURES
 
-o  Totally rewritten handling of the sfx decruncher:
+o  sfx mode:
    1) Several different decrunch effects.
    2) Complete user control over memory and IRQ configuration.
    3) Can start BASIC programs properly with built in trampoline by using the
-      command 'sfx basic' for the Commodore and Oric targets.
+      command 'sfx basic' for the Commodore, Apple II and Oric targets.
    3) The decruncher code is assembled on the fly for maximum flexibility by an
       embedded assembler.
    4) Will adapt the decruncher to include only features used by the compressed
@@ -29,7 +29,7 @@ o  Has a literal sequence escape mechanism that detects and handles sequences
 o  The level mode of exomizer crunches each in-file separately and appends
    them to the out-file.
 
-o  New raw mode that features:
+o  raw mode:
    1) Crunches plain files instead of .prg files.
    2) Crunches forward or backwards instead of just backwards.
    3) Also decrunches.
@@ -39,9 +39,9 @@ o  New raw mode that features:
       pull decruncher and one low-level backwards push decruncher, perfect to
       base an assembler port on.
 
-o  New desfx mode that features decrunching of sfx crunched files.
+o  desfx mode that features decrunching of sfx crunched files.
 
-o  Contributed decruncher source
+o  Contributed decruncher source (only 2.0 compatible so far)
    1) forward 6502 decruncher by Krill (exodecrs/krilldecr.s)
    2) z80 decrunchers by Metalbrain, Antonio Villena. (rawdecrs/z80/*)
    3) 6809 decruncher by Edouard Forler.  (rawdecrs/6809/*)
@@ -73,7 +73,7 @@ data. They share the following option flags:
 -C      This flag increases crunching speed and as a side effect also reduces
         the crunch result. This flag is for the impatient developer.
 
--e <encoding parameters>
+-e <encoding parameters>|@<encoding file name>
         Uses the given encoding parameters for crunching instead of trying to
         calculate an optimal set. The encoding must be in the following format:
         xxxxxxxxxxxxxxxx,xxxx,xxxxxxxxxxxxxxxx,xxxxxxxxxxxxxxxx
@@ -84,6 +84,27 @@ data. They share the following option flags:
         not the encoding parameters used in the output file. To set the
         encoding parameters of the output file this option must be used in
         combination with the -p 1 option.
+        If the encoding starts with a '@' then the rest will be used as a file
+        name to read the encoding from. It can be used to read encoding files
+        written by the -E flag described below. Please note that the -P and -T
+        flags must be the same for this to work since the format is different
+        for different flag combinations.
+
+-E      This flag enables an experimental feature for encoding reuse between
+        multiple files. Please note that there is no direct support for
+        decrunching these files yet apart from the raw -d command. It changes
+        the behavior of exomizer in the following
+        ways:
+        1) It won't include the encoding in the compressed file.
+        2) The compressed file will be named as the infile + .exo
+        3) The -o flag will be used to write a file containing only the
+           encoding.
+        4) If more than one in-file is given they will all be compressed using
+           The same encoding which will be optimal for those files in
+           combination.
+        5) When used with -E, the mem subcommand limits the -l setting to only
+           accept the value "none". It will also change the default from "auto"
+           to "none".
 
 -m <offset>
         Limits the maximum sequence offset used by the cruncher to <offset>.
@@ -116,8 +137,8 @@ data. They share the following option flags:
 -P <value>
         Bit-field that disables bit stream protocol modifications. A value of
         0 makes the bit stream compatible with exomizer 2.0. You can prefix the
-	value with a + or - to set/clear the bits the value represents. Valid
-	values are 0 - 63.
+        value with a + or - to set/clear the bits the value represents. Valid
+        values are 0 - 63.
         0 bit: Big endian bit orientation, 1=enable (default), 0=disable
         1 bit: Copy byte when reading > 7 bits, 1=enable (default), 0=disable
         2 bit: Implicit first literal byte, 1=enable (default), 0=disable

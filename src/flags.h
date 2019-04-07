@@ -39,6 +39,7 @@ extern "C" {
  * bit 3  Align bit stream towards start without flag: 1=enable, 0=disable
  * bit 4  Decides if we are to have two lengths (1 and 2) or three lengths
  *        (1, 2 and 3) using dedicated decrunch tables: 0=two, 1=three
+ * bit 5  Decides if we are reusing offsets: 1=enable, 0=disable
  */
 #define PBIT_BITS_ORDER_BE     0
 #define PBIT_BITS_COPY_GT_7    1

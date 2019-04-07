@@ -767,8 +767,6 @@ void mem(const char *appl, int argc, char *argv[])
         }
     }
 
-    options.flags_notrait |= TFLAG_LEN0123_SEQ_MIRRORS;
-
     infilev = argv + flagind;
     infilec = argc - flagind;
 

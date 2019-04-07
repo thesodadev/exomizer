@@ -2,7 +2,8 @@ Exomizer 3.0
 ------------
 
 This document only mentions what has changed since exomizer 2.0. For
-more general exomizer info also read the exo20info.txt file.
+more general exomizer info also read the exo20info.txt file which also
+might contain updates.
 
 New features
 ------------
@@ -51,7 +52,7 @@ o  The sfx decruncher and exodecrs/exodecrunch.s take advantage of the new bit
    the sequence length is limited to 256 by using -M256 when crunching.
    (exodecrs/exodecrunch.s has to be told by a define, see the comments in the
    file for more info. It also needs the bit 2 trait (-T4) which is used by
-   default by the level and mem sub commands)
+   default by the level and mem sub commands but not by raw)
 
 o  The sfx decruncher now recognizes a new symbol, i_perf, that controls the
    decruncher size/speed performance trade-off. The valid values are -1 to 2
@@ -71,7 +72,7 @@ Contributing
 ------------
 
    You are, as before, very welcome to contribute decruncher source code for
-   nsupported targets and/or improving existing decrunchers.
+   unsupported targets and/or improving existing decrunchers.
 
    However, The unclear licensing of some of the contributions so far has not
    been ideal. So please decide on what license to use before contributing. If
@@ -105,38 +106,28 @@ computer environment is not included. (M=*1000000 and k=*1000)
 (https://web.archive.org/web/20050102175732/http://www.swolff.dk/cruncher/zorrounpacked.prg) also used in the README.txt of subsizer for comparisons:
 
 Sorted on size:
-| File name               | Start | End   |   Mcycles |  kB/Mc| c/B out|
-|-------------------------|-------|-------|-----------|-------|--------|
-| zorro_exo3_-1-P16.prg   | $0801 | $7FA8 |  5.949514 |  9.09 | 109.97 |
-| zorro_exo3_0-P16.prg    | $0801 | $7FB1 |  5.755443 |  9.40 | 106.38 |
-| zorro_exo3_1-P16.prg    | $0801 | $7FBB |  5.518365 |  9.80 | 102.00 |
-| zorro_exo3_1-M256P16.prg| $0801 | $7FD2 |  5.291152 | 10.23 |  97.80 |
-| zorro_exo2.0.11.prg     | $0801 | $7FE5 |  8.560318 |  6.32 | 158.22 |
-| zorro_exo3_2-M256P16.prg| $0801 | $7FEC |  5.121834 | 10.56 |  94.67 |
-| zorro_sub0.6.prg        | $0801 | $7FF8 |  7.070462 |  7.65 | 130.69 |
-| zorro_sub0.6_dirty.prg  | $0801 | $8003 |  5.291376 | 10.22 |  97.80 |
-| zorro_exo3_2-M256.prg   | $0801 | $802E |  5.116737 | 10.57 |  94.57 |
-| zorro_pud.prg           | $0801 | $8586 |  9.465515 |  5.72 | 174.95 |
-| zorro_pu.prg            | $0801 | $85DA |  9.257570 |  5.84 | 171.11 |
-| zorro_puf.prg           | $0801 | $85F1 |  8.542865 |  6.33 | 157.90 |
-|-------------------------|-------|-------|-----------|-------|--------|
+| File name                  | Start | End   |   Mcycles |  kB/Mc| c/B out|
+|----------------------------|-------|-------|-----------|-------|--------|
+| zorro_exo31_-1.prg	     | $0801 | $7E73 |  6.085364 |  8.89 | 112.48 |
+| zorro_exo31_0.prg          | $0801 | $7E82 |  5.950148 |  9.09 | 109.98 |
+| zorro_exo31_1.prg	     | $0801 | $7E8A |  5.684235 |  9.52 | 105.06 |
+| zorro_exo31_0-M256.prg     | $0801 | $7E96 | 	5.673866 |  9.54 | 104.87 |
+| zorro_exo31_1-M256.prg     | $0801 | $7EA2 | 	5.463087 |  9.90 | 100.98 |
+| zorro_exo31_2-M256.prg     | $0801 | $7EBC | 	5.284173 | 10.24 |  97.67 |
+| zorro_exo31_2-M256-P16.prg | $0801 | $7FF1 |	5.125304 | 10.56 |  94.73 |
+|----------------------------|-------|-------|-----------|-------|--------|
 
 Sorted on speed:
-| File name               | Start | End   |   Mcycles |  kB/Mc| c/B out|
-|-------------------------|-------|-------|-----------|-------|--------|
-| zorro_exo3_2-M256.prg   | $0801 | $802E |  5.116737 | 10.57 |  94.57 |
-| zorro_exo3_2-M256P16.prg| $0801 | $7FEC |  5.121834 | 10.56 |  94.67 |
-| zorro_exo3_1-M256P16.prg| $0801 | $7FD2 |  5.291152 | 10.23 |  97.80 |
-| zorro_sub0.6_dirty.prg  | $0801 | $8003 |  5.291376 | 10.22 |  97.80 |
-| zorro_exo3_1-P16.prg    | $0801 | $7FBB |  5.518365 |  9.80 | 102.00 |
-| zorro_exo3_0-P16.prg    | $0801 | $7FB1 |  5.755443 |  9.40 | 106.38 |
-| zorro_exo3_-1-P16.prg   | $0801 | $7FA8 |  5.949514 |  9.09 | 109.97 |
-| zorro_sub0.6.prg        | $0801 | $7FF8 |  7.070462 |  7.65 | 130.69 |
-| zorro_puf.prg           | $0801 | $85F1 |  8.542865 |  6.33 | 157.90 |
-| zorro_exo2.0.11.prg     | $0801 | $7FE5 |  8.560318 |  6.32 | 158.22 |
-| zorro_pu.prg            | $0801 | $85DA |  9.257570 |  5.84 | 171.11 |
-| zorro_pud.prg           | $0801 | $8586 |  9.465515 |  5.72 | 174.95 |
-|-------------------------|-------|-------|-----------|-------|--------|
+| File name                  | Start | End   |   Mcycles |  kB/Mc| c/B out|
+|----------------------------|-------|-------|-----------|-------|--------|
+| zorro_exo31_2-M256-P16.prg | $0801 | $7FF1 | 	5.125304 | 10.56 |  94.73 |
+| zorro_exo31_2-M256.prg     | $0801 | $7EBC | 	5.284173 | 10.24 |  97.67 |
+| zorro_exo31_1-M256.prg     | $0801 | $7EA2 | 	5.463087 |  9.90 | 100.98 |
+| zorro_exo31_0-M256.prg     | $0801 | $7E96 | 	5.673866 |  9.54 | 104.87 |
+| zorro_exo31_1.prg	     | $0801 | $7E8A | 	5.684235 |  9.52 | 105.06 |
+| zorro_exo31_0.prg	     | $0801 | $7E82 | 	5.950148 |  9.09 | 109.98 |
+| zorro_exo31_-1.prg	     | $0801 | $7E73 | 	6.085364 |  8.89 | 112.48 |
+|----------------------------|-------|-------|-----------|-------|--------|
 
 The information in the two tables above has been assembled from output of the
 exomizer desfx command. (Yes, it handles subsizer and pu crunched files too)
@@ -148,36 +139,38 @@ Pigs" files (http://codebase64.org/doku.php?id=base:compression_benchmarks):
 (get_bits not in-lined, unlimited sequence lengths)
 |File name                   |Size    |Reduced |Cycles    |C/B out|C/B in |
 |----------------------------|--------|--------|----------|-------|-------|
-|pfp_1.cru                   |    2949|  73.21%|    737852|  67.03| 250.20|
-|pfp_2.cru                   |    2192|  55.92%|    479190|  96.36| 218.61|
-|pfp_3.cru                   |    1784|  54.82%|    355247|  89.96| 199.13|
-|pfp_4.cru                   |    3432|  51.08%|    665762|  94.89| 193.99|
-|pfp_5.cru                   |   19581|  43.67%|   3577696| 102.93| 182.71|
-|pfp_6.cru                   |    8288|  73.78%|   1973437|  62.44| 238.11|
-|pfp_7.cru                   |    8757|  57.06%|   1764661|  86.54| 201.51|
-|pfp_8.cru                   |    3073|  46.21%|    534656|  93.59| 173.99|
-|pfp_9.cru                   |    5302|  40.83%|    944381| 105.40| 178.12|
+|pfp_1.cru                   |    2939|  73.30%|    746303|  67.80| 253.93|
+|pfp_2.cru                   |    2159|  56.59%|    479985|  96.52| 222.32|
+|pfp_3.cru                   |    1727|  56.27%|    349622|  88.53| 202.44|
+|pfp_4.cru                   |    3427|  51.15%|    662178|  94.38| 193.22|
+|pfp_5.cru                   |   19186|  44.80%|   3517514| 101.19| 183.34|
+|pfp_6.cru                   |    8078|  74.44%|   1948798|  61.66| 241.25|
+|pfp_7.cru                   |    8644|  57.61%|   1771942|  86.89| 204.99|
+|pfp_8.cru                   |    2926|  48.78%|    520827|  91.17| 178.00|
+|pfp_9.cru                   |    5177|  42.22%|   1030218| 114.98| 199.00|
 |----------------------------|--------|--------|----------|-------|-------|
-|Total                       |   55358|  56.88%|  11032882|  85.94| 199.30|
+|Total                       |   54263|  57.73%|  11027387|  85.90| 203.22|
 
-(get_bits in-lined, sequence lengths limited to 256 or less)
+(get_bits in-lined, sequence lengths limited to 256 or less, no offset reuse)
 |File name                   |Size    |Reduced |Cycles    |C/B out|C/B in |
 |----------------------------|--------|--------|----------|-------|-------|
-|pfp_1.crui256               |    2949|  73.21%|    676597|  61.46| 229.43|
-|pfp_2.crui256               |    2192|  55.92%|    429111|  86.29| 195.76|
-|pfp_3.crui256               |    1784|  54.82%|    319678|  80.95| 179.19|
-|pfp_4.crui256               |    3432|  51.08%|    603917|  86.08| 175.97|
-|pfp_5.crui256               |   19581|  43.67%|   3256294|  93.68| 166.30|
-|pfp_6.crui256               |    8403|  73.41%|   1821917|  57.65| 216.82|
-|pfp_7.crui256               |    8759|  57.05%|   1611968|  79.05| 184.04|
-|pfp_8.crui256               |    3073|  46.21%|    487501|  85.33| 158.64|
-|pfp_9.crui256               |    5311|  40.73%|    860095|  95.99| 161.95|
+|File name                   |Size    |Reduced |Cycles    |C/B out|C/B in |
 |----------------------------|--------|--------|----------|-------|-------|
-|Total                       |   55484|  56.78%|  10067078|  78.42| 181.44|
+|pfp_1.cruiM256-P32          |    2949|  73.21%|    677073|  61.51| 229.59|
+|pfp_2.cruiM256-P32          |    2193|  55.90%|    428785|  86.22| 195.52|
+|pfp_3.cruiM256-P32          |    1784|  54.82%|    319678|  80.95| 179.19|
+|pfp_4.cruiM256-P32          |    3429|  51.13%|    579277|  82.57| 168.93|
+|pfp_5.cruiM256-P32          |   19586|  43.65%|   3257474|  93.71| 166.32|
+|pfp_6.cruiM256-P32          |    8403|  73.41%|   1821908|  57.65| 216.82|
+|pfp_7.cruiM256-P32          |    8761|  57.04%|   1613077|  79.10| 184.12|
+|pfp_8.cruiM256-P32          |    3073|  46.21%|    491272|  85.99| 159.87|
+|pfp_9.cruiM256-P32          |    5303|  40.81%|    893086|  99.67| 168.41|
+|----------------------------|--------|--------|----------|-------|-------|
+|Total                       |   55481|  56.78%|  10081630|  78.53| 181.71|
 
 You can make these tables yourself by naming the pfp files pfp[1-9].raw,
 dropping them in the exodecrs/perf folder and in that folder execute the
-following command line: $ make pfp.stat pfp.stati256
+following command line: $ make pfp.stat pfp.statiM256-P32
 
 (You need to build exomizer in the src folder first and you also need to have
 cc65, gcc and gnu make on the path) It works in Linux and in a Windows
