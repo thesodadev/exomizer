@@ -194,33 +194,6 @@ table_init(struct dec_ctx *ctx, struct dec_table *tp) /* IN/OUT */
     }
 }
 
-static void
-table_dump(struct dec_table *tp, struct buf *target)
-{
-    if (target != NULL)
-    {
-        int i, j;
-
-        buf_clear(target);
-        for(i = 0; i < 16; ++i)
-        {
-            buf_printf(target, "%X", tp->table_bi[i]);
-        }
-        for(j = 0; j < 3; ++j)
-        {
-            int start;
-            int end;
-            buf_append_char(target, ',');
-            start = tp->table_off[j];
-            end = start + (1 << tp->table_bit[j]);
-            for(i = start; i < end; ++i)
-            {
-                buf_printf(target, "%X", tp->table_bi[i]);
-            }
-        }
-    }
-}
-
 void
 dec_ctx_init(struct dec_ctx *ctx,
              struct buf *enc_in, /* optional */
@@ -274,7 +247,32 @@ dec_ctx_init(struct dec_ctx *ctx,
 void
 dec_ctx_table_dump(struct dec_ctx *ctx, struct buf *enc_out)
 {
-    table_dump(&ctx->t, enc_out);
+    if (enc_out != NULL)
+    {
+        int i, j, offset_tables= 3;
+        if (ctx->flags_proto & PFLAG_4_OFFSET_TABLES)
+        {
+            offset_tables = 4;
+        }
+
+        buf_clear(enc_out);
+        for(i = 0; i < 16; ++i)
+        {
+            buf_printf(enc_out, "%X", ctx->t.table_bi[i]);
+        }
+        for(j = 0; j < offset_tables; ++j)
+        {
+            int start;
+            int end;
+            buf_append_char(enc_out, ',');
+            start = ctx->t.table_off[j];
+            end = start + (1 << ctx->t.table_bit[j]);
+            for(i = start; i < end; ++i)
+            {
+                buf_printf(enc_out, "%X", ctx->t.table_bi[i]);
+            }
+        }
+    }
 }
 
 void dec_ctx_free(struct dec_ctx *ctx)

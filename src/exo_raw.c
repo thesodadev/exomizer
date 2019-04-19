@@ -112,7 +112,9 @@ main(int argc, char *argv[])
     if(decrunch_mode)
     {
         struct decrunch_options dopts;
-        dopts.direction_forward = dopts.direction_forward;
+        dopts.imported_encoding = NULL;
+        dopts.direction_forward = options.direction_forward;
+        dopts.write_reverse = options.write_reverse;
         dopts.flags_proto = options.flags_proto;
 
         if (dopts.direction_forward == 0)
