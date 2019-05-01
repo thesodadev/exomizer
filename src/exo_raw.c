@@ -143,7 +143,7 @@ main(int argc, char *argv[])
             LOG(LOG_NORMAL, ("Crunching infile \"%s\" to outfile \"%s\".\n",
                              infilev[0], flags.outfile));
         }
-        crunch(&inbuf, &outbuf, &options, &info);
+        crunch(&inbuf, NULL, &outbuf, &options, &info);
 
         print_crunch_info(LOG_NORMAL, &info);
     }

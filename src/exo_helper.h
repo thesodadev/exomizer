@@ -108,6 +108,7 @@ void print_license(void);
 struct io_bufs
 {
     struct buf in;
+    struct buf noread_in;
     struct buf out;
     struct crunch_info info;
 };
@@ -118,6 +119,7 @@ void crunch_multi(struct vec *io_bufs,
                   struct crunch_info *merged_info); /* OUT */
 
 void crunch(struct buf *inbuf,
+            struct buf *noread_inbuf,
             struct buf *outbuf,
             const struct crunch_options *options, /* IN */
             struct crunch_info *info); /* OUT */

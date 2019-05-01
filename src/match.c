@@ -72,9 +72,12 @@ struct match *match_new(struct match_ctx *ctx, /* IN/OUT */
     return m;
 }
 
+#define READ_BUF(IN, NOREAD, OFFSET) \
+    ((NOREAD) != NULL && (NOREAD)[OFFSET] != 0 ? -1 : IN[OFFSET])
 
 void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
-                    struct buf *inbuf,  /* IN */
+                    const struct buf *inbuf,  /* IN */
+                    const struct buf *noread_inbuf,  /* IN */
                     int max_len,           /* IN */
                     int max_offset,        /* IN */
                     int favor_speed) /* IN */
@@ -84,10 +87,16 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
 
     int buf_len = buf_size(inbuf);
     const unsigned char *buf = buf_data(inbuf);
+    const unsigned char *noread_buf = NULL;
     char *rle_map;
 
     int c, i;
     int val;
+
+    if (noread_inbuf != NULL)
+    {
+        noread_buf = buf_data(noread_inbuf);
+    }
 
     ctx->info = calloc(buf_len + 1, sizeof(*ctx->info));
     ctx->rle = calloc(buf_len + 1, sizeof(*ctx->rle));
@@ -100,11 +109,12 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
 
     ctx->buf = buf;
     ctx->len = buf_len;
+    ctx->noread_buf = noread_buf;
 
-    val = buf[0];
+    val = READ_BUF(buf, noread_buf, 0);
     for (i = 1; i < buf_len; ++i)
     {
-        if (buf[i] == val)
+        if (val != -1 && buf[i] == val)
         {
             int len = ctx->rle[i - 1] + 1;
             if(len > ctx->max_len)
@@ -116,7 +126,7 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
         {
             ctx->rle[i] = 0;
         }
-        val = buf[i];
+        val = READ_BUF(buf, noread_buf, i);
     }
 
     for (i = buf_len - 2; i >= 0; --i)
@@ -279,12 +289,14 @@ const struct match *matches_calc(struct match_ctx *ctx,        /* IN/OUT */
                                  int favor_speed)      /* IN */
 {
     const unsigned char *buf;
+    const unsigned char *noread_buf;
 
     struct match *matches;
     struct match *mp;
     const struct match_node *np;
 
     buf = ctx->buf;
+    noread_buf = ctx->noread_buf;
     matches = NULL;
 
     LOG(LOG_DUMP, ("index %d, char '%c', rle %d, rle_r %d\n",
@@ -328,7 +340,7 @@ const struct match *matches_calc(struct match_ctx *ctx,        /* IN/OUT */
          * skip some comparisons by increasing by the rle count. We
          * don't need to compare the first byte, hence > 1 instead of
          * > 0 */
-        while(len > 1 && buf[pos] == buf[pos + offset])
+        while(len > 1 && buf[pos] == READ_BUF(buf, noread_buf, pos + offset))
         {
             int offset1 = ctx->rle_r[pos];
             int offset2 = ctx->rle_r[pos + offset];

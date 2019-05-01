@@ -52,13 +52,15 @@ struct match_ctx {
     unsigned short int *rle;
     unsigned short int *rle_r;
     const unsigned char *buf;
+    const unsigned char *noread_buf;
     int len;
     int max_offset;
     int max_len;
 };
 
 void match_ctx_init(struct match_ctx *ctx,          /* IN/OUT */
-                    struct buf *inbuf,   /* IN */
+                    const struct buf *inbuf,   /* IN */
+                    const struct buf *noread_inbuf,   /* IN */
                     int max_len,            /* IN */
                     int max_offset,         /* IN */
                     int favor_speed);       /* IN */

@@ -489,8 +489,10 @@ void generic(const char *appl,
     {
         struct io_bufs_located *io = vec_push(&entries, NULL);
         struct buf *inbuf = &io->io.in;
+        struct buf *noread_inbuf = &io->io.noread_in;
         struct buf *outbuf = &io->io.out;
         buf_init(inbuf);
+        buf_init(noread_inbuf);
         buf_init(outbuf);
         io->write_location = -1;
 
@@ -680,7 +682,7 @@ void level(const char *appl, int argc, char *argv[])
                 buf_append_char(&out, in_load & 255);
             }
 
-            crunch(&in, &out, &options, &info);
+            crunch(&in, NULL, &out, &options, &info);
 
             if(!options.direction_forward)
             {
@@ -825,7 +827,7 @@ void mem(const char *appl, int argc, char *argv[])
             buf_append_char(&out, in_load & 255);
         }
 
-        crunch(&in, &out, &options, &info);
+        crunch(&in, NULL, &out, &options, &info);
         safety = info.needed_safety_offset;
 
         if(!options.direction_forward)
@@ -1399,7 +1401,7 @@ void sfx(const char *appl, int argc, char *argv[])
         /* make room for load addr */
         buf_append(out, NULL, 2);
 
-        crunch(in, out, &options, &info);
+        crunch(in, NULL, out, &options, &info);
 
         print_crunch_info(LOG_NORMAL, &info);
 

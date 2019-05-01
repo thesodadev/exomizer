@@ -426,6 +426,7 @@ void crunch_multi(struct vec *io_bufs,
     {
         struct io_bufs *io = vec_get(io_bufs, i);
         struct buf *in = &io->in;
+        struct buf *noread_in = &io->noread_in;
 
         if (options->direction_forward == 1)
         {
@@ -434,7 +435,7 @@ void crunch_multi(struct vec *io_bufs,
             outpos[i] = buf_size(out);
         }
         inlen += buf_size(in);
-        match_ctx_init(ctxp + i, in, options->max_len,
+        match_ctx_init(ctxp + i, in, noread_in, options->max_len,
                        options->max_offset, options->favor_speed);
     }
     LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", inlen));
@@ -535,6 +536,7 @@ void reverse_buffer(char *start, int len)
 }
 
 void crunch(struct buf *inbuf,
+            struct buf *noread_inbuf,
             struct buf *outbuf,
             const struct crunch_options *options, /* IN */
             struct crunch_info *info) /* OUT */
@@ -544,6 +546,14 @@ void crunch(struct buf *inbuf,
     struct io_bufs *io = vec_push(&io_bufs, NULL);
     io->in = *inbuf;
     io->out = *outbuf;
+    if (noread_inbuf != NULL)
+    {
+        io->noread_in = *noread_inbuf;
+    }
+    else
+    {
+        buf_init(&io->noread_in);
+    }
     crunch_multi(&io_bufs, NULL, options, info);
     *inbuf = io->in;
     *outbuf = io->out;
