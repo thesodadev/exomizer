@@ -40,6 +40,11 @@ void buf_init(struct buf *b)
 
 void buf_free(struct buf *b)
 {
+    if (b->capacity == -1)
+    {
+        fprintf(stderr, "error, can't free a buf view\n");
+        exit(1);
+    }
     if (b->data != NULL)
     {
         free(b->data);
@@ -95,6 +100,11 @@ void *buf_data(const struct buf *b)
 void *buf_reserve(struct buf *b, int new_capacity)
 {
     int capacity = b->capacity;
+    if (capacity == -1)
+    {
+        fprintf(stderr, "error, can't reserve capacity for a buf view\n");
+        exit(1);
+    }
     if (capacity == 0)
     {
         capacity = 1;
@@ -151,6 +161,11 @@ void *buf_replace(struct buf *b, int b_off, int b_n, const void *m, int m_n)
     int new_size;
     int rest_off;
     int rest_n;
+    if (b->capacity == -1)
+    {
+        fprintf(stderr, "error, can't modify a buf view\n");
+        exit(1);
+    }
     if (b_off < 0)
     {
         b_off += b->size + 1;
@@ -245,6 +260,11 @@ void *buf_freplace(struct buf *b, int b_off, int b_n,
         fprintf(stderr, "Error: f must not be NULL.\n");
         exit(-1);
     }
+    if (b->capacity == -1)
+    {
+        fprintf(stderr, "error, can't modify a buf view\n");
+        exit(1);
+    }
     if (f_off < 0)
     {
         int f_size;
@@ -316,11 +336,54 @@ void *buf_freplace(struct buf *b, int b_off, int b_n,
     return (char*)b->data + pos;
 }
 
+const struct buf *buf_view(struct buf *v,
+                           const struct buf *b, int b_off, int b_n)
+{
+    if (b_off < 0)
+    {
+        b_off += b->size + 1;
+    }
+    if (b_n == -1)
+    {
+        b_n = b->size - b_off;
+    }
+    if(b_off < 0 || b_off > b->size)
+    {
+        fprintf(stderr, "error, b_off %d must be within [0 - %d].\n",
+                b_off, b->size);
+        exit(1);
+    }
+    if(b_n < 0 || b_n > b->size - b_off)
+    {
+        fprintf(stderr, "error, b_n %d must be within [0 - %d].\n",
+                b_n, b->size - b_off);
+        exit(1);
+    }
+    if (b->data != NULL)
+    {
+        v->data = (char*)b->data + b_off;
+    }
+    else
+    {
+        v->data = NULL;
+    }
+    v->size = b_n;
+    v->capacity = -1;
+
+    return v;
+}
+
 void buf_printf(struct buf *b, const char *format, ...)
 {
     int pos;
     int printed;
     va_list args;
+
+    if (b->capacity == -1)
+    {
+        fprintf(stderr, "error, can't printf to a buf view\n");
+        exit(1);
+    }
 
     pos = b->size;
 

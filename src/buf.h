@@ -127,6 +127,14 @@ void *buf_replace(struct buf *b, int b_off, int b_n, const void *m, int m_n);
 void *buf_freplace(struct buf *b, int b_off, int b_n,
                    FILE *f, int f_off, int f_n);
 
+/**
+ * Creates a read only view into another buf starting at the given
+ * offset and being of the given size. The view buf will not take
+ * ownership of the data and is not to be freed.
+ */
+const struct buf *buf_view(struct buf *v,
+                           const struct buf *b, int b_off, int b_n);
+
 /* Prints formatted to the end of the buffer using the vsnsprintf
  * function. */
 void buf_printf(struct buf *b, const char *format, ...)

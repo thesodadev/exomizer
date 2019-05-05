@@ -151,7 +151,7 @@ static void load_plain_file(const char *name, struct buf *mb)
 
 static
 int
-do_load(char *file_name, struct buf *mem)
+do_load(const char *file_name, struct buf *mem)
 {
     struct load_info info;
     unsigned char *p;
@@ -446,6 +446,7 @@ static
 void generic(const char *appl,
              struct common_flags *flags,
              print_usage_f *print_usage,
+             struct buf *noread_in,
              int decrunch_mode,
              int located_mode,
              int infilec, char *infilev[])
@@ -489,16 +490,15 @@ void generic(const char *appl,
     {
         struct io_bufs_located *io = vec_push(&entries, NULL);
         struct buf *inbuf = &io->io.in;
-        struct buf *noread_inbuf = &io->io.noread_in;
         struct buf *outbuf = &io->io.out;
         buf_init(inbuf);
-        buf_init(noread_inbuf);
         buf_init(outbuf);
         io->write_location = -1;
 
         if (located_mode)
         {
-            io->write_location = do_load(infilev[c], inbuf);
+            io->io.in_off = do_load(infilev[c], inbuf);
+            io->write_location = io->io.in_off;
             if (options->direction_forward == 0)
             {
                 io->write_location += buf_size(inbuf);
@@ -506,6 +506,7 @@ void generic(const char *appl,
         }
         else
         {
+            io->io.in_off = 0;
             load_plain_file(infilev[c], inbuf);
             LOG(LOG_BRIEF, (" Reading %d bytes from \"%s\".\n",
                             buf_size(inbuf), infilev[c]));
@@ -524,6 +525,7 @@ void generic(const char *appl,
         struct decrunch_options dopts;
         struct io_bufs_located *io = vec_get(&entries, 0);
         struct buf *inbuf = &io->io.in;
+        int in_off = io->io.in_off;
         struct buf *outbuf = &io->io.out;
 
         dopts.direction_forward = options->direction_forward;
@@ -532,7 +534,7 @@ void generic(const char *appl,
         dopts.imported_encoding = options->imported_encoding;
 
         inlen = buf_size(inbuf);
-        decrunch(LOG_NORMAL, inbuf, outbuf, &dopts);
+        decrunch(LOG_NORMAL, inbuf, in_off, outbuf, &dopts);
 
         outlen = buf_size(outbuf);
         LOG(LOG_BRIEF, (" Decrunched data expanded %d bytes (%0.2f%%)\n",
@@ -541,7 +543,7 @@ void generic(const char *appl,
     else
     {
         struct crunch_info info;
-        crunch_multi(&entries, &enc_buf, options, &info);
+        crunch_multi(&entries, noread_in, &enc_buf, options, &info);
 
         print_crunch_info(LOG_NORMAL, &info);
     }
@@ -611,6 +613,7 @@ void level(const char *appl, int argc, char *argv[])
     int c;
     int infilec;
     char **infilev;
+    struct buf noread = STATIC_BUF_INIT, *noreadp = NULL;
 
     struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
     struct common_flags flags = {NULL, DEFAULT_OUTFILE};
@@ -635,6 +638,17 @@ void level(const char *appl, int argc, char *argv[])
         }
     }
 
+
+    if (options.noread_filename != NULL)
+    {
+        struct load_info info;
+        unsigned char *p =
+            memset(buf_append(&noread, NULL, 65536), 0, 65536);
+        load_located(options.noread_filename, p, &info);
+        noreadp = &noread;
+    }
+
+
     infilev = argv + flagind;
     infilec = argc - flagind;
 
@@ -643,6 +657,7 @@ void level(const char *appl, int argc, char *argv[])
         generic(appl,
                 &flags,
                 print_level_usage,
+                noreadp,
                 0,
                 1,
                 infilec, infilev);
@@ -682,7 +697,7 @@ void level(const char *appl, int argc, char *argv[])
                 buf_append_char(&out, in_load & 255);
             }
 
-            crunch(&in, NULL, &out, &options, &info);
+            crunch(&in, in_load, noreadp, &out, &options, &info);
 
             if(!options.direction_forward)
             {
@@ -715,6 +730,8 @@ void level(const char *appl, int argc, char *argv[])
         buf_free(&out);
         buf_free(&in);
     }
+
+    buf_free(&noread);
 }
 
 static
@@ -727,6 +744,7 @@ void mem(const char *appl, int argc, char *argv[])
     int c;
     int infilec;
     char **infilev;
+    struct buf noread = STATIC_BUF_INIT, *noreadp = NULL;
 
     struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
     struct common_flags flags = {NULL, DEFAULT_OUTFILE};
@@ -769,6 +787,15 @@ void mem(const char *appl, int argc, char *argv[])
         }
     }
 
+    if (options.noread_filename != NULL)
+    {
+        struct load_info info;
+        unsigned char *p =
+            memset(buf_append(&noread, NULL, 65536), 0, 65536);
+        load_located(options.noread_filename, p, &info);
+        noreadp = &noread;
+    }
+
     infilev = argv + flagind;
     infilec = argc - flagind;
 
@@ -785,6 +812,7 @@ void mem(const char *appl, int argc, char *argv[])
         generic(appl,
                 &flags,
                 print_mem_usage,
+                noreadp,
                 0,
                 1,
                 infilec, infilev);
@@ -827,7 +855,7 @@ void mem(const char *appl, int argc, char *argv[])
             buf_append_char(&out, in_load & 255);
         }
 
-        crunch(&in, NULL, &out, &options, &info);
+        crunch(&in, in_load, noreadp, &out, &options, &info);
         safety = info.needed_safety_offset;
 
         if(!options.direction_forward)
@@ -885,6 +913,7 @@ void mem(const char *appl, int argc, char *argv[])
         buf_free(&out);
         buf_free(&in);
     }
+    buf_free(&noread);
 }
 
 static
@@ -1262,6 +1291,16 @@ void sfx(const char *appl, int argc, char *argv[])
         int basic_start;
         int mode_bin = 0;
         enum file_type type;
+        struct buf noread = STATIC_BUF_INIT, *noreadp = NULL;
+
+        if (options.noread_filename != NULL)
+        {
+            struct load_info info;
+            unsigned char *p =
+                memset(buf_append(&noread, NULL, 65536), 0, 65536);
+            load_located(options.noread_filename, p, &info);
+            noreadp = &noread;
+        }
 
         entry_addrp = NULL;
         basic_var_startp = NULL;
@@ -1401,7 +1440,7 @@ void sfx(const char *appl, int argc, char *argv[])
         /* make room for load addr */
         buf_append(out, NULL, 2);
 
-        crunch(in, NULL, out, &options, &info);
+        crunch(in, in_load, noreadp, out, &options, &info);
 
         print_crunch_info(LOG_NORMAL, &info);
 
@@ -1418,6 +1457,8 @@ void sfx(const char *appl, int argc, char *argv[])
             p[0] = (in_load - safety) & 255;
             p[1] = (in_load - safety) >> 8;
         }
+
+        buf_free(&noread);
     }
 
     LOG(LOG_NORMAL, (" Target is self-decrunching %s executable",
@@ -1445,7 +1486,7 @@ void sfx(const char *appl, int argc, char *argv[])
         struct buf source;
 
         buf_init(&source);
-        decrunch(LOG_DEBUG, &sfxdecr, &source, &dopts);
+        decrunch(LOG_DEBUG, &sfxdecr, 0, &source, &dopts);
 
         in = out;
         out = &buf1;
@@ -1639,6 +1680,7 @@ void raw(const char *appl, int argc, char *argv[])
     int decrunch_mode = 0;
     int c, infilec;
     char **infilev;
+    struct buf noread = STATIC_BUF_INIT, *noreadp = NULL;
 
     struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
     struct common_flags flags = {NULL, DEFAULT_OUTFILE};
@@ -1667,15 +1709,24 @@ void raw(const char *appl, int argc, char *argv[])
         }
     }
 
+    if (options.noread_filename != NULL)
+    {
+        load_plain_file(options.noread_filename, &noread);
+        noreadp = &noread;
+    }
+
     infilev = argv + flagind;
     infilec = argc - flagind;
 
     generic(appl,
             &flags,
             print_raw_usage,
+            noreadp,
             decrunch_mode,
             0,
             infilec, infilev);
+
+    buf_free(&noread);
 }
 
 static

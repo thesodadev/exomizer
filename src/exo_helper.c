@@ -396,6 +396,7 @@ do_compress_backwards(struct match_ctx *ctxp, int ctx_count,
 }
 
 void crunch_multi(struct vec *io_bufs,
+                  struct buf *noread_in,
                   struct buf *enc_buf,
                   const struct crunch_options *options, /* IN */
                   struct crunch_info *infop) /* OUT */
@@ -424,9 +425,20 @@ void crunch_multi(struct vec *io_bufs,
          "\n-----------------------------\n"));
     for (i = 0; i < buf_count; ++i)
     {
+        struct buf nor_view;
         struct io_bufs *io = vec_get(io_bufs, i);
         struct buf *in = &io->in;
-        struct buf *noread_in = &io->noread_in;
+        const struct buf *nor = NULL;
+
+        if (noread_in != NULL)
+        {
+            int growth_req = buf_size(in) + io->in_off - buf_size(noread_in);
+            if (growth_req > 0)
+            {
+                memset(buf_append(noread_in, NULL, growth_req), 0, growth_req);
+            }
+            nor = buf_view(&nor_view, noread_in, io->in_off, buf_size(in));
+        }
 
         if (options->direction_forward == 1)
         {
@@ -435,7 +447,7 @@ void crunch_multi(struct vec *io_bufs,
             outpos[i] = buf_size(out);
         }
         inlen += buf_size(in);
-        match_ctx_init(ctxp + i, in, noread_in, options->max_len,
+        match_ctx_init(ctxp + i, in, nor, options->max_len,
                        options->max_offset, options->favor_speed);
     }
     LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", inlen));
@@ -473,7 +485,7 @@ void crunch_multi(struct vec *io_bufs,
     for (i = 0; i < buf_count; ++i)
     {
         struct io_bufs *io = vec_get(io_bufs, i);
-        struct buf *in = &io->in;
+        const struct buf *in = &io->in;
         struct buf *out = &io->out;
         struct crunch_info *info = &io->info;
 
@@ -536,6 +548,7 @@ void reverse_buffer(char *start, int len)
 }
 
 void crunch(struct buf *inbuf,
+            int in_off,
             struct buf *noread_inbuf,
             struct buf *outbuf,
             const struct crunch_options *options, /* IN */
@@ -545,16 +558,9 @@ void crunch(struct buf *inbuf,
 
     struct io_bufs *io = vec_push(&io_bufs, NULL);
     io->in = *inbuf;
+    io->in_off = in_off;
     io->out = *outbuf;
-    if (noread_inbuf != NULL)
-    {
-        io->noread_in = *noread_inbuf;
-    }
-    else
-    {
-        buf_init(&io->noread_in);
-    }
-    crunch_multi(&io_bufs, NULL, options, info);
+    crunch_multi(&io_bufs, noread_inbuf, NULL, options, info);
     *inbuf = io->in;
     *outbuf = io->out;
 
@@ -563,6 +569,7 @@ void crunch(struct buf *inbuf,
 
 void decrunch(int level,
               struct buf *inbuf,
+              int in_off,
               struct buf *outbuf,
               struct decrunch_options *dopts)
 {
@@ -609,7 +616,7 @@ void print_license(void)
 {
     LOG(LOG_WARNING,
         ("----------------------------------------------------------------------------\n"
-         "Exomizer v3.1.0pre3 Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
+         "Exomizer v3.1.0pre4 Copyright (c) 2002-2019 Magnus Lind. (magli143@gmail.com)\n"
          "----------------------------------------------------------------------------\n"));
     LOG(LOG_WARNING,
         ("This software is provided 'as-is', without any express or implied warranty.\n"
@@ -660,7 +667,8 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 65535\n"
          "  -T <options>  bitfield that controls bit stream traits. [0-7]\n"
-         "  -P <options>  bitfield that controls bit stream format. [0-63]\n"));
+         "  -P <options>  bitfield that controls bit stream format. [0-63]\n"
+         "  -N <nr_file>  controls addresses that are not to be read.\n"));
     print_base_flags(level, default_outfile);
 }
 
@@ -815,6 +823,9 @@ void handle_crunch_flags(int flag_char, /* IN */
                 options->flags_proto = flags_proto;
             }
         }
+        break;
+    case 'N':
+        options->noread_filename = flag_arg;
         break;
     default:
         handle_base_flags(flag_char, flag_arg, print_usage,

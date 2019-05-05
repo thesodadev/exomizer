@@ -48,7 +48,7 @@ extern "C" {
                                 PFLAG_BITS_COPY_GT_7 |           \
                                 PFLAG_IMPL_1LITERAL |            \
                                 PFLAG_REUSE_OFFSET,              \
-                                0, 0, 0}
+                                0, 0, 0, NULL}
 
 struct common_flags
 {
@@ -64,7 +64,7 @@ struct crunch_info
     int needed_safety_offset;
 };
 
-#define CRUNCH_FLAGS "cCe:Em:M:p:P:T:o:qBv"
+#define CRUNCH_FLAGS "cCe:Em:M:p:P:T:o:N:qBv"
 #define BASE_FLAGS "o:qBv"
 
 void print_crunch_flags(enum log_level level, const char *default_outfile);
@@ -101,6 +101,7 @@ struct crunch_options
     /* 0 backward, 1 forward */
     int direction_forward;
     int write_reverse;
+    const char *noread_filename;
 };
 
 void print_license(void);
@@ -108,17 +109,19 @@ void print_license(void);
 struct io_bufs
 {
     struct buf in;
-    struct buf noread_in;
+    int in_off;
     struct buf out;
     struct crunch_info info;
 };
 
 void crunch_multi(struct vec *io_bufs,
+                  struct buf *noread_in,
                   struct buf *enc_buf,
                   const struct crunch_options *options, /* IN */
                   struct crunch_info *merged_info); /* OUT */
 
 void crunch(struct buf *inbuf,
+            int in_off,
             struct buf *noread_inbuf,
             struct buf *outbuf,
             const struct crunch_options *options, /* IN */
@@ -136,6 +139,7 @@ struct decrunch_options
 
 void decrunch(int level,
               struct buf *inbuf,
+              int in_off,
               struct buf *outbuf,
               struct decrunch_options *dopts);
 

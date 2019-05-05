@@ -38,7 +38,7 @@
 
 struct match_node {
     int index;
-    const struct match_node *next;
+    struct match_node *next;
 };
 
 static const struct match *matches_calc(struct match_ctx *ctx, /* IN/OUT */
@@ -71,6 +71,9 @@ struct match *match_new(struct match_ctx *ctx, /* IN/OUT */
 
     return m;
 }
+
+#define IS_READABLE(NOREAD, OFFSET) \
+    ((NOREAD) == NULL || (NOREAD)[OFFSET] == 0)
 
 #define READ_BUF(IN, NOREAD, OFFSET) \
     ((NOREAD) != NULL && (NOREAD)[OFFSET] != 0 ? -1 : IN[OFFSET])
@@ -145,11 +148,13 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
     for(c = 0; c < 256; ++c)
     {
         struct match_node *prev_np;
+        struct match_node *trailing_np;
         unsigned short int rle_len;
 
         /* for each possible rle char */
         memset(rle_map, 0, 65536);
         prev_np = NULL;
+        trailing_np = NULL;
         for (i = 0; i < buf_len; ++i)
         {
             /* must be the correct char */
@@ -184,10 +189,32 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
                 LOG(LOG_DUMP, ("1) c = %d, pointed np idx %d -> %d\n",
                                 c, prev_np->index, i));
                 prev_np->next = np;
+
+                if (IS_READABLE(noread_buf, prev_np->index))
+                {
+                    trailing_np = prev_np;
+                }
+            }
+
+            if (trailing_np != NULL && IS_READABLE(noread_buf, np->index))
+            {
+                while(trailing_np != prev_np)
+                {
+                    struct match_node *tmp = trailing_np->next;
+                    trailing_np->next = np;
+                    trailing_np = tmp;
+                }
+                trailing_np = NULL;
             }
 
             ctx->info[i].single = np;
             prev_np = np;
+        }
+        while(trailing_np != NULL)
+        {
+            struct match_node *tmp = trailing_np->next;
+            trailing_np->next = NULL;
+            trailing_np = tmp;
         }
 
         memset(rle_map, 0, 65536);
@@ -215,7 +242,7 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
                                     c, i, prev_np->index));
                 }
             }
-            else
+            else if (IS_READABLE(noread_buf, np->index))
             {
                 prev_np = np;
             }
@@ -365,11 +392,11 @@ const struct match *matches_calc(struct match_ctx *ctx,        /* IN/OUT */
         }
 
         /* Here we know that the current match is atleast as long as
-         * the previuos one. let's compare further. */
+         * the previous one. let's compare further. */
         len = mp_len;
         pos = index - len;
         while(len <= ctx->max_len &&
-              pos >= 0 && buf[pos] == buf[pos + offset])
+              pos >= 0 && buf[pos] == READ_BUF(buf, noread_buf, pos + offset))
         {
             LOG(LOG_DUMP, ("2) compared sucesssfully [%d] %d %d\n",
                             index, pos, pos + offset));
