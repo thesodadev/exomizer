@@ -6,7 +6,7 @@ Release of 3.0.2 source code and Win32 binaries.
 + improved cruncher tuning for slightly improved compression on average.
 + Added sfx support for a new target, BBC Micro B (-t 0xbbcb).
 + Added -P+16 awareness to exodecrunch.s
-+ Fix bucket optimization to be -T+4 aware in search.c, Bug eported by
++ Fix bucket optimization to be -T+4 aware in search.c, Bug reported by
   Ciccioriccio.
 + Fix absolute offset overflow bug in sfxdecr.s. Bug reported by Comos.
 

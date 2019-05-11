@@ -24,6 +24,12 @@
 ;   specific prior written permission.
 ;
 ; -------------------------------------------------------------------
+; Known quirks:
+;  Can't handle a sequence reference that ends at $ffff. It is left in
+;  since it is a corner case and fixing it impacts negatively on
+;  performance or backwards compatibility.
+;  A simple way to work around this is to not decrunch to address $ffff.
+; -------------------------------------------------------------------
 ; The decruncher jsr:s to the get_crunched_byte address when it wants to
 ; read a crunched byte into A. This subroutine has to preserve X and Y
 ; register and must not modify the state of the carry nor the overflow flag.
