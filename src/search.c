@@ -168,7 +168,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
         /* check if we can do rle */
         snp = &sn_arr[len];
         if(best_rle_snp == NULL ||
-           snp->index + 65535 < best_rle_snp->index ||
+           snp->index + max_sequence_length < best_rle_snp->index ||
            snp->index + ctx->rle_r[snp->index] < best_rle_snp->index)
         {
             /* best_rle_snp can't be reached by rle from snp, reset it*/

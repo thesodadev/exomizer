@@ -55,6 +55,7 @@ void do_output_backwards(struct match_ctx *ctx,
     int diff;
     int traits_used = 0;
     int max_len = 0;
+    int max_offset = 0;
     struct output_ctx *old;
     struct output_ctx out;
     struct search_node *initial_snp;
@@ -171,6 +172,10 @@ void do_output_backwards(struct match_ctx *ctx,
                             traits_used |= TFLAG_LEN0123_SEQ_MIRRORS;
                         }
                     }
+                    if (mp->offset > max_offset)
+                    {
+                        max_offset = mp->offset;
+                    }
                     if (mp->len > max_len)
                     {
                         max_len = mp->len;
@@ -211,6 +216,7 @@ void do_output_backwards(struct match_ctx *ctx,
     {
         infop->traits_used = traits_used;
         infop->max_len = max_len;
+        infop->max_offset = max_offset;
         infop->needed_safety_offset = max_diff;
     }
 }
@@ -505,6 +511,10 @@ void crunch_multi(struct vec *io_bufs,
         {
             merged_info.max_len = info->max_len;
         }
+        if (merged_info.max_offset < info->max_offset)
+        {
+            merged_info.max_offset = info->max_offset;
+        }
         if (merged_info.needed_safety_offset < info->needed_safety_offset)
         {
             merged_info.needed_safety_offset = info->needed_safety_offset;
@@ -682,7 +692,8 @@ void print_crunch_info(enum log_level level, struct crunch_info *info)
                     info->traits_used & TFLAG_LEN0123_SEQ_MIRRORS ?
                     "" : "not "));
         LOG(level, (", max length used is %d", info->max_len));
-        LOG(level, (" and\n  the safety offset is %d.\n",
+        LOG(level, (",\n  max offset used is %d", info->max_offset));
+        LOG(level, (" and the safety offset is %d.\n",
                     info->needed_safety_offset));
 }
 

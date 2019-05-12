@@ -122,7 +122,7 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
             int len = ctx->rle[i - 1] + 1;
             if(len > ctx->max_len)
             {
-                len = 0;
+                len = ctx->max_len;
             }
             ctx->rle[i] = len;
         } else
@@ -132,15 +132,22 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
         val = READ_BUF(buf, noread_buf, i);
     }
 
+    val = READ_BUF(buf, noread_buf, 0);
     for (i = buf_len - 2; i >= 0; --i)
     {
-        if (ctx->rle[i] < ctx->rle[i + 1])
+        if (val != -1 && buf[i] == val)
         {
-            ctx->rle_r[i] = ctx->rle_r[i + 1] + 1;
+            int len = ctx->rle_r[i + 1] + 1;
+            if(len > ctx->max_len)
+            {
+                len = ctx->max_len;
+            }
+            ctx->rle_r[i] = len;
         } else
         {
             ctx->rle_r[i] = 0;
         }
+        val = READ_BUF(buf, noread_buf, i);
     }
 
     /* add extra nodes to rle sequences */

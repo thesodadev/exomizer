@@ -61,6 +61,7 @@ struct crunch_info
 {
     int traits_used;
     int max_len;
+    int max_offset;
     int needed_safety_offset;
 };
 
