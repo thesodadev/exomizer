@@ -22,9 +22,9 @@ permutate2 = $(if $(strip $(2)), $(foreach res, $(call permutate2, $(firstword $
 
 permutate = $(if $(strip $(1)), $(call permutate2, $(firstword $(1)), $(wordlist 2, $(words $(1)), $(1))))
 
-VARIANTS = $(call permutate, i M c 4 o)
+VARIANTS = $(call permutate, i M c 4 o f)
 
-VARIANT_OPT = c^-DLITERAL_SEQUENCES_NOT_USED=1^-c M^-DMAX_SEQUENCE_LENGTH_256=1^-M256 i^-DINLINE_GET_BITS=1^ o^-DDONT_REUSE_OFFSET=1^-P-32 4^-DEXTRA_TABLE_ENTRY_FOR_LENGTH_THREE=1^-P+16
+VARIANT_OPT = c^-DLITERAL_SEQUENCES_NOT_USED=1^-c M^-DMAX_SEQUENCE_LENGTH_256=1^-M256 i^-DINLINE_GET_BITS=1^ o^-DDONT_REUSE_OFFSET=1^-P-32 4^-DEXTRA_TABLE_ENTRY_FOR_LENGTH_THREE=1^-P+16 f^-DDECRUNCH_FORWARDS=1^-f
 
 echo = $(or $(info $(1) $(2)), $(2))
 
@@ -62,8 +62,9 @@ testrun.test%stream.prg: testrun test%stream.prg data%stream.exo
 testrun: testrun.o $(TEST_OBJS)
 	@$(CC) $(LDFLAGS) -o $@ testrun.o $(TEST_OBJS)
 
-test%.prg: $(MAKEFILE) main.os exodecrunch%.os
-	@ld65 main.os exodecrunch$(call variant, $@).os -o $@ -Cc64.cfg
+test%.prg: $(MAKEFILE) main%.os exodecrunch%.os
+	@echo "building $@"
+	@ld65 main$(call variant, $@).os exodecrunch$(call variant, $@).os -o $@ -Cc64.cfg
 
 $(NAMEF): $(MAKEFILE) $(SOURCESF)
 	@ld65 $(SOURCESF) -o $@ -Cc64.cfg

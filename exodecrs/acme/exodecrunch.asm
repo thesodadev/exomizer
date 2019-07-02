@@ -73,6 +73,12 @@ EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE = 0
 DONT_REUSE_OFFSET = 0
 }
 ; -------------------------------------------------------------------
+; if decrunching forwards then the following line must be uncommented.
+;DECRUNCH_FORWARDS = 1
+!ifndef DECRUNCH_FORWARDS {
+DECRUNCH_FORWARDS = 0
+}
+; -------------------------------------------------------------------
 ; zero page addresses used
 ; -------------------------------------------------------------------
 exod_zp_len_lo = $9e
@@ -229,8 +235,8 @@ exod_decrunch:
 ; -------------------------------------------------------------------
 ; prepare for main decruncher
 !if DONT_REUSE_OFFSET = 0 {
-	ror exod_zp_ro_state
-	sec
+        ror exod_zp_ro_state
+        sec
 }
         ldy exod_zp_dest_lo
         stx exod_zp_dest_lo
@@ -239,6 +245,7 @@ exod_decrunch:
 ; copy one literal byte to destination (11 bytes)
 ;
 .literal_start1:
+!if DECRUNCH_FORWARDS = 0 {
         tya
         bne .no_hi_decr
         dec exod_zp_dest_hi
@@ -247,15 +254,25 @@ exod_decrunch:
 }
 .no_hi_decr:
         dey
+}
         jsr exod_get_crunched_byte
         sta (exod_zp_dest_lo),y
+!if DECRUNCH_FORWARDS != 0 {
+        iny
+        bne skip_hi_incr
+        inc exod_zp_dest_hi
+!if DONT_REUSE_OFFSET = 0 {
+        inc exod_zp_src_hi
+}
+skip_hi_incr:
+}
 ; -------------------------------------------------------------------
 ; fetch sequence length index (15 bytes)
 ; x must be #0 when entering and contains the length index + 1
 ; when exiting or 0 for literal byte
 .next_round:
 !if DONT_REUSE_OFFSET = 0 {
-	ror exod_zp_ro_state
+        ror exod_zp_ro_state
 }
         dex
         lda exod_zp_bitbuf
@@ -344,12 +361,25 @@ exod_decrunch:
 ;
         lda .tabl_bi,x
         +exod_mac_get_bits
+!if DECRUNCH_FORWARDS = 0 {
         adc .tabl_lo,x
         sta exod_zp_src_lo
         lda exod_zp_bits_hi
         adc .tabl_hi,x
         adc exod_zp_dest_hi
         sta exod_zp_src_hi
+} else {
+        clc
+        adc .tabl_lo,x
+        eor #$ff
+        sta exod_zp_src_lo
+        lda exod_zp_bits_hi
+        adc .tabl_hi,x
+        eor #$ff
+        adc exod_zp_dest_hi
+        sta exod_zp_src_hi
+        clc
+}
 ; -------------------------------------------------------------------
 ; prepare for copy loop (2 bytes)
 ;
@@ -358,18 +388,27 @@ exod_decrunch:
 ; main copy loop (30 bytes)
 ;
 .copy_next:
+!if DECRUNCH_FORWARDS = 0 {
         tya
         bne .copy_skip_hi
         dec exod_zp_dest_hi
         dec exod_zp_src_hi
 .copy_skip_hi:
         dey
+}
 !if LITERAL_SEQUENCES_NOT_USED = 0 {
         bcs .get_literal_byte
 }
         lda (exod_zp_src_lo),y
 .literal_byte_gotten:
         sta (exod_zp_dest_lo),y
+!if DECRUNCH_FORWARDS != 0 {
+        iny
+        bne copy_skip_hi
+        inc exod_zp_dest_hi
+        inc exod_zp_src_hi
+copy_skip_hi:
+}
         dex
         bne .copy_next
 !if MAX_SEQUENCE_LENGTH_256 = 0 {
@@ -389,11 +428,6 @@ exod_decrunch:
         dec exod_zp_len_hi
         jmp .copy_next
 }
-!if LITERAL_SEQUENCES_NOT_USED = 0 {
-.get_literal_byte:
-        jsr exod_get_crunched_byte
-        bcs .literal_byte_gotten
-}
 !if DONT_REUSE_OFFSET = 0 {
 ; -------------------------------------------------------------------
 ; test for offset reuse (11 bytes)
@@ -411,7 +445,7 @@ exod_decrunch:
         sta exod_zp_bitbuf
         pla
 .gbnc1_ok:
-	rol
+        rol
         beq .no_reuse            ; bit == 0 => C=0, no reuse
         bne .copy_next           ; bit != 0 => C=0, reuse previous offset
 }
@@ -431,6 +465,11 @@ exod_decrunch:
 .decr_exit:
 }
         rts
+!if LITERAL_SEQUENCES_NOT_USED = 0 {
+.get_literal_byte:
+        jsr exod_get_crunched_byte
+        bcs .literal_byte_gotten
+}
 !if EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE != 0 {
 ; -------------------------------------------------------------------
 ; the static stable used for bits+offset for lengths 1, 2 and 3 (3 bytes)
