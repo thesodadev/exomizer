@@ -1,5 +1,16 @@
-Release of 3.0.2 source code and Win32 binaries.
++ Implement optional forward decrunching properly in exodecrunch.s and as a
+  consequence of this also remove krilldecr.s
++ Implement sequence read pointer blacklist to be able to avoid reading from
+  specified memory areas like hardware registers (Experimental feature),
+  Requested by Oziphantom.
++ update dasm and add acme exodecrunch sources
++ Improve compression by previous offset reuse, -P-32 to disable
++ Extended -e and -E to be able to reuse/calculate shared header/table info
+  for multiple cruncherd files. (Experimental feature, no direct support in
+  exodecrunch.s yet), Requested by Lazycow
+
 2019-01-05
+Release of 3.0.2 source code and Win32 binaries.
 + Add documentation about level, mem and raw outfile structure.
 + Fix raw -d -r combination to reverse the inbuffer before decrunch.
 + Fix -P0 literal sequences bug in exodec.c, Bug reported by Nino Porcino.

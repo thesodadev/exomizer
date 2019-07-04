@@ -42,9 +42,8 @@ o  raw mode:
 o  desfx mode that features decrunching of sfx crunched files.
 
 o  Contributed decruncher source (only 2.0 compatible so far)
-   1) forward 6502 decruncher by Krill (exodecrs/krilldecr.s)
-   2) z80 decrunchers by Metalbrain, Antonio Villena. (rawdecrs/z80/*)
-   3) 6809 decruncher by Edouard Forler.  (rawdecrs/6809/*)
+   1) z80 decrunchers by Metalbrain, Antonio Villena. (rawdecrs/z80/*)
+   2) 6809 decruncher by Edouard Forler.  (rawdecrs/6809/*)
 
 -------------------------------------------------------------------------------
 -- A beginning of something like documentation --------------------------------
@@ -235,9 +234,9 @@ monitors or by assembler directives like incbin.
         to be decrunched will work.
 -f      Crunch the file forward instead of backwards that is the default. This
         means that in this mode the read and write pointers move forward in
-        memory while decrunching. The exodecrunch.s does not support forward
-        decrunching. For this feature to work You'll have to use Krill's
-        contributed decruncher.
+        memory while decrunching. The exodecrunch.s file supports optional
+        forward decrunching but defaults to backwards. Read the comments in the
+        file for more details on the available options.
 
 -------------------------------------------------------------------------------
 -- The level sub command ------------------------------------------------------

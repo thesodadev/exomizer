@@ -10,11 +10,9 @@ LDFLAGS = -s
 
 TEST_OBJS = ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/areatrace.o ../src/vec.o ../src/buf_io.o ../src/buf.o
 
-SOURCESF = mainf.os krilldecr.os
 SOURCES1 = main1.os exostreamdecr1.os
 SOURCES2 = main2.os exostreamdecr2.os
 
-NAMEF = test.krill.prg
 NAME1 = test.1stream.prg
 NAME2 = test.2stream.prg
 
@@ -35,15 +33,13 @@ caopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1
 exoopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 3, $(subst ^, , $(opt))))))
 
 .PHONY: assert.data%
-.PRECIOUS: %.exo %krill.exo %stream.exo %.os test%.prg $(TEST_OBJS)
+.PRECIOUS: %.exo %stream.exo %.os test%.prg $(TEST_OBJS)
 .SECONDEXPANSION:
 
-build: testrun $$(foreach variant, $$(VARIANTS) krill 1stream 2stream, test.$$(variant).prg data.$$(variant).exo)
+build: testrun $$(foreach variant, $$(VARIANTS) 1stream 2stream, test.$$(variant).prg data.$$(variant).exo)
 	@$(RM) *.out
 	@./testrun $(foreach variant, $(VARIANTS), test.$(variant).prg data.$(variant).exo)
 	@$(MAKE) $(foreach variant, $(VARIANTS), assert.data.$(variant).exo)
-	@./testrun $(foreach variant, krill, test.$(variant).prg data.$(variant).exo)
-	@$(MAKE) $(foreach variant, krill, assert.data.$(variant).exo)
 	@./testrun $(foreach variant, 1stream 2stream, test.$(variant).prg data.$(variant).exo@0x3000)
 	@$(MAKE) $(foreach variant, 1stream 2stream, assert.data.$(variant).exo)
 
@@ -66,9 +62,6 @@ test%.prg: $(MAKEFILE) main%.os exodecrunch%.os
 	@echo "building $@"
 	@ld65 main$(call variant, $@).os exodecrunch$(call variant, $@).os -o $@ -Cc64.cfg
 
-$(NAMEF): $(MAKEFILE) $(SOURCESF)
-	@ld65 $(SOURCESF) -o $@ -Cc64.cfg
-
 $(NAME1): $(MAKEFILE) $(SOURCES1)
 	@ld65 $(SOURCES1) -o $@ -Cc64.cfg
 
@@ -83,9 +76,6 @@ clean:
 
 %.exo: $$(basename $$(basename $$@)).bin
 	@../src/exomizer mem $(call exoopt, $(call variant, $@)) -q $<,0x3000 -o $@
-
-%krill.exo: $$(basename $$(basename $$@)).bin
-	@../src/exomizer mem -f -P0 -q $<,0x3000 -o $@
 
 %stream.exo: $$(basename $$(basename $$@)).bin
 	@../src/exomizer raw -P0 -b -c -m 1024 -q -C $<,2 -o $@
