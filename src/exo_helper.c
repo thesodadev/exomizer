@@ -62,6 +62,7 @@ void do_output_backwards(struct match_ctx *ctx,
     int initial_len;
     int alignment = 0;
     int measure_alignment;
+    int len0123skip = 3;
 
     old = emd->out;
     emd->out = &out;
@@ -69,6 +70,10 @@ void do_output_backwards(struct match_ctx *ctx,
     initial_len = buf_size(outbuf);
     initial_snp = snp;
     measure_alignment = options->flags_proto & PFLAG_BITS_ALIGN_START;
+    if (options->flags_proto & PFLAG_4_OFFSET_TABLES)
+    {
+         len0123skip = 4;
+    }
     for (;;)
     {
         buf_remove(outbuf, initial_len, -1);
@@ -167,7 +172,7 @@ void do_output_backwards(struct match_ctx *ctx,
                     {
                         int lo = mp->len & 255;
                         int hi = mp->len & ~255;
-                        if (hi > 0 && (lo == 1 || lo == 2 || lo == 3))
+                        if (hi > 0 && lo < len0123skip)
                         {
                             traits_used |= TFLAG_LEN0123_SEQ_MIRRORS;
                         }
@@ -688,7 +693,7 @@ void print_crunch_info(enum log_level level, struct crunch_info *info)
                     info->traits_used & TFLAG_LIT_SEQ ? "" : "not "));
         LOG(level, (", length 1 sequences are %sused",
                     info->traits_used & TFLAG_LEN1_SEQ ? "" : "not "));
-        LOG(level, (",\n  length 123 mirrors are %sused",
+        LOG(level, (",\n  length 0123 mirrors are %sused",
                     info->traits_used & TFLAG_LEN0123_SEQ_MIRRORS ?
                     "" : "not "));
         LOG(level, (", max length used is %d", info->max_len));

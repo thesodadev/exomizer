@@ -83,6 +83,18 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
     int skip_len0123_mirrors = flags_notrait & TFLAG_LEN0123_SEQ_MIRRORS;
     int len = ctx->len + 1;
 
+    if (skip_len0123_mirrors)
+    {
+        if (flags_proto & PFLAG_4_OFFSET_TABLES)
+        {
+            skip_len0123_mirrors = 4;
+        }
+        else
+        {
+            skip_len0123_mirrors = 3;
+        }
+    }
+
     progress_init(&prog, "finding.shortest.path.",len, 0);
 
     sn_arr = malloc(len * sizeof(struct search_node));
@@ -298,7 +310,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
                     tmp.len < 4 ||
                     tmp.len < bucket_len_start ||
                     (skip_len0123_mirrors && tmp.len > 255 &&
-                     (tmp.len & 255) < 4))
+                     (tmp.len & 255) < skip_len0123_mirrors))
                 {
                     score = f(&tmp, emd, prev_snp->latest_offset,
                               &match_buckets);

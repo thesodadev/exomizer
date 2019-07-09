@@ -44,8 +44,9 @@ o  There is a new -T<bit-field> flag that controls traits of the bit stream that
 
    bit 0  Disallow literal sequences, 0 allow, 1 disallow
    bit 1  Disallow sequences with length 1, 0 allow, 1 disallow
-   bit 2  Disallow sequences with length > 255 and (length & 255) < 3, 0 allow,
-          1 disallow
+   bit 2  Disallow sequences with lengths (256*m + n) where m > 0 and n is in
+          the interval [0 - p] and p is 2 or 3 depending on bit 4 of the
+	  -P<bit-field>, 0 allow, 1 disallow
 
 o  The sfx decruncher and exodecrs/exodecrunch.s take advantage of the new bit
    stream format for decrunching speed improvements. They also become faster if
