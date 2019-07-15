@@ -177,6 +177,13 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
                 continue;
             }
 
+            /* (ctx->rle_r[i] > 16 && ctx->rle[i] > 416)
+             * below won't affect crunch result for my test files */
+            if (ctx->rle_r[i] > 0 && ctx->rle[i] > 64)
+            {
+                continue;
+            }
+
             if (favor_speed &&
                 ctx->rle_r[i] != 0 && ctx->rle[i] != 0)
             {

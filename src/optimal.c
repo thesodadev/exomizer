@@ -724,6 +724,8 @@ void optimal_optimize(struct encode_match_data *emd,    /* IN/OUT */
     offset[4] = optimize(offset_arr[4], offset_parr[4], 1 << 4, 4);
     offset[5] = optimize(offset_arr[5], offset_parr[5], 1 << 4, 4);
     offset[6] = optimize(offset_arr[6], offset_parr[6], 1 << 4, 4);
+    /* optimize(offset_arr[7], offset_parr[7], 1 << 5, 5)
+     * below improves result for for larger offsets */
     offset[7] = optimize(offset_arr[7], offset_parr[7], 1 << 4, 4);
 
     if(IS_LOGGABLE(LOG_DEBUG))
