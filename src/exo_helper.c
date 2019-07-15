@@ -432,8 +432,9 @@ void crunch_multi(struct vec *io_bufs,
     }
 
     LOG(LOG_NORMAL,
-        ("\nPhase 1: Instrumenting file"
-         "\n-----------------------------\n"));
+        ("\nPhase 1: Preprocessing file%s"
+         "\n---------------------------%s\n",
+         (buf_count == 1 ? "" : "s"), (buf_count == 1 ? "" : "-")));
     for (i = 0; i < buf_count; ++i)
     {
         struct buf nor_view;
@@ -462,7 +463,7 @@ void crunch_multi(struct vec *io_bufs,
                        options->max_offset, options->favor_speed);
     }
     LOG(LOG_NORMAL, (" Length of indata: %d bytes.\n", inlen));
-    LOG(LOG_NORMAL, (" Instrumenting file%s, done.\n",
+    LOG(LOG_NORMAL, (" Preprocessing file%s, done.\n",
                      (buf_count == 1 ? "" : "s")));
 
     emd.out = NULL;
@@ -477,8 +478,8 @@ void crunch_multi(struct vec *io_bufs,
 
     LOG(LOG_NORMAL,
         ("\nPhase 3: Generating output file%s"
-         "\n------------------------------\n",
-         (buf_count == 1 ? "" : "s")));
+         "\n-------------------------------%s\n",
+         (buf_count == 1 ? "" : "s"), (buf_count == 1 ? "" : "-")));
     LOG(LOG_NORMAL, (" Enc: %s\n", (char*)buf_data(&exported_enc)));
 
     if (enc_buf != NULL)

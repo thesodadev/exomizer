@@ -365,7 +365,6 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
     {
         LOG(LOG_ERROR, ("No matches at len %d.\n", len));
     }
-    LOG(LOG_NORMAL, ("\n"));
 
     progress_free(&prog);
 

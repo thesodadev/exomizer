@@ -279,8 +279,6 @@ void match_ctx_init(struct match_ctx *ctx,         /* IN/OUT */
         progress_bump(&prog, i);
     }
 
-    LOG(LOG_NORMAL, ("\n"));
-
     progress_free(&prog);
 }
 

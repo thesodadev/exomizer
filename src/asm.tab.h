@@ -167,7 +167,4 @@ extern YYSTYPE yylval;
 
 int yyparse (void);
 
-#ifdef __cplusplus
-}
-#endif
 #endif /* !YY_YY_ASM_TAB_H_INCLUDED  */

@@ -73,4 +73,5 @@ void progress_bump(struct progress *p, int pos)
 
 void progress_free(struct progress *p)
 {
+    LOG_TTY(LOG_NORMAL, ("\n"));
 }

@@ -168,7 +168,7 @@ do_load(const char *file_name, struct buf *mem)
     buf_remove(mem, info.end, -1);
     buf_remove(mem, 0, info.start);
 
-    LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
+    LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.\n",
                      info.start, info.end));
     return info.start;
 }
@@ -839,7 +839,7 @@ void mem(const char *appl, int argc, char *argv[])
         in_load = do_loads(infilec, infilev, &in, -1, -1, 0, NULL, NULL, NULL);
         in_len = buf_size(&in);
 
-        LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
+        LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.\n",
                          in_load, in_load + in_len));
 
         /* make room for load addr */
@@ -1377,7 +1377,7 @@ void sfx(const char *appl, int argc, char *argv[])
             exit(1);
         }
 
-        LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.",
+        LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.\n",
                          in_load, in_load + in_len));
 
         if(decr_target == 20 || decr_target == 52)
