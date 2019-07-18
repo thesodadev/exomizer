@@ -36,7 +36,7 @@ extern "C" {
 #include "vec.h"
 
 struct match {
-    unsigned short int offset;
+    unsigned int offset;
     unsigned short int len;
     const struct match *next;
 };

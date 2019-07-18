@@ -161,7 +161,7 @@ float optimal_encode_int(int arg, void *priv, struct output_ctx *out,
 
 float optimal_encode(const struct match *mp,
                      struct encode_match_data *emd,
-                     unsigned short prev_offset,
+                     unsigned int prev_offset,
                      struct encode_match_buckets *embp)
 {
     struct interval_node **offset;
@@ -280,7 +280,7 @@ struct optimize_arg {
     struct chunkpool in_pool;
 };
 
-#define CACHE_KEY(START, DEPTH, MAXDEPTH) ((int)((START)*(MAXDEPTH)|DEPTH))
+#define CACHE_KEY(START, DEPTH) ((int)((START)*32+DEPTH))
 
 static struct interval_node *optimize1(struct optimize_arg *arg, int start,
                                        int depth, int init)
@@ -300,7 +300,7 @@ static struct interval_node *optimize1(struct optimize_arg *arg, int start,
         {
             break;
         }
-        key = CACHE_KEY(start, depth, arg->max_depth);
+        key = CACHE_KEY(start, depth);
         best_inp = radix_node_get(&arg->cache, key);
         if (best_inp != NULL)
         {
@@ -316,10 +316,10 @@ static struct interval_node *optimize1(struct optimize_arg *arg, int start,
             end = start + (1 << i);
 
             start_count = end_count = 0;
-            if (start < 65536)
+            if (start < 1000000)
             {
                 start_count = arg->stats[start];
-                if (end < 65536)
+                if (end < 1000000)
                 {
                     end_count = arg->stats[end];
                 }
@@ -379,7 +379,7 @@ static struct interval_node *optimize1(struct optimize_arg *arg, int start,
     return best_inp;
 }
 
-static struct interval_node *optimize(int stats[65536], int stats2[65536],
+static struct interval_node *optimize(int stats[], int stats2[],
                                       int max_depth, int flags)
 {
     struct optimize_arg arg;
@@ -588,7 +588,7 @@ void optimal_free(struct encode_match_data *emd)        /* IN */
     data->len_f_priv = NULL;
 }
 
-void freq_stats_dump(int level, int arr[65536])
+void freq_stats_dump(int level, int arr[])
 {
     int i;
     for (i = 0; i < 32; ++i)
@@ -598,7 +598,7 @@ void freq_stats_dump(int level, int arr[65536])
     LOG(level, ("\n"));
 }
 
-void freq_stats_dump_raw(int level, int arr[65536])
+void freq_stats_dump_raw(int level, int arr[])
 {
     int i;
     for (i = 0; i < 32; ++i)
@@ -615,9 +615,9 @@ void optimal_optimize(struct encode_match_data *emd,    /* IN/OUT */
     struct encode_match_priv *data;
     const struct match *mp;
     struct interval_node **offset;
-    static int offset_arr[8][65536];
-    static int offset_parr[8][65536];
-    static int len_arr[65536];
+    static int offset_arr[8][1000000];
+    static int offset_parr[8][1000000];
+    static int len_arr[1000000];
     int treshold;
 
     int i, j;
@@ -708,7 +708,7 @@ void optimal_optimize(struct encode_match_data *emd,    /* IN/OUT */
         }
     }
 
-    for (i = 65534; i >= 0; --i)
+    for (i = 999998; i >= 0; --i)
     {
         for (j = 0; j < 8; ++j)
         {

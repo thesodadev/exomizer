@@ -36,7 +36,7 @@ extern "C" {
 
 float optimal_encode(const struct match *mp,   /* IN */
                      struct encode_match_data *emp,     /* IN */
-                     unsigned short prev_offset, /* IN */
+                     unsigned int prev_offset, /* IN */
                      struct encode_match_buckets *embp);/* OUT */
 
 void optimal_init(struct encode_match_data *emp,        /* IN/OUT */

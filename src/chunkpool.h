@@ -40,6 +40,7 @@ struct chunkpool {
     int item_end;
     void *current_chunk;
     struct vec used_chunks;
+    int alloc_count;
 };
 
 void

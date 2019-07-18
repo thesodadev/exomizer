@@ -32,7 +32,7 @@
 #include "radix.h"
 #include "chunkpool.h"
 
-#define RADIX_TREE_NODE_RADIX 11U
+#define RADIX_TREE_NODE_RADIX 8U
 #define RADIX_TREE_NODE_MASK  ((1U << RADIX_TREE_NODE_RADIX) - 1U)
 
 struct radix_node {

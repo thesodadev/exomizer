@@ -35,8 +35,8 @@ extern "C" {
 #include "output.h"
 
 struct encode_int_bucket {
-    unsigned short start;
-    unsigned short end;
+    unsigned int start;
+    unsigned int end;
 };
 
 struct encode_match_buckets {
@@ -50,7 +50,7 @@ struct search_node {
     unsigned int total_offset;
     float total_score;
     struct search_node *prev;
-    unsigned short latest_offset;
+    unsigned int latest_offset;
 };
 
 struct encode_match_data {
@@ -86,7 +86,7 @@ struct encode_match_priv {
 
 typedef float encode_match_f(const struct match *mp,
                              struct encode_match_data *emd,     /* IN */
-                             unsigned short prev_offset,
+                             unsigned int prev_offset,
                              struct encode_match_buckets *embp);    /* OUT */
 
 void search_node_dump(const struct search_node *snp);        /* IN */

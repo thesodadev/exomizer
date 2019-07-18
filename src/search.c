@@ -39,7 +39,7 @@ static void update_snp(struct search_node *snp,
                        struct match *match,
                        int flags_proto)
 {
-    unsigned short latest_offset = 0;
+    unsigned int latest_offset = 0;
     snp->total_score = total_score;
     snp->total_offset = total_offset;
     snp->prev = prev;
