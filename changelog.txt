@@ -7,7 +7,7 @@
 + update dasm and add acme exodecrunch sources
 + Improve compression by previous offset reuse, -P-32 to disable
 + Extended -e and -E to be able to reuse/calculate shared header/table info
-  for multiple cruncherd files. (Experimental feature, no direct support in
+  for multiple crunched files. (Experimental feature, no direct support in
   exodecrunch.s yet), Requested by Lazycow
 
 2019-01-05

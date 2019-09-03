@@ -119,7 +119,7 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
      * it works the way it is. The last time
      * I examined this code I was certain it was
      * broken and broke it myself, trying to fix it. */
-    while (len > 0 && (mp = matches_get(ctx, len - 1)) != NULL)
+    for (;;)
     {
         float prev_score;
         float latest_offset_sum;
@@ -275,6 +275,11 @@ void search_buffer(struct match_ctx *ctx,       /* IN */
         }
         /* end of rle optimization */
 
+        if (len == 0)
+        {
+            break;
+        }
+        mp = matches_get(ctx, len - 1);
         LOG(LOG_DUMP,
             ("matches for index %d with total score %0.1f\n",
              len - 1, snp->total_score));
