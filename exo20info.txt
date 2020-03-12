@@ -258,7 +258,7 @@ bytes from secondary storage.
 
  The sfx command generates a runnable stand alone in memory decrunching file.
 Its first argument must always be the run address. It may be given as an
-address or of the following string sys, systrim, vin and basic.
+address or of the following string sys, systrim, bin and basic.
 
  If the run address is an actual address then it will be used as the target
 address of a jmp instruction executed after the decrunching.
