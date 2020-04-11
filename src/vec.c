@@ -69,6 +69,11 @@ int vec_size(const struct vec *p)
     return size;
 }
 
+void vec_reserve(struct vec *p, int capacity)
+{
+    buf_reserve(&p->buf, p->elsize * capacity);
+}
+
 void *vec_get(const struct vec *p, int index)
 {
     char *buf = NULL;

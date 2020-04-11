@@ -48,7 +48,7 @@ extern "C" {
                                 PFLAG_BITS_COPY_GT_7 |           \
                                 PFLAG_IMPL_1LITERAL |            \
                                 PFLAG_REUSE_OFFSET,              \
-                                0, 0, 0, NULL}
+                                0, 0, 0, 0, NULL}
 
 struct common_flags
 {
@@ -56,7 +56,7 @@ struct common_flags
     const char *outfile;
 };
 
-#define STATIC_CRUNCH_INFO_INIT {0, 0, 0}
+#define STATIC_CRUNCH_INFO_INIT {0, 0, 0, 0}
 struct crunch_info
 {
     int traits_used;
@@ -102,6 +102,7 @@ struct crunch_options
     /* 0 backward, 1 forward */
     int direction_forward;
     int write_reverse;
+    int merge_multi;
     const char *noread_filename;
 };
 
@@ -112,8 +113,11 @@ struct io_bufs
     struct buf in;
     int in_off;
     struct buf out;
+    int write_start;
     struct crunch_info info;
 };
+
+void io_bufs_free(void *a);
 
 void crunch_multi(struct vec *io_bufs,
                   struct buf *noread_in,

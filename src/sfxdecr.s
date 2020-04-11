@@ -29,6 +29,7 @@
 ; -- r_in_load, done /* required, load address of decrunched data area */
 ; -- r_in_len, done /* required, length of decrunched data area */
 ; -- i_literal_sequences_used, done /* defined if true, otherwise not */
+; -- i_fragments_used, done /* defined if true, otherwise not */
 ; -- i_max_sequence_length_256, done /* defined if true, otherwise not */
 ; -- i_reuse_offset, done /* defined if true, otherwise not */
 ; -- i_ram_enter, done /* undef=c_rom_config_value */
@@ -47,7 +48,7 @@
 ; -- i_load_addr, done /* optional, if set no basic stub, loads to value */
 ; -- i_raw, done /* optional, if defined and != 0 outfile is raw */
 ; -- i_perf, done [-1 (slow/short), 0(default), 1, 2(fast/large)
-; -- the crunched file to it.
+; -- i_write_start, done /* undef=auto */
 ; -------------------------------------------------------------------
 ; - if basic start --------------------------------------------------
 ; -- i_basic_txt_start    /* will be set before basic start, if defined */
@@ -1408,17 +1409,22 @@ no_fixup_lohi:
           .INCLUDE("stage2_exit_hook")
         .ENDIF
 ; ###################################################################
+.IF(.DEFINED(i_write_start))
+v_write_start = i_write_start
+.ELSE
+v_write_start = v_highest_addr
+.ENDIF
 .IF(i_perf == -1)
 ; ###################################################################
 ; ## tiny start #####################################################
 ; ###################################################################
-        ldy #(v_highest_addr - 1) % 256
+        ldy #(v_write_start - 1) % 256
         jmp begin
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
+        .WORD((((v_write_start - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
@@ -1605,6 +1611,15 @@ exit_or_lit_seq:
         tax
         bcs copy_next
 decr_exit:
+.ELIF(.DEFINED(i_fragments_used))
+        beq decr_exit
+        jsr get_crunched_byte
+        sta <zp_dest_hi
+        jsr get_crunched_byte
+        tay
+        ldx #0
+        jmp begin
+decr_exit:
 .ENDIF
 .IF(.DEFINED(exit_hook))
   .INCLUDE("exit_hook")
@@ -1632,14 +1647,14 @@ tabl_bit:
 ; ###################################################################
 ; ## small start ####################################################
 ; ###################################################################
-        ldy #(v_highest_addr - 1) % 256
+        ldy #(v_write_start - 1) % 256
         txa
         jmp begin_stx
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
+        .WORD((((v_write_start - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
@@ -1847,6 +1862,15 @@ exit_or_lit_seq:
         tax
         bcs copy_next
 decr_exit:
+.ELIF(.DEFINED(i_fragments_used))
+        beq decr_exit
+        jsr get_crunched_byte
+        sta <zp_dest_hi
+        jsr get_crunched_byte
+        tay
+        ldx #0
+        jmp begin
+decr_exit:
 .ENDIF
 .IF(.DEFINED(exit_hook))
   .INCLUDE("exit_hook")
@@ -1874,14 +1898,14 @@ tabl_bit:
 ; ###################################################################
 ; ## quick start ####################################################
 ; ###################################################################
-        ldy #(v_highest_addr - 1) % 256
+        ldy #(v_write_start - 1) % 256
         txa
         jmp begin_stx
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
+        .WORD((((v_write_start - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
@@ -2098,6 +2122,15 @@ exit_or_lit_seq:
         tax
         bcs copy_next
 decr_exit:
+.ELIF(.DEFINED(i_fragments_used))
+        beq decr_exit
+        jsr get_crunched_byte
+        sta <zp_dest_hi
+        jsr get_crunched_byte
+        tay
+        ldx #0
+        jmp begin
+decr_exit:
 .ENDIF
 .IF(.DEFINED(exit_hook))
   .INCLUDE("exit_hook")
@@ -2125,14 +2158,14 @@ tabl_bit:
 ; ###################################################################
 ; ## fast start #####################################################
 ; ###################################################################
-        ldy #v_highest_addr % 256
+        ldy #v_write_start % 256
         txa
         jmp begin_stx
 ; -------------------------------------------------------------------
 ; -- end of stage 2 -------------------------------------------------
 ; -------------------------------------------------------------------
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
-        .WORD(((v_highest_addr % 65536) / 256) * 256) ; => zp_dest_lo/hi
+        .WORD(((v_write_start % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
         .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
@@ -2354,6 +2387,15 @@ exit_or_lit_seq:
         jsr get_crunched_byte
         tax
         bcs copy_next
+decr_exit:
+.ELIF(.DEFINED(i_fragments_used))
+        beq decr_exit
+        jsr get_crunched_byte
+        sta <zp_dest_hi
+        jsr get_crunched_byte
+        tay
+        ldx #0
+        jmp begin
 decr_exit:
 .ENDIF
 .IF(.DEFINED(exit_hook))

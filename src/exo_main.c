@@ -438,7 +438,8 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "                (don't change Y-reg)\n"
          "  -f<custom exit assembler fragment>\n"
          "                assembler fragment o execute when the decruncher has\n"
-         "                finished\n"));
+         "                finished\n"
+         "  -a<extra patch files>\n"));
     LOG(level,
         ("  -y<custom sys epilogue assembler fragment>\n"
          "                assembler fragment for bytes that are listed at the end of\n"
@@ -466,12 +467,6 @@ void print_desfx_usage(const char *appl, enum log_level level,
     print_base_flags(level, default_outfile);
 }
 
-struct io_bufs_located
-{
-    struct io_bufs io;
-    int write_location;
-};
-
 static
 void generic(const char *appl,
              struct common_flags *flags,
@@ -484,7 +479,7 @@ void generic(const char *appl,
     struct buf name_buf = STATIC_BUF_INIT;
     struct buf enc_buf = STATIC_BUF_INIT;
 
-    struct vec entries = STATIC_VEC_INIT(sizeof(struct io_bufs_located));
+    struct vec entries = STATIC_VEC_INIT(sizeof(struct io_bufs));
     struct crunch_options *options = flags->options;
     int c;
 
@@ -518,25 +513,25 @@ void generic(const char *appl,
 
     for (c = 0; c < infilec; ++c)
     {
-        struct io_bufs_located *io = vec_push(&entries, NULL);
-        struct buf *inbuf = &io->io.in;
-        struct buf *outbuf = &io->io.out;
+        struct io_bufs *io = vec_push(&entries, NULL);
+        struct buf *inbuf = &io->in;
+        struct buf *outbuf = &io->out;
         buf_init(inbuf);
         buf_init(outbuf);
-        io->write_location = -1;
+        io->write_start = -1;
 
         if (located_mode)
         {
-            io->io.in_off = do_load(infilev[c], inbuf);
-            io->write_location = io->io.in_off;
+            io->in_off = do_load(infilev[c], inbuf);
+            io->write_start = io->in_off;
             if (options->direction_forward == 0)
             {
-                io->write_location += buf_size(inbuf);
+                io->write_start += buf_size(inbuf);
             }
         }
         else
         {
-            io->io.in_off = 0;
+            io->in_off = 0;
             load_plain_file(infilev[c], inbuf);
             LOG(LOG_BRIEF, (" Reading %d bytes from \"%s\".\n",
                             buf_size(inbuf), infilev[c]));
@@ -553,10 +548,10 @@ void generic(const char *appl,
         int inlen;
         int outlen;
         struct decrunch_options dopts;
-        struct io_bufs_located *io = vec_get(&entries, 0);
-        struct buf *inbuf = &io->io.in;
-        int in_off = io->io.in_off;
-        struct buf *outbuf = &io->io.out;
+        struct io_bufs *io = vec_get(&entries, 0);
+        struct buf *inbuf = &io->in;
+        int in_off = io->in_off;
+        struct buf *outbuf = &io->out;
 
         dopts.direction_forward = options->direction_forward;
         dopts.write_reverse = options->write_reverse;
@@ -579,26 +574,26 @@ void generic(const char *appl,
     }
     for (c = 0; c < infilec; ++c)
     {
-        struct io_bufs_located *io = vec_get(&entries, c);
-        struct buf *inbuf = &io->io.in;
-        struct buf *outbuf = &io->io.out;
+        struct io_bufs *io = vec_get(&entries, c);
+        struct buf *inbuf = &io->in;
+        struct buf *outbuf = &io->out;
         const char *p;
 
-        if (io->write_location != -1)
+        if (io->write_start != -1)
         {
             if (options->direction_forward == 0)
             {
                 /* append the write location of decrunching */
                 unsigned char *p = buf_insert(outbuf, -1, NULL, 2);
-                p[0] = io->write_location & 255;
-                p[1] = io->write_location >> 8;
+                p[0] = io->write_start & 255;
+                p[1] = io->write_start >> 8;
             }
             else
             {
                 /* prepend the write location of decrunching */
                 unsigned char *p = buf_insert(outbuf, 0, NULL, 2);
-                p[0] = io->write_location >> 8;
-                p[1] = io->write_location & 255;
+                p[0] = io->write_start >> 8;
+                p[1] = io->write_start & 255;
             }
         }
 
@@ -1033,7 +1028,6 @@ static void do_effect(const char *appl, int no_effect, const char *fast,
 static
 void sfx(const char *appl, int argc, char *argv[])
 {
-    int in_load;
     int in_len;
     int basic_txt_start = -1;
     int basic_var_start = -1;
@@ -1053,16 +1047,13 @@ void sfx(const char *appl, int argc, char *argv[])
     int infilec;
     char **infilev;
 
-    struct crunch_info info;
-
     struct crunch_options options = CRUNCH_OPTIONS_DEFAULT;
     struct common_flags flags = {NULL, DEFAULT_OUTFILE};
     const struct target_info *targetp;
 
-    struct buf buf1;
-
-    struct buf *in;
-    struct buf *out;
+    struct vec fragment_names = STATIC_VEC_INIT(sizeof(const char *));
+    struct vec io_bufs = STATIC_VEC_INIT(sizeof(struct io_bufs));
+    struct io_bufs *io;
 
     options.flags_proto = PFLAG_BITS_ORDER_BE | PFLAG_BITS_COPY_GT_7 |
         PFLAG_REUSE_OFFSET;
@@ -1157,7 +1148,7 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "nD:t:x:X:s:f:y:%s", CRUNCH_FLAGS);
+    sprintf(flags_arr, "nD:t:x:X:s:f:y:a:%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
@@ -1229,10 +1220,15 @@ void sfx(const char *appl, int argc, char *argv[])
                 exit(1);
             }
             break;
+        case 'a':
+            vec_push(&fragment_names, &flagarg);
+            options.merge_multi = 1;
+            break;
         default:
             handle_crunch_flags(c, flagarg, print_sfx_usage, appl, &flags);
         }
     }
+    vec_reserve(&io_bufs, vec_size(&fragment_names) + 1);
 
     {
         int required = PFLAG_BITS_ORDER_BE | PFLAG_BITS_COPY_GT_7;
@@ -1255,6 +1251,10 @@ void sfx(const char *appl, int argc, char *argv[])
             options.flags_proto &= ~unsupported;
         }
         options.flags_notrait |= TFLAG_LEN0123_SEQ_MIRRORS;
+        if (options.merge_multi)
+        {
+            options.flags_notrait |= TFLAG_LIT_SEQ;
+        }
     }
 
     if (options.flags_proto & PFLAG_4_OFFSET_TABLES)
@@ -1286,9 +1286,9 @@ void sfx(const char *appl, int argc, char *argv[])
                    sys_epilogue, strlen(sys_epilogue));
     }
 
-    buf_init(&buf1);
-    in = &buf1;
-    out = new_initial_named_buffer("crunched_data");
+    io = vec_push(&io_bufs, NULL);
+    buf_init(&io->in);
+    buf_init(&io->out);
 
     infilev = argv + flagind + 1;
     infilec = argc - flagind - 1;
@@ -1358,9 +1358,9 @@ void sfx(const char *appl, int argc, char *argv[])
             mode_bin = 1;
         }
 
-        in_load = do_loads(infilec, infilev, in,
-                           basic_start, targetp->sys_token, trim_sys,
-                           basic_var_startp, entry_addrp, &type);
+        io->in_off = do_loads(infilec, infilev, &io->in,
+                              basic_start, targetp->sys_token, trim_sys,
+                              basic_var_startp, entry_addrp, &type);
 
         /* if "sfx bin or explicit run address given */
         if (!decr_target_set && (mode_bin || entry_addr >= 0))
@@ -1389,78 +1389,80 @@ void sfx(const char *appl, int argc, char *argv[])
         }
         if (mode_bin)
         {
-            set_initial_symbol_soft("i_load_addr", in_load);
+            set_initial_symbol_soft("i_load_addr", io->in_off);
             if (decr_target == 0xa2 && type == APPLESINGLE_SYS)
             {
                 /* magic for indicating Apple ][ PRODOS system file */
                 set_initial_symbol_soft("i_a2_file_type", 0xff);
             }
         }
-        in_len = buf_size(in);
+        in_len = buf_size(&io->in);
+        io->write_start = io->in_off + in_len;
 
-        if(in_load + in_len > targetp->end_of_ram)
+        if(io->write_start > targetp->end_of_ram)
         {
             LOG(LOG_ERROR, ("Error:\n The memory of the %s target ends at "
                             "$%04X and can't hold the\n uncrunched data "
                             "that covers $%04X to $%04X.\n",
                             targetp->model, targetp->end_of_ram,
-                            in_load, in_load + in_len));
+                            io->in_off, io->write_start));
             exit(1);
         }
 
         LOG(LOG_NORMAL, (" Crunching from $%04X to $%04X.\n",
-                         in_load, in_load + in_len));
+                         io->in_off, io->write_start));
 
         if(decr_target == 20 || decr_target == 52)
         {
             /* these are vic20 targets with a memory hole from
              * $0400-$1000. Each page is filled with the value of the
              * high-byte of its address. */
-            if(in_load >= 0x0400 && in_load + in_len <= 0x1000)
+            if(io->in_off >= 0x0400 && io->write_start <= 0x1000)
             {
                 /* all the loaded data is in the memory hole.*/
                 LOG(LOG_ERROR,
                     ("Error: all data loaded to the memory hole.\n"));
                 exit(1);
             }
-            else if(in_load >= 0x0400 && in_load < 0x1000 &&
-                    in_load + in_len > 0x1000)
+            else if(io->in_off >= 0x0400 && io->in_off < 0x1000 &&
+                    io->write_start > 0x1000)
             {
                 /* The data starts in the memory hole and ends in
                  * RAM. We need to adjust the start. */
-                int diff = 0x1000 - in_load;
-                in_load += diff;
+                int diff = 0x1000 - io->in_off;
+                io->in_off += diff;
                 in_len -= diff;
-                buf_remove(in, 0, diff);
+                buf_remove(&io->in, 0, diff);
                 LOG(LOG_WARNING,
                     ("Warning, trimming address interval to $%04X-$%04X.\n",
-                     in_load, in_load + in_len));
+                     io->in_off, io->write_start));
             }
-            else if(in_load < 0x0400 &&
-                    in_load + in_len >= 0x0400 && in_load + in_len < 0x1000)
+            else if(io->in_off < 0x0400 &&
+                    io->write_start >= 0x0400 &&
+                    io->write_start < 0x1000)
             {
                 /* The data starts in RAM and ends in the memory
                  * hole. We need to adjust the end. */
-                int diff = in_load + in_len - 0x0400;
+                int diff = io->write_start - 0x0400;
                 in_len -= diff;
-                buf_remove(in, in_len, -1);
+                buf_remove(&io->in, in_len, -1);
                 LOG(LOG_WARNING,
                     ("Warning, trimming address interval to $%04X-$%04X.\n",
-                     in_load, in_load + in_len));
+                     io->in_off, io->write_start));
             }
-            else if(in_load < 0x0400 && in_load + in_len > 0x1000)
+            else if(io->in_off < 0x0400 && io->write_start > 0x1000)
             {
                 /* The data starts in RAM covers the memory hole and
                  * ends in RAM. */
                 int hi, lo;
                 char *p;
-                p = buf_data(in);
+                p = buf_data(&io->in);
                 for(hi = 0x04; hi < 0x10; hi += 0x01)
                 {
                     for(lo = 0; lo < 256; ++lo)
                     {
                         int addr = (hi << 8) | lo;
-                        p[addr - in_load] = hi;
+                        p[addr - io->in_off] = hi;
                     }
                 }
                 LOG(LOG_NORMAL, ("Memory hole at interval $0400-$1000 "
@@ -1469,24 +1471,47 @@ void sfx(const char *appl, int argc, char *argv[])
         }
 
         /* make room for load addr */
-        buf_append(out, NULL, 2);
+        buf_append(&io->out, NULL, 2);
 
-        crunch(in, in_load, noreadp, out, &options, &info);
+        /* load fragments */
+        if (options.merge_multi)
+        {
+            struct vec_iterator i;
+            const char **fnamep;
+            struct io_bufs *fio = NULL;
 
-        print_crunch_info(LOG_NORMAL, &info);
+            vec_get_iterator(&fragment_names, &i);
+            while ((fnamep = vec_iterator_next(&i)) != NULL)
+            {
+                fio = vec_push(&io_bufs, NULL);
+                buf_init(&fio->in);
+                buf_init(&fio->out);
 
-        safety = info.needed_safety_offset;
+                fio->in_off = do_load(*fnamep, &fio->in);
+                fio->write_start = fio->in_off + buf_size(&fio->in);
+            }
 
-        /* append the in_loading address of decrunching */
-        buf_append_char(out, (in_load + in_len) & 255);
-        buf_append_char(out, (in_load + in_len) >> 8);
+            /* use the last fragment write start */
+            set_initial_symbol("i_write_start", fio->write_start);
+            set_initial_symbol("i_fragments_used", 1);
+        }
+
+        crunch_multi(&io_bufs, noreadp, NULL, &options, &io->info);
+
+        print_crunch_info(LOG_NORMAL, &io->info);
+
+        safety = io->info.needed_safety_offset;
+
+        /* append the write_start address of decrunching */
+        buf_append_char(&io->out, (io->write_start) & 255);
+        buf_append_char(&io->out, (io->write_start) >> 8);
 
         /* prepend load addr */
         {
             char *p;
-            p = buf_data(out);
-            p[0] = (in_load - safety) & 255;
-            p[1] = (in_load - safety) >> 8;
+            p = buf_data(&io->out);
+            p[0] = (io->in_off - safety) & 255;
+            p[1] = (io->in_off - safety) >> 8;
         }
 
         buf_free(&noread);
@@ -1519,15 +1544,17 @@ void sfx(const char *appl, int argc, char *argv[])
         buf_init(&source);
         decrunch(LOG_DEBUG, &sfxdecr, 0, &source, &dopts);
 
-        in = out;
-        out = &buf1;
-        buf_clear(out);
+        /* copy the crunched data to a new named buffer */
+        buf_replace(new_initial_named_buffer("crunched_data"), 0, -1,
+                    buf_data(&io->out), buf_size(&io->out));
+        /* reuse out for the assembler output */
+        buf_clear(&io->out);
 
         set_initial_symbol("r_start_addr", entry_addr);
         /*initial_symbol_dump( LOG_NORMAL, "r_start_addr");*/
         set_initial_symbol("r_target", decr_target);
         /*initial_symbol_dump( LOG_NORMAL, "r_target");*/
-        set_initial_symbol("r_in_load", in_load);
+        set_initial_symbol("r_in_load", io->in_off);
         /*initial_symbol_dump( LOG_NORMAL, "r_in_addr");*/
         set_initial_symbol("r_in_len", in_len);
         /*initial_symbol_dump( LOG_NORMAL, "r_in_len");*/
@@ -1554,18 +1581,18 @@ void sfx(const char *appl, int argc, char *argv[])
             }
         }
 
-        if(info.traits_used & TFLAG_LIT_SEQ)
+        if(io->info.traits_used & TFLAG_LIT_SEQ)
         {
             set_initial_symbol("i_literal_sequences_used", 1);
             initial_symbol_dump(LOG_DEBUG, "i_literal_sequences_used");
         }
-        if(info.max_len <= 256)
+        if(io->info.max_len <= 256)
         {
             set_initial_symbol("i_max_sequence_length_256", 1);
             initial_symbol_dump(LOG_DEBUG, "i_max_sequence_length_256");
         }
 
-        if(assemble(&source, out) != 0)
+        if(assemble(&source, &io->out) != 0)
         {
             LOG(LOG_ERROR, ("Parse failure.\n"));
             exit(1);
@@ -1643,7 +1670,20 @@ void sfx(const char *appl, int argc, char *argv[])
             LOG(LOG_NORMAL, (" Crunched data   | $%04X| $%04X|\n",
                              lowest_addr, lowest_addr + max_transfer_len));
             LOG(LOG_NORMAL, (" Decrunched data | $%04X| $%04X|\n",
-                 in_load, in_load + in_len));
+                             io->in_off, io->write_start));
+            {
+                struct vec_iterator i;
+                struct io_bufs *fio;
+                vec_get_iterator(&io_bufs, &i);
+                /* skip the first one since it is already handled */
+                vec_iterator_next(&i);
+                while ((fio = vec_iterator_next(&i)) != NULL)
+                {
+                    int fin_len = buf_size(&fio->in);
+                    LOG(LOG_NORMAL, ("        fragment | $%04X| $%04X|\n",
+                                     fio->in_off, fio->in_off + fin_len));
+                }
+            }
             LOG(LOG_NORMAL, (" Decrunch table  | $%04X| $%04X|\n",
                              i_table_addr, i_table_addr + table_size));
             LOG(LOG_NORMAL, (" Decruncher      | $%04X| $%04X| and ",
@@ -1707,7 +1747,7 @@ void sfx(const char *appl, int argc, char *argv[])
                 fprintf(inf, "$.%s %06X %06X %X", p,
                         lowest_addr_out | 0xff0000,
                         lowest_addr_out | 0xff0000,
-                        buf_size(out));
+                        buf_size(&io->in));
                 fclose(inf);
             }
         }
@@ -1715,9 +1755,10 @@ void sfx(const char *appl, int argc, char *argv[])
         buf_free(&source);
     }
 
-    write_file(flags.outfile, out);
-    buf_free(&buf1);
+    write_file(flags.outfile, &io->out);
 
+    vec_free(&fragment_names, NULL);
+    vec_free(&io_bufs, io_bufs_free);
     parse_free();
 }
 

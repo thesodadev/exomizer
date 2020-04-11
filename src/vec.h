@@ -56,6 +56,14 @@ void vec_free(struct vec *p, cb_free * f);
 int vec_size(const struct vec *p);
 
 /**
+ * Ensures that at least the requested capacity (number of entries) is
+ * available without internal reallocation.  Won't change the vector
+ * content or size but might invalidate previously fetched internal
+ * pointers.
+ **/
+void vec_reserve(struct vec *p, int capacity);
+
+/**
  * Returns a pointer to the item at the given index or NULL if the
  * index is out of bounds.
  **/

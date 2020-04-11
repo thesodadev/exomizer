@@ -42,8 +42,10 @@
 
 static const struct crunch_options default_options = CRUNCH_OPTIONS_DEFAULT;
 
-void do_output_backwards(struct match_ctx *ctx,
-                         struct search_node *snp,
+void do_output_backwards(struct match_ctx *ctx_arr,
+                         struct search_node **snp_arr,
+                         struct io_bufs *io_bufs_arr,
+                         int arr_len,
                          struct encode_match_data *emd,
                          const struct crunch_options *options,
                          struct buf *outbuf,
@@ -58,7 +60,6 @@ void do_output_backwards(struct match_ctx *ctx,
     int max_offset = 0;
     struct output_ctx *old;
     struct output_ctx out;
-    struct search_node *initial_snp;
     int initial_len;
     int alignment = 0;
     int measure_alignment;
@@ -68,7 +69,6 @@ void do_output_backwards(struct match_ctx *ctx,
     emd->out = &out;
 
     initial_len = buf_size(outbuf);
-    initial_snp = snp;
     measure_alignment = options->flags_proto & PFLAG_BITS_ALIGN_START;
     if (options->flags_proto & PFLAG_4_OFFSET_TABLES)
     {
@@ -76,8 +76,8 @@ void do_output_backwards(struct match_ctx *ctx,
     }
     for (;;)
     {
+        int i;
         buf_remove(outbuf, initial_len, -1);
-        snp = initial_snp;
         output_ctx_init(&out, options->flags_proto, outbuf);
 
         output_bits(&out, alignment, 0);
@@ -87,7 +87,7 @@ void do_output_backwards(struct match_ctx *ctx,
         pos_diff = pos;
         max_diff = 0;
 
-        if (snp != NULL)
+        if (snp_arr != NULL)
         {
             LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
 
@@ -102,100 +102,120 @@ void do_output_backwards(struct match_ctx *ctx,
 
             LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
             LOG(LOG_DUMP, ("------------\n"));
-        }
-        while (snp != NULL)
-        {
-            const struct match *mp;
 
-            mp = &snp->match;
-            if (mp != NULL && mp->len > 0)
+            for (i = 0; i < arr_len; ++i)
             {
-                if (mp->offset == 0)
+                struct match_ctx *ctx = ctx_arr + i;
+                struct search_node *snp = snp_arr[i];
+
+                if (i > 0)
                 {
-                    int splitLitSeq =
-                        snp->prev->match.len == 0 &&
-                        (options->flags_proto & PFLAG_IMPL_1LITERAL);
-                    int i = 0;
-                    if (mp->len > 1)
-                    {
-                        int len = mp->len;
-                        if (splitLitSeq)
-                        {
-                            --len;
-                        }
-                        for(; i < len; ++i)
-                        {
-                            output_byte(&out, ctx->buf[snp->index + i]);
-                        }
-                        output_bits(&out, 16, len);
-                        output_gamma_code(&out, 17);
-                        output_bits(&out, 1, 0);
-                        /* literal sequence */
-                        LOG(LOG_DUMP, ("[%d] literal copy len %d\n", out.pos,
-                                       len));
-                        traits_used |= TFLAG_LIT_SEQ;
-                        if (len > max_len)
-                        {
-                            max_len = len;
-                        }
-                    }
-                    if (i < mp->len)
-                    {
-                        /* literal */
-                        LOG(LOG_DUMP, ("[%d] literal $%02X\n", out.pos,
-                                       ctx->buf[snp->index + i]));
-                        output_byte(&out, ctx->buf[snp->index + i]);
-                        if (!splitLitSeq)
-                        {
-                            output_bits(&out, 1, 1);
-                        }
-                    }
-                } else
-                {
-                    unsigned int latest_offset = snp->prev->latest_offset;
-                    if (latest_offset > 0)
-                    {
-                        LOG(LOG_DUMP,
-                            ("[%d] offset reuse bit = %d, latest = %d\n",
-                             out.pos, mp->offset == latest_offset,
-                             latest_offset));
-                    }
-                    LOG(LOG_DUMP, ("[%d] sequence offset = %d, len = %d\n",
-                                   out.pos, mp->offset, mp->len));
-                    optimal_encode(mp, emd, latest_offset, NULL);
+                    /* output glue */
+                    int ws = io_bufs_arr[i - 1].write_start;
+                    output_bits(&out, 16, ws - 1);
+                    output_gamma_code(&out, 17);
                     output_bits(&out, 1, 0);
-                    if (mp->len == 1)
-                    {
-                        traits_used |= TFLAG_LEN1_SEQ;
-                    }
-                    else
-                    {
-                        int lo = mp->len & 255;
-                        int hi = mp->len & ~255;
-                        if (hi > 0 && lo < len0123skip)
-                        {
-                            traits_used |= TFLAG_LEN0123_SEQ_MIRRORS;
-                        }
-                    }
-                    if (mp->offset > max_offset)
-                    {
-                        max_offset = mp->offset;
-                    }
-                    if (mp->len > max_len)
-                    {
-                        max_len = mp->len;
-                    }
                 }
 
-                pos_diff += mp->len;
-                diff = output_get_pos(&out) - pos_diff;
-                if(diff > max_diff)
+                while (snp != NULL)
                 {
-                    max_diff = diff;
+                    const struct match *mp;
+
+                    mp = &snp->match;
+                    if (mp != NULL && mp->len > 0)
+                    {
+                        if (mp->offset == 0)
+                        {
+                            int splitLitSeq =
+                                snp->prev->match.len == 0 &&
+                                (options->flags_proto & PFLAG_IMPL_1LITERAL);
+                            int i = 0;
+                            if (mp->len > 1)
+                            {
+                                int len = mp->len;
+                                if (splitLitSeq)
+                                {
+                                    --len;
+                                }
+                                for(; i < len; ++i)
+                                {
+                                    output_byte(&out,
+                                                ctx->buf[snp->index + i]);
+                                }
+                                output_bits(&out, 16, len);
+                                output_gamma_code(&out, 17);
+                                output_bits(&out, 1, 0);
+                                /* literal sequence */
+                                LOG(LOG_DUMP, ("[%d] literal copy len %d\n",
+                                               out.pos,len));
+                                traits_used |= TFLAG_LIT_SEQ;
+                                if (len > max_len)
+                                {
+                                    max_len = len;
+                                }
+                            }
+                            if (i < mp->len)
+                            {
+                                /* literal */
+                                LOG(LOG_DUMP, ("[%d] literal $%02X\n", out.pos,
+                                               ctx->buf[snp->index + i]));
+                                output_byte(&out, ctx->buf[snp->index + i]);
+                                if (!splitLitSeq)
+                                {
+                                    output_bits(&out, 1, 1);
+                                }
+                            }
+                        } else
+                        {
+                            unsigned int latest_offset =
+                                snp->prev->latest_offset;
+                            if (latest_offset > 0)
+                            {
+                                LOG(LOG_DUMP,
+                                    ("[%d] offset reuse bit = %d, "
+                                     "latest = %d\n", out.pos,
+                                     mp->offset == latest_offset,
+                                     latest_offset));
+                            }
+                            LOG(LOG_DUMP,
+                                ("[%d] sequence offset = %d, len = %d\n",
+                                 out.pos, mp->offset, mp->len));
+                            optimal_encode(mp, emd, latest_offset, NULL);
+                            output_bits(&out, 1, 0);
+                            if (mp->len == 1)
+                            {
+                                traits_used |= TFLAG_LEN1_SEQ;
+                            }
+                            else
+                            {
+                                int lo = mp->len & 255;
+                                int hi = mp->len & ~255;
+                                if (hi > 0 && lo < len0123skip)
+                                {
+                                    traits_used |= TFLAG_LEN0123_SEQ_MIRRORS;
+                                }
+                            }
+                            if (mp->offset > max_offset)
+                            {
+                                max_offset = mp->offset;
+                            }
+                            if (mp->len > max_len)
+                            {
+                                max_len = mp->len;
+                            }
+                        }
+
+                        pos_diff += mp->len;
+                        diff = output_get_pos(&out) - pos_diff;
+                        if(diff > max_diff)
+                        {
+                            max_diff = diff;
+                        }
+                    }
+                    LOG(LOG_DUMP, ("------------\n"));
+                    snp = snp->prev;
                 }
             }
-            LOG(LOG_DUMP, ("------------\n"));
-            snp = snp->prev;
         }
 
         LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
@@ -253,7 +273,8 @@ static void read_encoding_to_buf(const char *imported_enc,
 
         optimal_init(&emd, options.flags_notrait, options.flags_proto);
         optimal_encoding_import(&emd, options.imported_encoding);
-        do_output_backwards(NULL, NULL, &emd, &options, enc_buf, NULL);
+        do_output_backwards(NULL, NULL, NULL, 0,
+                            &emd, &options, enc_buf, NULL);
         /* enc_buf is in backward direction */
         optimal_free(&emd);
         needs_reversing = 1;
@@ -491,7 +512,8 @@ void crunch_multi(struct vec *io_bufs,
     {
         struct crunch_options enc_opts = *options;
         enc_opts.output_header = 1;
-        do_output_backwards(NULL, NULL, &emd, &enc_opts, enc_buf, NULL);
+        do_output_backwards(NULL, NULL, NULL, 0,
+                            &emd, &enc_opts, enc_buf, NULL);
 
         if (options->direction_forward == 1)
         {
@@ -499,36 +521,60 @@ void crunch_multi(struct vec *io_bufs,
         }
     }
 
+    if (options->merge_multi)
+    {
+        struct io_bufs *io = vec_get(io_bufs, 0);
+        struct buf *out = &io->out;
+        struct crunch_info *info = &io->info;
+
+        outlen -= buf_size(out);
+        do_output_backwards(ctxp, snpp, io, buf_count,
+                            &emd, options, out, info);
+        outlen += buf_size(out);
+
+        merged_info.traits_used |= info->traits_used;
+        merged_info.max_len = info->max_len;
+        merged_info.max_offset = info->max_offset;
+        merged_info.needed_safety_offset = info->needed_safety_offset;
+    }
+    else
+    {
+        for (i = 0; i < buf_count; ++i)
+        {
+            struct io_bufs *io = vec_get(io_bufs, i);
+            struct buf *out = &io->out;
+            struct crunch_info *info = &io->info;
+
+            outlen -= buf_size(out);
+            do_output_backwards(ctxp + i, snpp + i, io + i, 1,
+                                &emd, options, out, info);
+            outlen += buf_size(out);
+
+            merged_info.traits_used |= info->traits_used;
+            if (merged_info.max_len < info->max_len)
+            {
+                merged_info.max_len = info->max_len;
+            }
+            if (merged_info.max_offset < info->max_offset)
+            {
+                merged_info.max_offset = info->max_offset;
+            }
+            if (merged_info.needed_safety_offset < info->needed_safety_offset)
+            {
+                merged_info.needed_safety_offset = info->needed_safety_offset;
+            }
+        }
+    }
     for (i = 0; i < buf_count; ++i)
     {
         struct io_bufs *io = vec_get(io_bufs, i);
         const struct buf *in = &io->in;
         struct buf *out = &io->out;
-        struct crunch_info *info = &io->info;
-
-        outlen -= buf_size(out);
-        do_output_backwards(ctxp + i, snpp[i], &emd, options, out, info);
-        outlen += buf_size(out);
-
         if (options->direction_forward == 1)
         {
             reverse_buffer(buf_data(in), buf_size(in));
             reverse_buffer((char*)buf_data(out) + outpos[i],
                            buf_size(out) - outpos[i]);
-        }
-
-        merged_info.traits_used |= info->traits_used;
-        if (merged_info.max_len < info->max_len)
-        {
-            merged_info.max_len = info->max_len;
-        }
-        if (merged_info.max_offset < info->max_offset)
-        {
-            merged_info.max_offset = info->max_offset;
-        }
-        if (merged_info.needed_safety_offset < info->needed_safety_offset)
-        {
-            merged_info.needed_safety_offset = info->needed_safety_offset;
         }
     }
     LOG(LOG_NORMAL, (" Length of crunched data: %d bytes.\n", outlen));
@@ -581,6 +627,11 @@ void crunch(struct buf *inbuf,
     io->in = *inbuf;
     io->in_off = in_off;
     io->out = *outbuf;
+    io->write_start = io->in_off;
+    if (options->direction_forward == 0)
+    {
+        io->write_start += buf_size(inbuf);
+    }
     crunch_multi(&io_bufs, noread_inbuf, NULL, options, info);
     *inbuf = io->in;
     *outbuf = io->out;
@@ -855,4 +906,11 @@ void handle_crunch_flags(int flag_char, /* IN */
         handle_base_flags(flag_char, flag_arg, print_usage,
                           appl, &flags->outfile);
     }
+}
+
+void io_bufs_free(void *a)
+{
+    struct io_bufs *b = a;
+    buf_free(&b->in);
+    buf_free(&b->out);
 }
