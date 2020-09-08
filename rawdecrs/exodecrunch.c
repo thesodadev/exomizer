@@ -24,6 +24,11 @@
  *   specific prior written permission.
  */
 
+/**
+ * This decompressor decompresses files that have been compressed
+ * using the raw sub-sub command with the -P39 (default) setting of
+ * the raw command.
+ */
 #include "exodecrunch.h"
 #include <stdlib.h>
 

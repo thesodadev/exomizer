@@ -24,6 +24,11 @@
  *   specific prior written permission.
  */
 
+/**
+ * This decompressor decompresses files that have been compressed
+ * using the raw sub-sub command with the -b (not default) and -P39
+ * (default) setting of the raw command.
+ */
 #include "exodecr.h"
 
 static unsigned short int base[52];
