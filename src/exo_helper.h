@@ -43,7 +43,7 @@ extern "C" {
                                   PFLAG_REUSE_OFFSET,    \
                                   1, 0}
 
-#define CRUNCH_OPTIONS_DEFAULT {NULL, 100, 65535, 1000000, 0, 1, \
+#define CRUNCH_OPTIONS_DEFAULT {NULL, 100, 65535, 65535, 0, 1, \
                                 PFLAG_BITS_ORDER_BE |            \
                                 PFLAG_BITS_COPY_GT_7 |           \
                                 PFLAG_IMPL_1LITERAL |            \

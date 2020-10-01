@@ -679,7 +679,7 @@ void print_crunch_flags(enum log_level level, const char *default_outfile)
          "  -e <encoding> uses the given encoding for crunching\n"
          "  -E            don't write the encoding to the outfile\n"));
     LOG(level,
-        ("  -m <offset>   sets the maximum sequence offset, default is 1000000\n"
+        ("  -m <offset>   sets the maximum sequence offset, default is 65535\n"
          "  -M <length>   sets the maximum sequence length, default is 65535\n"
          "  -p <passes>   limits the number of optimization passes, default is 100\n"
          "  -T <options>  bitfield that controls bit stream traits. [0-7]\n"
@@ -762,11 +762,11 @@ void handle_crunch_flags(int flag_char, /* IN */
         break;
     case 'm':
         if (str_to_int(flag_arg, &options->max_offset) != 0 ||
-            options->max_offset < 0 || options->max_offset >= 1000000)
+            options->max_offset < 0 || options->max_offset > 65535)
         {
             LOG(LOG_ERROR,
                 ("Error: invalid offset for -m option, "
-                 "must be in the range of [0 - 1000000]\n"));
+                 "must be in the range of [0 - 65535]\n"));
             print_usage(appl, LOG_NORMAL, flags->outfile);
             exit(1);
         }
