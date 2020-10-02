@@ -464,10 +464,10 @@ static void match_cache_peek(const struct match_ctx *ctx,
         }
 
         /* inject extra rle match */
-        if(ctx->rle_r[pos] > 0)
+        if(ctx->rle_r[pos] > 0 && ctx->rle[pos + 1] > 0)
         {
             val_tmp->offset = 1;
-            val_tmp->len = ctx->rle[pos] + 1;
+            val_tmp->len = ctx->rle[pos + 1];
             val_tmp->next = (struct match *)val;
             val = val_tmp;
             LOG(LOG_DEBUG, ("injecting rle val(%d,%d)\n",
@@ -539,7 +539,6 @@ const struct match *match_cache_enum_get_next(void *match_cache_enum)
 
     mpce = match_cache_enum;
 
- restart:
     match_cache_peek(mpce->ctx, mpce->pos, &lit, &seq,
                      &mpce->tmp1, &mpce->tmp2);
 
@@ -548,15 +547,6 @@ const struct match *match_cache_enum_get_next(void *match_cache_enum)
     {
         /* the end, reset enum and return NULL */
         mpce->pos = mpce->ctx->len - 1;
-        if(mpce->next == NULL)
-        {
-            mpce->next = (void*)mpce;
-            goto restart;
-        }
-        else
-        {
-            mpce->next = NULL;
-        }
     }
     else
     {
