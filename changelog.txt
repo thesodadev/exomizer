@@ -1,3 +1,5 @@
++ Added raw decrunchers for Intel 8080 contributed by Ivan Gorodetsky.
++ Added raw decrunchers for ARM 32bit thumb2 contributed by ALeX Kazik.
 + Updated raw z80 decrunchers for exo 3.0.x provided by Antonio Villena.
 + Implement optional forward decrunching properly in exodecrunch.s and as a
   consequence of this also remove krilldecr.s

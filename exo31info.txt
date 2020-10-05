@@ -1,4 +1,4 @@
-Exomizer 3.0
+Exomizer 3.x
 ------------
 
 This document only mentions what has changed since exomizer 2.0. For
