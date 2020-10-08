@@ -77,7 +77,6 @@ void match_delete(struct match_ctx *ctx,        /* IN/OUT */
 
 struct match_cache_enum {
     const struct match_ctx *ctx;
-    const struct match *next;
     struct match tmp1;
     struct match tmp2;
     int pos;
