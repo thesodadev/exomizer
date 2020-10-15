@@ -4,20 +4,46 @@
 ;input: 	hl=compressed data start
 ;			de=uncompressed destination start
 ;			you may change exo_mapbasebits to point to any 256-byte aligned free buffer
-;v1.1 - 03.09.2019
-;compress with <raw -P15> options
-;250 bytes - reusable
-;245 bytes - single-use
+;
+;v1.1 - 2019-10-28
+;
+;compress with <raw -P47 -T4> options (without #DEFINE BACKWARD_DECOMPRESS)
+;294 bytes - reusable
+;285 bytes - single-use
+;compress with <raw -P47 -T4 -b> options (with #DEFINE BACKWARD_DECOMPRESS)
+;289 bytes - reusable
+;280 bytes - single-use
 ;
 ;Compile with The Telemark Assembler (TASM) 3.2
 
-exo_mapbasebits		.equ 0FF00h
+exo_mapbasebits		.equ	0FF00h
+
+;#DEFINE BACKWARD_DECOMPRESS
+;#DEFINE REUSABLE
+
+#IFNDEF BACKWARD_DECOMPRESS
+
+.DEFINE NEXT_HL inx h
+.DEFINE NEXT_DE inx d
+.DEFINE ADD_OFFSET mov a,e\ sub l\ mov l,a\ mov a,d\ sbb h\ mov h,a
+
+#ELSE
+
+.DEFINE NEXT_HL dcx h
+.DEFINE NEXT_DE dcx d
+.DEFINE ADD_OFFSET dad d
+
+#ENDIF
+
+			.org 8000h
 
 deexo:
-
+#IFDEF REUSABLE
 			mvi a,80h
 			sta	exo_getbit+1
-;Two lines above can be commented out in case of single-use
+			rlc
+			sta reuse_offset_state+1
+#ENDIF
 
 			push d
 			xra a
@@ -63,18 +89,26 @@ skip_exo_setbit:
 			cpi 52*3
 			jnz	exo_initbits
 			pop	d
-			lda exo_getbit+1
+			lxi b,0
 exo_literalcopy1:
-			mov	b,m\ xchg\ mov m,b\ xchg\ inx h\ inx d
+			mov a,m\ stax d\ NEXT_HL\ NEXT_DE
+exo_mainloop_:
+			stc
+reuse_offset_state:
+			mvi a,1
+			adc a
 exo_mainloop:
+			sta reuse_offset_state+1
+			lda	exo_getbit+1
 			add a
-			jnz $+6\ mov a,m\ inx h\ adc a
+			jnz $+6\ mov a,m\ NEXT_HL\ adc a
+			sta	exo_getbit+1
 			jc	exo_literalcopy1
-			mvi	c,0FFh
+			dcr c
 exo_getindex:
 			inr	c
 			add a
-			jnz $+6\ mov a,m\ inx h\ adc a
+			jnz $+6\ mov a,m\ NEXT_HL\ adc a
 			jnc	exo_getindex
 			sta	exo_getbit+1
 			mov a,c
@@ -82,23 +116,38 @@ exo_getindex:
 			jc	exo_continue
 			rz
 			mov b,m
-			inx h
+			NEXT_HL
 			mov c,m
-			inx h
+			NEXT_HL
 			mov	a,m
 			stax d
-			inx	h
-			inx	d
+			NEXT_HL
+			NEXT_DE
 			dcx b
 			mov a,b
 			ora c
 			jnz $-7
-			jmp exo_getbit_
+			jmp	exo_mainloop_
 exo_continue:
 			push d
 			call exo_getpair
+			lda reuse_offset_state+1
+			ani 3
+			jpe not_reuse_offset
+			lda	exo_getbit+1
+			add a
+			jnz $+6\ mov a,m\ NEXT_HL\ adc a
+			sta	exo_getbit+1
+			jnc not_reuse_offset
+			mov c,e
+			mov b,d
+			pop d
+			push h
+reuse_offset:
+			lxi h,0
+			jmp exo_matchcopy
+not_reuse_offset:
 			push d
-			jnz exo_goforit_
 			lxi	b,0230h
 			dcr e
 			jz	exo_goforit
@@ -106,7 +155,7 @@ exo_continue:
 			dcr e
 			jz	exo_goforit
 exo_goforit_:
-			lxi	b,0410h
+			mvi	c,10h
 exo_goforit:
 			call exo_getbits_
 			mov a,c
@@ -116,23 +165,18 @@ exo_goforit:
 			pop b
 			xthl
 			xchg
-			mov	a,e
-			sub l
-			mov	l,a
-			mov	a,d
-			sbb h
-			mov	h,a
+			shld reuse_offset+1
+exo_matchcopy:
+			ADD_OFFSET
 			mov	a,m
 			stax d
-			inx	h
-			inx	d
+			NEXT_HL
+			NEXT_DE
 			dcx b
 			mov a,b
 			ora c
 			jnz	$-7
 			pop	h
-exo_getbit_:
-			lda exo_getbit+1
 			jmp	exo_mainloop
 exo_getpair:
 			add a
@@ -165,7 +209,7 @@ exo_getbit:
 			mov a,l
 exo_gettingbits:
 			add a
-			jnz $+7 \ ldax d\ inx d\ mov l,a\ adc a
+			jnz $+7 \ ldax d\ NEXT_DE\ mov l,a\ adc a
 			dad h
 			dcr	b
 			jnz	exo_gettingbits
@@ -182,7 +226,8 @@ GT7:
 			cnz exo_getbits_
 			mov d,e
 			mov e,m
-			inx h
+			NEXT_HL
 			ret
+
 
 			.end
