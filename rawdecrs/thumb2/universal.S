@@ -19,18 +19,18 @@
  * you can change the P39 to anything from 0-63 as long as the value below is also changed
  */
 
-//#define FLAGS_PROTO 39
-#include "p.h"
+#define FLAGS_PROTO 39
 
 /*
  * there are two optional security options
  * - CHECK_BUFFER_SIZE - for input and output a buffer size has to be specified
  * - CHECK_OVERRUN - the input and output MUST be in the same buffer - check if the output overruns the input
  * none, one or both can be used
+ * in case of a failure the output pointer is NULL
  * to enable them just uncomment the following define
  */
-#define CHECK_BUFFER_SIZE
-#define CHECK_OVERRUN
+//#define CHECK_BUFFER_SIZE
+//#define CHECK_OVERRUN
 
 /*
  * bit 0  Controls bit bit orientation, 1=big endian, 0=little endian
