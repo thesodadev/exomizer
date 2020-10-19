@@ -556,7 +556,7 @@ const struct match *match_cache_enum_get_next(void *match_cache_enum)
             const struct match *next;
             match_cache_peek(mpce->ctx, mpce->pos - 1, NULL, &next, &t1, &t2);
             if(next == NULL ||
-               (seq->len >= next->len + (next->offset < 14 && next->len < 3)))
+               (seq->len >= next->len + ((mpce->pos & 1) && next->len < 3)))
             {
                 /* nope, next is not better, use this sequence */
                 val = seq;
