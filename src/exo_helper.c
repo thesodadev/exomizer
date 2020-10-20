@@ -302,7 +302,7 @@ do_compress_backwards(struct match_ctx *ctxp, int ctx_count,
     struct vec snpev = STATIC_VEC_INIT(sizeof(struct match_snp_enum));
     struct match_concat_enum mpcce;
     struct search_node **snpp;
-    int pass, i;
+    int pass, i, last_waltz = 0;
     float size;
     float old_size;
     char prev_enc[100];
@@ -342,6 +342,7 @@ do_compress_backwards(struct match_ctx *ctxp, int ctx_count,
 
     for (;;)
     {
+    last_waltz:
         size = 0.0;
         for (i = 0; i < ctx_count; ++i)
         {
@@ -365,14 +366,18 @@ do_compress_backwards(struct match_ctx *ctxp, int ctx_count,
         }
         LOG(LOG_NORMAL, ("  size %0.1f bits ~%d bytes\n",
                          size, (((int) size) + 7) >> 3));
-
-        if (size >= old_size)
+        if (last_waltz)
         {
             break;
         }
 
-        old_size = size;
         ++pass;
+        if (size >= old_size)
+        {
+            last_waltz = 1;
+            goto last_waltz;
+        }
+        old_size = size;
 
         if(pass > options->max_passes)
         {
