@@ -20,15 +20,15 @@ permutate2 = $(if $(strip $(2)), $(foreach res, $(call permutate2, $(firstword $
 
 permutate = $(if $(strip $(1)), $(call permutate2, $(firstword $(1)), $(wordlist 2, $(words $(1)), $(1))))
 
-VARIANTS = $(call permutate, i M c 4 o f)
+VARIANTS = $(call permutate, i e M c 4 o f)
 
-VARIANT_OPT = c^-DLITERAL_SEQUENCES_NOT_USED=1^-c M^-DMAX_SEQUENCE_LENGTH_256=1^-M256 i^-DINLINE_GET_BITS=1^ o^-DDONT_REUSE_OFFSET=1^-P-32 4^-DEXTRA_TABLE_ENTRY_FOR_LENGTH_THREE=1^-P+16 f^-DDECRUNCH_FORWARDS=1^-f
+VARIANT_OPT = c^-DLITERAL_SEQUENCES_NOT_USED=1^-c M^-DMAX_SEQUENCE_LENGTH_256=1^-M256 i^-DINLINE_GET_BITS=1^ e^-DDISABLE_SPLIT_ENCODING=1^ o^-DDONT_REUSE_OFFSET=1^-P-32 4^-DEXTRA_TABLE_ENTRY_FOR_LENGTH_THREE=1^-P+16 f^-DDECRUNCH_FORWARDS=1^-f
 
 echo = $(or $(info $(1) $(2)), $(2))
 
 variant = $(suffix $(basename $(1)))
 
-caopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 2, $(subst ^, , $(opt))))))
+asmopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 2, $(subst ^, , $(opt))))))
 
 exoopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 3, $(subst ^, , $(opt))))))
 
@@ -58,18 +58,18 @@ testrun.test%stream.prg: testrun test%stream.prg data%stream.exo
 testrun: testrun.o $(TEST_OBJS)
 	@$(CC) $(LDFLAGS) -o $@ testrun.o $(TEST_OBJS)
 
-test%.prg: $(MAKEFILE) main%.os exodecrunch%.os
+test%.prg: main%.os exodecrunch%.os
 	@echo "building $@"
 	@ld65 main$(call variant, $@).os exodecrunch$(call variant, $@).os -o $@ -Cc64.cfg
 
-$(NAME1): $(MAKEFILE) $(SOURCES1)
+$(NAME1): $(SOURCES1)
 	@ld65 $(SOURCES1) -o $@ -Cc64.cfg
 
-$(NAME2): $(MAKEFILE) $(SOURCES2)
+$(NAME2): $(SOURCES2)
 	@ld65 $(SOURCES2) -o $@ -Cc64.cfg
 
 %.os: $$(basename $$(basename $$@)).s
-	@ca65 $(call caopt, $(call variant, $@)) $< -o $@
+	@ca65 $(call asmopt, $(call variant, $@)) $< -o $@
 
 clean:
 	@$(RM) testrun.o test*.prg *.os *.exo *.exo.out testrun

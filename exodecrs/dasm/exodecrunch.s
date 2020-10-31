@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 - 2019 Magnus Lind.
+; Copyright (c) 2002 - 2020 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -24,17 +24,11 @@
 ;   specific prior written permission.
 ;
 ; -------------------------------------------------------------------
-; The decruncher jsr:s to the exod_get_crunched_byte address when it wants to
-; read a crunched byte into A. This subroutine has to preserve X and Y
-; register and must not modify the state of the carry nor the overflow flag.
-; -------------------------------------------------------------------
-; -------------------------------------------------------------------
-; The exod_decrunch function is the heart of the decruncher.
-; It initializes the decruncher zeropage locations and precalculates the
-; decrunch tables and decrunches the data
-; This function will not change the interrupt status bit and it will not
-; modify the memory configuration.
-; -------------------------------------------------------------------
+; Known quirks:
+;  Can't handle a sequence reference that ends at $ffff. It is left in
+;  since it is a corner case and fixing it impacts negatively on
+;  performance or backwards compatibility.
+;  A simple way to work around this is to not decrunch to address $ffff.
 ; -------------------------------------------------------------------
 ; Controls if the shared get_bits routines should be inlined or not.
 ;INLINE_GET_BITS=1
@@ -77,6 +71,38 @@ DONT_REUSE_OFFSET = 0
 ;DECRUNCH_FORWARDS = 1
  IFNCONST DECRUNCH_FORWARDS
 DECRUNCH_FORWARDS = 0
+ ENDIF
+; -------------------------------------------------------------------
+; if split encoding is not used (the data is not crunched with the -E flag)
+; then the following line can be uncommented to remove the support for split
+; encoding and by that reduce the decruncher size.
+;DISABLE_SPLIT_ENCODING = 1
+ IFNCONST DISABLE_SPLIT_ENCODING
+DISABLE_SPLIT_ENCODING = 0
+ ENDIF
+
+; -------------------------------------------------------------------
+; The decruncher jsr:s to the exod_get_crunched_byte address when it wants to
+; read a crunched byte into A. This subroutine has to preserve X and Y
+; register and must not modify the state of the carry nor the overflow flag.
+; -------------------------------------------------------------------
+; -------------------------------------------------------------------
+; The exod_decrunch function is the heart of the decruncher. (for non split
+; crunched files)
+; It initializes the decruncher zeropage locations and precalculates the
+; decrunch tables and decrunches the data
+; This function will not change the interrupt status bit and it will not
+; modify the memory configuration.
+; -------------------------------------------------------------------
+ IF DISABLE_SPLIT_ENCODING = 0
+; -------------------------------------------------------------------
+; To decrunch files crunched with the split feature (-E) you can't use the
+; decrunch function. Instead you call the split_decrunch function. But you
+; can only do this if the decrunch table contains the encoding used by the
+; file you are decrunching. To generate the correct content for the decrunch
+; table call set the get_crunched_byte function to point to the encoding data
+; and then call the split_gentable function.
+; -------------------------------------------------------------------
  ENDIF
 ; -------------------------------------------------------------------
 ; zero page addresses used
@@ -140,6 +166,17 @@ exod_zp_dest_hi = exod_zp_bitbuf + 2      ; dest addr hi
  ENDIF
  ENDM
 
+ MAC exod_mac_init_zp
+; -------------------------------------------------------------------
+; init zeropage and x reg. (8 bytes)
+;
+.init_zp:
+        jsr exod_get_crunched_byte
+        sta exod_zp_bitbuf - 1,x
+        dex
+        bne .init_zp
+ ENDM
+
  IF INLINE_GET_BITS == 0
 exod_get_bits:
         adc #$80                ; needs c=0, affects v
@@ -171,22 +208,25 @@ exod_get_bits:
 ; jsr this label to decrunch, it will in turn init the tables and
 ; call the decruncher
 ; no constraints on register content, however the
-; decimal flag has to be #0 (it almost always is, otherwise do a cld)
+; decimal flag has to be cleared (it almost always is, otherwise do a cld)
 exod_decrunch:
-; -------------------------------------------------------------------
-; init zeropage, x and y regs. (12 bytes)
-;
-        ldy #0
+ IF DISABLE_SPLIT_ENCODING == 0
         ldx #3
-.init_zp:
-        jsr exod_get_crunched_byte
-        sta exod_zp_bitbuf - 1,x
-        dex
-        bne .init_zp
+        jsr .internal_gentable
+        jmp .normal_decrunch
+exod_split_gentable:
+        ldx #1
+.internal_gentable:
+        jsr .split_init_zp
+ ELSE
+        ldx #3
+        exod_mac_init_zp
+ ENDIF
 ; -------------------------------------------------------------------
-; calculate tables (62 bytes) + get_bits macro
+; calculate tables (64 bytes) + get_bits macro
 ; x and y must be #0 when entering
 ;
+        ldy #0
         clc
 .table_gen:
         tax
@@ -232,6 +272,16 @@ exod_decrunch:
         iny
         cpy #.encoded_entries
         bne .table_gen
+; -------------------------------------------------------------------
+ IF DISABLE_SPLIT_ENCODING == 0
+        rts
+exod_split_decrunch:
+        ldx #3
+        jsr .split_init_zp
+; X reg must be 0 here
+        sec
+.normal_decrunch
+ ENDIF
 ; -------------------------------------------------------------------
 ; prepare for main decruncher
  IF DONT_REUSE_OFFSET == 0
@@ -483,6 +533,12 @@ copy_skip_hi:
 ; bits 2, 4 and offsets 48, 32 corresponding to %10001100, %11100010
 .tabl_bit:
         .BYTE $8c, $e2
+ ENDIF
+
+ IF DISABLE_SPLIT_ENCODING == 0
+.split_init_zp:
+        exod_mac_init_zp
+        rts
  ENDIF
 ; -------------------------------------------------------------------
 ; end of decruncher

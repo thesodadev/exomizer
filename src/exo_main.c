@@ -581,7 +581,7 @@ void generic(const char *appl,
         if (options->output_header == 0)
         {
             buf_clear(&name_buf);
-            buf_printf(&name_buf, "%s.exo", infilev[c]);
+            buf_printf(&name_buf, "%s.%02d", flags->outfile, c);
             p = buf_data(&name_buf);
         }
         LOG(LOG_BRIEF, (" Writing %d bytes to \"%s\".\n",
