@@ -1,3 +1,4 @@
++ Fixed bug in the sfxdecr.s affecting c128 reported by Fredrik Ramsberg.
 + Updated raw decrunchers for Zilog Z80 contributed by Antonio Villena.
 + Added raw decrunchers for Intel 8080 contributed by Ivan Gorodetsky.
 + Added raw decrunchers for ARM 32bit thumb2 contributed by ALeX Kazik.

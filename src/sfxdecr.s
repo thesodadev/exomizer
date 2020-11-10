@@ -355,6 +355,11 @@ transfer_len ?= 0
   i_line_number = 31
 .ENDIF
 
+.IF(.DEFINED(i_fourth_offset_table))
+encoded_entries = 68
+.ELSE
+encoded_entries = 52
+.ENDIF
 ; -------------------------------------------------------------------
 ; -- validate some input parameters ---------------------------------
 ; -------------------------------------------------------------------
@@ -389,13 +394,15 @@ v_highest_addr = (.INCWORD("crunched_data", -2) + 65535) % 65536 + 1
 ; -------------------------------------------------------------------
 ; -- file2_start_hook and stage2_exit_hook --------------------------
 ; -------------------------------------------------------------------
-.IF(i_effect2 == 0 && .DEFINED(c_effect_char))
+.IF(!.DEFINED(i_effect_custom) && i_effect2 == 0 && .DEFINED(c_effect_char))
 file2_start_hook = 1
   .MACRO("file2_start_hook")
     .IF(v_safety_addr < file2start && ; if we are transferring anyhow
         c_effect_char < v_safety_addr &&
         (file2start - c_effect_char < 257 ||
-         file2start - v_safety_addr > 256))
+         file2start - v_safety_addr > 256) &&
+        (i_table_addr + 3 * encoded_entries < c_effect_char ||
+         i_table_addr > v_highest_addr))
 raw_transfer_len = file2start - c_effect_char
 lowest_addr = c_effect_char
     .ENDIF
@@ -1212,11 +1219,6 @@ stage2start:
         bne copy2_loop1
 .ENDIF
 ; -------------------------------------------------------------------
-.IF(.DEFINED(i_fourth_offset_table))
-encoded_entries = 68
-.ELSE
-encoded_entries = 52
-.ENDIF
 tabl_bi = i_table_addr
 tabl_lo = i_table_addr + encoded_entries
 tabl_hi = i_table_addr + 2 * encoded_entries
