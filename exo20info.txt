@@ -91,9 +91,9 @@ data. They share the following option flags:
 
 -E      This flag enables an experimental feature for encoding reuse between
         multiple files. Please note that there is no direct support for
-        decrunching these files yet apart from the raw -d command. It changes
-        the behavior of exomizer in the following
-        ways:
+        decrunching these files yet apart from the raw -d command and in the
+        6502 decruncher exodecrs/exodecrunch.s. It changes the behavior of
+        exomizer in the following ways:
         1) It won't include the encoding in the compressed files.
         2) The compressed files will be named as the outfile (-o) with an
            appended number. ".00" for the first file, ".01" for the second and

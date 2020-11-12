@@ -61,7 +61,8 @@ EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE = 0
 }
 ; -------------------------------------------------------------------
 ; if sequence offsets are not reused (the data was crunched with the
-; -P-32 flag) then the following line must be uncommented.
+; -P-32 flag) then the following line must be uncommented. Uncommenting the
+; line will also result in shorter and slightly faster code.
 ;DONT_REUSE_OFFSET = 1
 !ifndef DONT_REUSE_OFFSET {
 DONT_REUSE_OFFSET = 0
@@ -74,8 +75,7 @@ DECRUNCH_FORWARDS = 0
 }
 ; -------------------------------------------------------------------
 ; if split encoding is not used (the data is not crunched with the -E flag)
-; then the following line can be uncommented to remove the support for split
-; encoding and by that reduce the decruncher size.
+; then the following line can be uncommented for shorter code.
 ;DISABLE_SPLIT_ENCODING = 1
 !ifndef DISABLE_SPLIT_ENCODING {
 DISABLE_SPLIT_ENCODING = 0
