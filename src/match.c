@@ -435,7 +435,7 @@ static int match_keep_this(const struct match *mp)
     /* if we want to ignore this match then return true else false */
     if(mp->len == 1)
     {
-        if(mp->offset > 32)
+        if(mp->offset > 34)
         {
             val = 0;
         }
