@@ -68,7 +68,7 @@ static void load_plain_file(const char *name, struct buf *mb)
             exit(1);
         }
         *p = '\0';
-        if(str_to_int(p + 1, &offset))
+        if(str_to_int(p + 1, &offset, NULL))
         {
             LOG(LOG_ERROR, ("Error: invalid value for plain file offset.\n"));
             exit(1);
@@ -85,7 +85,7 @@ static void load_plain_file(const char *name, struct buf *mb)
                 exit(1);
             }
             *p = '\0';
-            if(str_to_int(p + 1, &offset))
+            if(str_to_int(p + 1, &offset, NULL))
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid value for plain file offset.\n"));
@@ -772,7 +772,7 @@ void mem(const char *appl, int argc, char *argv[])
             {
                 load_addr = -1;
             }
-            else if(str_to_int(flagarg, &load_addr) != 0 ||
+            else if(str_to_int(flagarg, &load_addr, NULL) != 0 ||
                     load_addr < 0 || load_addr >= 65536)
             {
                 LOG(LOG_ERROR,
@@ -971,7 +971,7 @@ static void do_effect(const char *appl, int no_effect, const char *fast,
     else if(fast != NULL)
     {
         int value;
-        if(str_to_int(fast, &value) == 0)
+        if(str_to_int(fast, &value, NULL) == 0)
         {
             if(value == 1) set_initial_symbol("i_effect", 1);
             else if(value == 2) set_initial_symbol("i_effect", 2);
@@ -996,7 +996,7 @@ static void do_effect(const char *appl, int no_effect, const char *fast,
     else if(slow != NULL)
     {
         int value;
-        if(str_to_int(slow, &value) == 0)
+        if(str_to_int(slow, &value, NULL) == 0)
         {
             LOG(LOG_ERROR, ("Error: Can't use shorthand for -X flag.\n"));
             print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
@@ -1078,7 +1078,7 @@ void sfx(const char *appl, int argc, char *argv[])
             p = strtok(NULL, ",");
             /* look for an optional basic start address */
             if(p == NULL) break;
-            if(str_to_int(p, &basic_txt_start) != 0)
+            if(str_to_int(p, &basic_txt_start, NULL) != 0)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid value for the start of basic text "
@@ -1094,7 +1094,7 @@ void sfx(const char *appl, int argc, char *argv[])
             p = strtok(NULL, ",");
             /* look for an optional basic start address */
             if(p == NULL) break;
-            if(str_to_int(p, &basic_txt_start) != 0)
+            if(str_to_int(p, &basic_txt_start, NULL) != 0)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid value for the start of basic text "
@@ -1105,7 +1105,7 @@ void sfx(const char *appl, int argc, char *argv[])
             p = strtok(NULL, ",");
             /* look for an optional basic end address */
             if(p == NULL) break;
-            if(str_to_int(p, &basic_var_start) != 0)
+            if(str_to_int(p, &basic_var_start, NULL) != 0)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid value for the start of basic "
@@ -1116,7 +1116,7 @@ void sfx(const char *appl, int argc, char *argv[])
             p = strtok(NULL, ",");
             /* look for an optional highest address used by basic */
             if(p == NULL) break;
-            if(str_to_int(p, &basic_highest_addr) != 0)
+            if(str_to_int(p, &basic_highest_addr, NULL) != 0)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid value for the highest address used "
@@ -1129,7 +1129,7 @@ void sfx(const char *appl, int argc, char *argv[])
         {
             entry_addr = -3;
         }
-        else if(str_to_int(p, &entry_addr) != 0 ||
+        else if(str_to_int(p, &entry_addr, NULL) != 0 ||
                 entry_addr < 0 || entry_addr >= 65536)
         {
             /* we got an address we should jmp to. */
@@ -1151,7 +1151,7 @@ void sfx(const char *appl, int argc, char *argv[])
         switch(c)
         {
         case 't':
-            if (str_to_int(flagarg, &decr_target) != 0 ||
+            if (str_to_int(flagarg, &decr_target, NULL) != 0 ||
                 get_target_info(decr_target) == NULL)
             {
                 LOG(LOG_ERROR,
@@ -1184,7 +1184,7 @@ void sfx(const char *appl, int argc, char *argv[])
             if(p != NULL)
             {
                 int value;
-                if(str_to_int(p + 1, &value) != 0)
+                if(str_to_int(p + 1, &value, NULL) != 0)
                 {
                     LOG(LOG_ERROR, ("Error: invalid value for -D "
                                     "<symbol>[=<value>] option.\n"));
@@ -1757,7 +1757,7 @@ void desfx(const char *appl, int argc, char *argv[])
             {
                 entry = -2;
             }
-            else if(str_to_int(flagarg, &entry) != 0 ||
+            else if(str_to_int(flagarg, &entry, NULL) != 0 ||
                     entry < 0 || entry >= 65536)
             {
                 LOG(LOG_ERROR,("Error: invalid address for -e option, "

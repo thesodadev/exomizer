@@ -55,7 +55,17 @@ struct load_info
 void load_located(const char *filename, unsigned char mem[65536],
                   struct load_info *info);
 
-int str_to_int(const char *str, int *value);
+/*
+ * returns 0 if the conversion was successful, 1 otherwise.
+ *
+ * if strp == NULL then str must be zero-terminated directly after the
+ * value for the conversion to be considered successful.
+ *
+ *  if strp != NULL then on an successful conversion it will be set to
+ * the character immediately following the last charachter in the
+ * converted integer.
+ */
+int str_to_int(const char *str, int *value, const char **strp);
 
 const char *fixup_appl(char *appl);
 

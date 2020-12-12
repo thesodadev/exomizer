@@ -766,7 +766,7 @@ void handle_crunch_flags(int flag_char, /* IN */
         options->output_header = 0;
         break;
     case 'm':
-        if (str_to_int(flag_arg, &options->max_offset) != 0 ||
+        if (str_to_int(flag_arg, &options->max_offset, NULL) != 0 ||
             options->max_offset < 0 || options->max_offset > 65535)
         {
             LOG(LOG_ERROR,
@@ -777,7 +777,7 @@ void handle_crunch_flags(int flag_char, /* IN */
         }
         break;
     case 'M':
-        if (str_to_int(flag_arg, &options->max_len) != 0 ||
+        if (str_to_int(flag_arg, &options->max_len, NULL) != 0 ||
             options->max_len < 0 || options->max_len >= 65536)
         {
             LOG(LOG_ERROR,
@@ -788,7 +788,7 @@ void handle_crunch_flags(int flag_char, /* IN */
         }
         break;
     case 'p':
-        if (str_to_int(flag_arg, &options->max_passes) != 0 ||
+        if (str_to_int(flag_arg, &options->max_passes, NULL) != 0 ||
             options->max_passes < 1 || options->max_passes > 100)
         {
             LOG(LOG_ERROR,
@@ -799,7 +799,7 @@ void handle_crunch_flags(int flag_char, /* IN */
         }
         break;
     case 'T':
-        if (str_to_int(flag_arg, &options->flags_notrait) != 0 ||
+        if (str_to_int(flag_arg, &options->flags_notrait, NULL) != 0 ||
             options->flags_notrait < 0 || options->flags_notrait > 7)
         {
             LOG(LOG_ERROR,
@@ -810,6 +810,7 @@ void handle_crunch_flags(int flag_char, /* IN */
         }
         break;
     case 'P':
+        do
         {
             int op = 0;
             int flags_proto;
@@ -823,8 +824,8 @@ void handle_crunch_flags(int flag_char, /* IN */
                 op = 2;
                 ++flag_arg;
             }
-            if (str_to_int(flag_arg, &flags_proto) != 0 ||
-                options->flags_proto < 0 || options->flags_proto > 63)
+            if (str_to_int(flag_arg, &flags_proto, &flag_arg) != 0 ||
+                flags_proto < 0 || flags_proto > 63)
             {
                 LOG(LOG_ERROR,
                     ("Error: invalid value for -P option, "
@@ -845,6 +846,7 @@ void handle_crunch_flags(int flag_char, /* IN */
                 options->flags_proto = flags_proto;
             }
         }
+        while (*flag_arg != '\0');
         break;
     case 'N':
         options->noread_filename = flag_arg;
