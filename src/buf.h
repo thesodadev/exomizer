@@ -136,7 +136,9 @@ const struct buf *buf_view(struct buf *v,
                            const struct buf *b, int b_off, int b_n);
 
 /* Prints formatted to the end of the buffer using the vsnsprintf
- * function. */
+ * function. Will place a zero byte string terminator in the
+ * position directly following the end of the buffer to make it
+ * printf-able. */
 void buf_printf(struct buf *b, const char *format, ...)
     __attribute__((format(printf,2,3)));
 

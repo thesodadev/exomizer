@@ -41,6 +41,7 @@
 #include "parse.h"
 #include "named_buffer.h"
 #include "desfx.h"
+#include "perf.h"
 
 extern struct buf sfxdecr;
 
@@ -431,7 +432,8 @@ void print_desfx_usage(const char *appl, enum log_level level,
          "  sfx command.\n", appl));
     LOG(level,
         ("  -e <address>  overrides the automatic entry point detection, using \"load\" as\n"
-         "                <address> sets it to the load address of the infile\n"));
+         "                <address> sets it to the load address of the infile\n"         "  -S            enables performance statistics output and allows multiple input\n"
+         "                files"));
 
     print_base_flags(level, default_outfile);
 }
@@ -1732,21 +1734,18 @@ void raw(const char *appl, int argc, char *argv[])
 static
 void desfx(const char *appl, int argc, char *argv[])
 {
+    struct perf_ctx perf = STATIC_PERF_INIT;
+    struct buf buf = STATIC_BUF_INIT;
     char flags_arr[64];
-    struct load_info info;
-    struct buf mem;
-    const char *outfile = DEFAULT_OUTFILE;
-    int c, infilec;
+    int i, c, infilec;
     char **infilev;
-    u8 *p;
-    int start;
-    int end;
-    u32 cycles;
-    int cookedend;
     int entry = -1;
+    int stat = 0;
+
+    const char *outfile = DEFAULT_OUTFILE;
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "e:%s", BASE_FLAGS);
+    sprintf(flags_arr, "e:S%s", BASE_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         LOG(LOG_DUMP, (" flagind %d flagopt '%c'\n", flagind, c));
@@ -1766,6 +1765,9 @@ void desfx(const char *appl, int argc, char *argv[])
                 exit(1);
             }
             break;
+        case 'S':
+            stat = 1;
+            break;
         default:
             handle_base_flags(c, flagarg, print_desfx_usage, appl, &outfile);
         }
@@ -1774,69 +1776,124 @@ void desfx(const char *appl, int argc, char *argv[])
     infilev = argv + flagind;
     infilec = argc - flagind;
 
-    if (infilec != 1)
+    if (stat == 0 && infilec != 1)
     {
-        LOG(LOG_ERROR, ("Error: exactly one input file must be given.\n"));
+        LOG(LOG_ERROR, ("Error: only one input file must be given.\n"));
+        print_desfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
+        exit(1);
+    }
+    else if (infilec < 1)
+    {
+        LOG(LOG_ERROR, ("Error: at least one input file must be given.\n"));
         print_desfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
         exit(1);
     }
 
-    buf_init(&mem);
-    buf_append(&mem, NULL, 65536);
-
-    p = buf_data(&mem);
-
-    /* load file, don't care about tracking basic*/
-    info.basic_txt_start = -1;
-    load_located(infilev[0], p, &info);
-
-    if(entry == -1)
+    for (i = 0; i < infilec; ++i)
     {
-        /* use detected address */
-        entry = info.run;
+        int entry1 = entry;
+        struct load_info info;
+        struct buf mem;
+        u8 *p;
+        int start;
+        int end;
+        u32 cycles;
+        int cookedend;
+        const char *n;
+
+        buf_init(&mem);
+        buf_append(&mem, NULL, 65536);
+
+        p = buf_data(&mem);
+
+        /* load file, don't care about tracking basic */
+        info.basic_txt_start = -1;
+        load_located(infilev[i], p, &info);
+
+        if(entry1 == -1)
+        {
+            /* use detected address */
+            entry1 = info.run;
+        }
+        else if(entry1 == -2)
+        {
+            /* use load address */
+            entry1 = info.start;
+        }
+
+        /* no start address from load */
+        if(entry1 == -1)
+        {
+            /* look for sys line */
+            entry1 = find_sys(p + info.start, -1, NULL);
+        }
+        if(entry1 == -1)
+        {
+            LOG(LOG_ERROR, ("Error, can't find entry1 point.\n"));
+            exit(1);
+        }
+
+        entry1 = decrunch_sfx(p, entry1, &start, &end, &cycles);
+
+        /* change 0x0 into 0x10000 */
+        cookedend = ((end - 1) & 0xffff) + 1;
+
+        if (stat != 0)
+        {
+            int inlen = info.end - info.start;
+            int outlen = end - start;
+            perf_add(&perf,
+                     infilev[i], inlen, 100.0 * (outlen - inlen) / outlen,
+                     cycles, (float)cycles / outlen, (float)cycles / inlen);
+        }
+        else
+        {
+            LOG(LOG_NORMAL,
+                (" Decrunch took %0.6f Mcycles, "
+                 "speed was %0.2f kB/Mc (%0.2f c/B).\n",
+                 (double)cycles / 1000000,
+                 1000 * (end - start) / (float)cycles,
+                 (float)cycles / (end - start)));
+        }
+        buf_remove(&mem, cookedend, -1);
+        buf_remove(&mem, 0, start);
+        buf_insert(&mem, 0, NULL, 2);
+
+        p = buf_data(&mem);
+        p[0] = start;
+        p[1] = start >> 8;
+
+        n = outfile;
+        if (stat != 0)
+        {
+            buf_clear(&buf);
+            buf_printf(&buf, "%s.%02d", outfile, i);
+            n = buf_data(&buf);
+        }
+
+        LOG(LOG_BRIEF, (" Writing \"%s\" as prg, saving from $%04X to $%04X, "
+                        "entry1 at $%04X.\n", n, start, cookedend, entry1));
+        write_file(n, &mem);
+
+        buf_free(&mem);
     }
-    else if(entry == -2)
-    {
-        /* use load address */
-        entry = info.start;
-    }
 
-    /* no start address from load */
-    if(entry == -1)
-    {
-        /* look for sys line */
-        entry = find_sys(p + info.start, -1, NULL);
-    }
-    if(entry == -1)
-    {
-        LOG(LOG_ERROR, ("Error, can't find entry point.\n"));
-        exit(1);
-    }
+    buf_clear(&buf);
+    perf_buf_print(&perf, &buf);
+    LOG(LOG_NORMAL, ("All files:\n%s", (char*)buf_data(&buf)));
 
-    entry = decrunch_sfx(p, entry, &start, &end, &cycles);
+    buf_clear(&buf);
+    perf_pareto_size_cycles(&perf);
+    perf_buf_print(&perf, &buf);
+    LOG(LOG_NORMAL, ("\nSorted on size:\n%s", (char*)buf_data(&buf)));
 
-    /* change 0x0 into 0x10000 */
-    cookedend = ((end - 1) & 0xffff) + 1;
+    buf_clear(&buf);
+    perf_pareto_cycles_size(&perf);
+    perf_buf_print(&perf, &buf);
+    LOG(LOG_NORMAL, ("\nSorted on cycles:\n%s", (char*)buf_data(&buf)));
 
-    LOG(LOG_NORMAL,
-        (" Decrunch took %0.6f Mcycles, speed was %0.2f kB/Mc (%0.2f c/B).\n",
-         (double)cycles / 1000000,
-         1000 * (end - start) / (float)cycles,
-         (float)cycles / (end - start)));
-
-    buf_remove(&mem, cookedend, -1);
-    buf_remove(&mem, 0, start);
-    buf_insert(&mem, 0, NULL, 2);
-
-    p = buf_data(&mem);
-    p[0] = start;
-    p[1] = start >> 8;
-
-    LOG(LOG_BRIEF, (" Writing \"%s\" as prg, saving from $%04X to $%04X, "
-                    "entry at $%04X.\n", outfile, start, cookedend, entry));
-    write_file(outfile, &mem);
-
-    buf_free(&mem);
+    buf_free(&buf);
+    perf_free(&perf);
 }
 
 int

@@ -31,6 +31,7 @@
 #include "../src/areatrace.h"
 #include "../src/int.h"
 #include "../src/buf_io.h"
+#include "../src/perf.h"
 
 #include <stdlib.h>
 
@@ -156,6 +157,8 @@ void test_single(const char *prg_name, const char *data_name,
 
 int main(int argc, char *argv[])
 {
+    struct perf_ctx perf;
+    struct buf buf;
     int i;
     int cycles;
     int inlen;
@@ -167,32 +170,43 @@ int main(int argc, char *argv[])
     /* init logging */
     LOG_INIT_CONSOLE(LOG_TERSE);
 
-    LOG(LOG_TERSE, ("|File name                   "
-                    "|Size    |Reduced |Cycles    |C/B out|C/B in |\n"));
-    LOG(LOG_TERSE, ("|----------------------------"
-                    "|--------|--------|----------|-------|-------|\n"));
+    perf_init(&perf);
+
     for (i = 1; i < argc; i += 2)
     {
         test_single(argv[i], argv[i + 1], &cycles, &inlen, &outlen);
-        LOG(LOG_TERSE,
-            ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
-             argv[i + 1], inlen, 100.0 * (outlen - inlen) / outlen, cycles,
-             (float)cycles / outlen, (float)cycles / inlen));
+        perf_add(&perf,
+                 argv[i + 1], inlen, 100.0 * (outlen - inlen) / outlen,
+                 cycles, (float)cycles / outlen, (float)cycles / inlen);
         cycles_sum += cycles;
         inlen_sum += inlen;
         outlen_sum += outlen;
     }
-
     if (argc > 3)
     {
-        LOG(LOG_TERSE, ("|----------------------------"
-                        "|--------|--------|----------|-------|-------|\n"));
-        LOG(LOG_TERSE,
-            ("|%-28s|%8d|%7.2f%%|%10d|%7.2f|%7.2f|\n",
-             "Total", inlen_sum, 100.0 * (outlen_sum - inlen_sum) / outlen_sum,
-             cycles_sum, (float)cycles_sum / outlen_sum,
-             (float)cycles_sum / inlen_sum));
+        perf_add(&perf,
+                 "Total", inlen_sum,
+                 100.0 * (outlen_sum - inlen_sum) / outlen_sum,
+                 cycles_sum, (float)cycles_sum / outlen_sum,
+                 (float)cycles_sum / inlen_sum);
     }
+
+    buf_init(&buf);
+    perf_buf_print(&perf, &buf);
+    LOG(LOG_TERSE, ("%s", (char*)buf_data(&buf)));
+
+    buf_clear(&buf);
+    perf_pareto_size_cycles(&perf);
+    perf_buf_print(&perf, &buf);
+    LOG(LOG_TERSE, ("%s", (char*)buf_data(&buf)));
+
+    buf_clear(&buf);
+    perf_pareto_cycles_size(&perf);
+    perf_buf_print(&perf, &buf);
+    LOG(LOG_TERSE, ("%s", (char*)buf_data(&buf)));
+
+    buf_free(&buf);
+    perf_free(&perf);
 
     return 0;
 }

@@ -8,7 +8,7 @@ LDFLAGS = -s
 #CFLAGS = -g $(WFLAGS)
 #LDFLAGS = -g
 
-TEST_OBJS = ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/areatrace.o ../src/vec.o ../src/buf_io.o ../src/buf.o
+TEST_OBJS = ../src/6502emu.o ../src/exo_util.o ../src/log.o ../src/areatrace.o ../src/vec.o ../src/buf_io.o ../src/buf.o ../src/table.o ../src/perf.o
 
 SOURCES1 = main1.os exostreamdecr1.os
 SOURCES2 = main2.os exostreamdecr2.os
