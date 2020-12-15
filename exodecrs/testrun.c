@@ -175,33 +175,17 @@ int main(int argc, char *argv[])
     for (i = 1; i < argc; i += 2)
     {
         test_single(argv[i], argv[i + 1], &cycles, &inlen, &outlen);
-        perf_add(&perf,
-                 argv[i + 1], inlen, 100.0 * (outlen - inlen) / outlen,
-                 cycles, (float)cycles / outlen, (float)cycles / inlen);
+        perf_add(&perf, argv[i + 1], inlen, outlen, cycles);
         cycles_sum += cycles;
         inlen_sum += inlen;
         outlen_sum += outlen;
     }
     if (argc > 3)
     {
-        perf_add(&perf,
-                 "Total", inlen_sum,
-                 100.0 * (outlen_sum - inlen_sum) / outlen_sum,
-                 cycles_sum, (float)cycles_sum / outlen_sum,
-                 (float)cycles_sum / inlen_sum);
+        perf_add(&perf, "Total", inlen_sum, outlen_sum, cycles_sum);
     }
 
     buf_init(&buf);
-    perf_buf_print(&perf, &buf);
-    LOG(LOG_TERSE, ("%s", (char*)buf_data(&buf)));
-
-    buf_clear(&buf);
-    perf_pareto_size_cycles(&perf);
-    perf_buf_print(&perf, &buf);
-    LOG(LOG_TERSE, ("%s", (char*)buf_data(&buf)));
-
-    buf_clear(&buf);
-    perf_pareto_cycles_size(&perf);
     perf_buf_print(&perf, &buf);
     LOG(LOG_TERSE, ("%s", (char*)buf_data(&buf)));
 

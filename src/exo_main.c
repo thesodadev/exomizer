@@ -1842,9 +1842,7 @@ void desfx(const char *appl, int argc, char *argv[])
         {
             int inlen = info.end - info.start;
             int outlen = end - start;
-            perf_add(&perf,
-                     infilev[i], inlen, 100.0 * (outlen - inlen) / outlen,
-                     cycles, (float)cycles / outlen, (float)cycles / inlen);
+            perf_add(&perf, infilev[i], inlen, outlen, cycles);
         }
         else
         {
@@ -1883,12 +1881,12 @@ void desfx(const char *appl, int argc, char *argv[])
     LOG(LOG_NORMAL, ("All files:\n%s", (char*)buf_data(&buf)));
 
     buf_clear(&buf);
-    perf_pareto_size_cycles(&perf);
+    perf_sort_size_cycles(&perf, 1);
     perf_buf_print(&perf, &buf);
     LOG(LOG_NORMAL, ("\nSorted on size:\n%s", (char*)buf_data(&buf)));
 
     buf_clear(&buf);
-    perf_pareto_cycles_size(&perf);
+    perf_sort_cycles_size(&perf, 1);
     perf_buf_print(&perf, &buf);
     LOG(LOG_NORMAL, ("\nSorted on cycles:\n%s", (char*)buf_data(&buf)));
 

@@ -9,7 +9,7 @@ DASM = ./dasm
 #CFLAGS = -g $(WFLAGS)
 #LDFLAGS = -g
 
-TEST_OBJS = ../../src/6502emu.o ../../src/exo_util.o ../../src/log.o ../../src/areatrace.o ../../src/vec.o ../../src/buf_io.o ../../src/buf.o
+TEST_OBJS = ../../src/6502emu.o ../../src/exo_util.o ../../src/log.o ../../src/areatrace.o ../../src/vec.o ../../src/buf_io.o ../../src/buf.o ../../src/table.o ../../src/perf.o
 
 permutate2 = $(if $(strip $(2)), $(foreach res, $(call permutate2, $(firstword $(2)), $(wordlist 2, $(words $(2)), $(2))), $(join $(res), _) $(join $(res), $(1))), _ $(1))
 

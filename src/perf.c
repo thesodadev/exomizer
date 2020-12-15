@@ -61,20 +61,23 @@ void perf_free(struct perf_ctx *perf)
     vec_free(&perf->measurements, NULL);
 }
 
-void perf_add(struct perf_ctx *perf, const char *name, int size,
-              float reduced, int cycles, float cb_out, float cb_in)
+void perf_add(struct perf_ctx *perf, const char *name,
+              int in_size, int out_size, int cycles)
 {
+    float reduced = 100.0 * (out_size - in_size) / out_size;
+    float cb_out = (float)cycles / out_size;
+    float bkc_out = 1000 * out_size / (float)cycles;
     struct measurement *m = vec_push(&perf->measurements, NULL);
     m->name = name;
-    m->size = size;
+    m->size = in_size;
     m->reduced = reduced;
     m->cycles = cycles;
     m->cb_out = cb_out;
-    m->cb_in = cb_in;
+    m->bkc_out = bkc_out;
     m->hidden = 0;
 }
 
-void perf_pareto_size_cycles(struct perf_ctx *perf)
+void perf_sort_size_cycles(struct perf_ctx *perf, int pareto_hide)
 {
     struct vec_iterator i;
     struct measurement *m;
@@ -88,14 +91,14 @@ void perf_pareto_size_cycles(struct perf_ctx *perf)
             cycles = m->cycles;
             m->hidden = 0;
         }
-        else
+        else if (pareto_hide)
         {
             m->hidden = 1;
         }
     }
 }
 
-void perf_pareto_cycles_size(struct perf_ctx *perf)
+void perf_sort_cycles_size(struct perf_ctx *perf, int pareto_hide)
 {
     struct vec_iterator i;
     struct measurement *m;
@@ -109,7 +112,7 @@ void perf_pareto_cycles_size(struct perf_ctx *perf)
             size = m->size;
             m->hidden = 0;
         }
-        else
+        else if (pareto_hide)
         {
             m->hidden = 1;
         }
@@ -127,8 +130,8 @@ void perf_buf_print(struct perf_ctx *perf, struct buf *target)
     table_col_add(&table, "Size", "%d", 1);
     table_col_add(&table, "Reduced", "%.2f%%", 1);
     table_col_add(&table, "Cycles", "%d", 1);
-    table_col_add(&table, "C/B out", "%.2f", 1);
-    table_col_add(&table, "C/B in", "%.2f", 1);
+    table_col_add(&table, "C/B", "%.2f", 1);
+    table_col_add(&table, "B/kC", "%.2f", 1);
 
     vec_get_iterator(&perf->measurements, &i);
     while ((m = vec_iterator_next(&i)) != NULL)
@@ -136,7 +139,7 @@ void perf_buf_print(struct perf_ctx *perf, struct buf *target)
         if (!m->hidden)
         {
             table_row_add(&table, m->name, m->size, m->reduced,
-                          m->cycles, m->cb_out, m->cb_in);
+                          m->cycles, m->cb_out, m->bkc_out);
         }
     }
 

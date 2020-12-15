@@ -42,7 +42,7 @@ struct measurement
     float reduced;
     int cycles;
     float cb_out;
-    float cb_in;
+    float bkc_out;
     int hidden;
 };
 
@@ -56,11 +56,11 @@ struct perf_ctx
 void perf_init(struct perf_ctx *perf);
 void perf_free(struct perf_ctx *perf);
 
-void perf_add(struct perf_ctx *perf, const char *name, int size,
-              float reduced, int cycles, float cb_out, float cb_in);
+void perf_add(struct perf_ctx *perf, const char *name,
+              int in_size, int out_size, int cycles);
 
-void perf_pareto_size_cycles(struct perf_ctx *perf);
-void perf_pareto_cycles_size(struct perf_ctx *perf);
+void perf_sort_size_cycles(struct perf_ctx *perf, int pareto_hide);
+void perf_sort_cycles_size(struct perf_ctx *perf, int pareto_hide);
 
 void perf_buf_print(struct perf_ctx *perf, struct buf *target);
 
