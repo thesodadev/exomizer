@@ -4,7 +4,7 @@
 WFLAGS = -std=c89 -Wall -Wstrict-prototypes -D_XOPEN_SOURCE=600 -pedantic
 CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer
 LDFLAGS = -s
-ACME = ../acme
+ACME = acme
 
 #CFLAGS = -g $(WFLAGS)
 #LDFLAGS = -g
@@ -23,7 +23,7 @@ echo = $(or $(info $(1) $(2)), $(2))
 
 variant = $(suffix $(basename $(1)))
 
-asmopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 2, $(subst ^, , $(opt))))))
+asmopt = -DENABLE_SPLIT_ENCODING=1 $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 2, $(subst ^, , $(opt))))))
 
 exoopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 3, $(subst ^, , $(opt))))))
 

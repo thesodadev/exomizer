@@ -74,11 +74,11 @@ DONT_REUSE_OFFSET = 0
 DECRUNCH_FORWARDS = 0
 }
 ; -------------------------------------------------------------------
-; if split encoding is not used (the data is not crunched with the -E flag)
-; then the following line can be uncommented for shorter code.
-;DISABLE_SPLIT_ENCODING = 1
-!ifndef DISABLE_SPLIT_ENCODING {
-DISABLE_SPLIT_ENCODING = 0
+; if split encoding is used (the data is crunched with the -E flag)
+; then the following line must be uncommented.
+;ENABLE_SPLIT_ENCODING = 1
+!ifndef ENABLE_SPLIT_ENCODING {
+ENABLE_SPLIT_ENCODING = 0
 }
 ; -------------------------------------------------------------------
 ; The decruncher jsr:s to the exod_get_crunched_byte address when it wants to
@@ -92,7 +92,7 @@ DISABLE_SPLIT_ENCODING = 0
 ; This function will not change the interrupt status bit and it will not
 ; modify the memory configuration.
 ; -------------------------------------------------------------------
-!if DISABLE_SPLIT_ENCODING {
+!if ENABLE_SPLIT_ENCODING != 0 {
 ; -------------------------------------------------------------------
 ; To decrunch files crunched with the split feature (-E) you can't use the
 ; decrunch function. Instead you call the split_decrunch function. But you
@@ -208,7 +208,7 @@ exod_get_bits:
 ; no constraints on register content, however the
 ; decimal flag has to be cleared (it almost always is, otherwise do a cld)
 exod_decrunch:
-!if DISABLE_SPLIT_ENCODING = 0 {
+!if ENABLE_SPLIT_ENCODING != 0 {
         ldx #3
         jsr .internal_gentable
         jmp .normal_decrunch
@@ -271,7 +271,7 @@ exod_split_gentable:
         cpy #.encoded_entries
         bne .table_gen
 ; -------------------------------------------------------------------
-!if DISABLE_SPLIT_ENCODING = 0 {
+!if ENABLE_SPLIT_ENCODING != 0 {
         rts
 exod_split_decrunch:
         ldx #3
@@ -533,7 +533,7 @@ copy_skip_hi:
         !byte $8c, $e2
 }
 
-!if DISABLE_SPLIT_ENCODING = 0 {
+!if ENABLE_SPLIT_ENCODING != 0 {
 .split_init_zp:
         +exod_mac_init_zp
         rts

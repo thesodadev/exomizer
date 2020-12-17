@@ -74,11 +74,11 @@ DONT_REUSE_OFFSET = 0
 DECRUNCH_FORWARDS = 0
 .ENDIF
 ; -------------------------------------------------------------------
-; if split encoding is not used (the data is not crunched with the -E flag)
-; then the following line can be uncommented for shorter code.
-;DISABLE_SPLIT_ENCODING = 1
-.IFNDEF DISABLE_SPLIT_ENCODING
-DISABLE_SPLIT_ENCODING = 0
+; if split encoding is used (the data is crunched with the -E flag)
+; then the following line must be uncommented.
+;ENABLE_SPLIT_ENCODING = 1
+.IFNDEF ENABLE_SPLIT_ENCODING
+ENABLE_SPLIT_ENCODING = 0
 .ENDIF
 
 ; -------------------------------------------------------------------
@@ -95,7 +95,7 @@ DISABLE_SPLIT_ENCODING = 0
 ; modify the memory configuration.
 ; -------------------------------------------------------------------
 .export decrunch
-.IF DISABLE_SPLIT_ENCODING = 0
+.IF ENABLE_SPLIT_ENCODING <> 0
 ; -------------------------------------------------------------------
 ; To decrunch files crunched with the split feature (-E) you can't use the
 ; decrunch function. Instead you call the split_decrunch function. But you
@@ -216,7 +216,7 @@ gb_get_hi:
 ; no constraints on register content, however the
 ; decimal flag has to be cleared (it almost always is, otherwise do a cld)
 decrunch:
-.IF DISABLE_SPLIT_ENCODING = 0
+.IF ENABLE_SPLIT_ENCODING <> 0
         ldx #3
         jsr internal_gentable
         jmp normal_decrunch
@@ -279,7 +279,7 @@ no_fixup_lohi:
         cpy #encoded_entries
         bne table_gen
 ; -------------------------------------------------------------------
-.IF DISABLE_SPLIT_ENCODING = 0
+.IF ENABLE_SPLIT_ENCODING <> 0
         rts
 split_decrunch:
         ldx #3
@@ -541,7 +541,7 @@ tabl_bit:
         .BYTE $8c, $e2
 .ENDIF
 
-.IF DISABLE_SPLIT_ENCODING = 0
+.IF ENABLE_SPLIT_ENCODING <> 0
 split_init_zp:
         mac_init_zp
         rts
