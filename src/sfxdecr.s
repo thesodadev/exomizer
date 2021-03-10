@@ -953,7 +953,11 @@ oric_ROM11:
 lowest_addr_out:
         .WORD(basic_end, i_line_number)
         .BYTE($bf, o1_start / 1000 % 10 + 48, o1_start / 100 % 10 + 48)
-        .BYTE(o1_start / 10 % 10 + 48, o1_start % 10 + 48, 0)
+        .BYTE(o1_start / 10 % 10 + 48, o1_start % 10 + 48)
+      .IF(.DEFINED(i_sys_epilogue))
+	.INCLUDE("sys_epilogue")
+      .ENDIF
+        .BYTE(0)
 basic_end:
         .BYTE(0,0)
   .ELSE
@@ -991,7 +995,11 @@ lowest_addr_out:
 lowest_addr_out:
         .WORD(basic_end, i_line_number)
         .BYTE($9e, cbm_start / 1000 % 10 + 48, cbm_start / 100 % 10 + 48)
-        .BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48, 0)
+        .BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48)
+      .IF(.DEFINED(i_sys_epilogue))
+	.INCLUDE("sys_epilogue")
+      .ENDIF
+        .BYTE(0)
 basic_end:
 trqwrk ?= 2
     .IF(r_target == 16 || r_target == 4 ||
@@ -1073,7 +1081,11 @@ lowest_addr_out:
 a2_load:
         .WORD(basic_end, i_line_number)
         .BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
-        .BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48, 0)
+        .BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48)
+      .IF(.DEFINED(i_sys_epilogue))
+	.INCLUDE("sys_epilogue")
+      .ENDIF
+        .BYTE(0)
 basic_end:
     .IF(transfer_len % 256 != 0)
         .BYTE(0,0)

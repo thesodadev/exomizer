@@ -415,6 +415,10 @@ void print_sfx_usage(const char *appl, enum log_level level,
          "  -f<custom exit assembler fragment>\n"
          "                assembler fragment o execute when the decruncher has\n"
          "                finished\n"));
+    LOG(level,
+        ("  -y<custom sys epilogue assembler fragment>\n"
+         "                assembler fragment for bytes that are listed at the end of\n"
+         "                the basic line. Can be use to add a very short text.\n"));
     print_crunch_flags(level, default_outfile);
     LOG(level,
         (" All infiles are merged into the outfile. They are loaded in the order\n"
@@ -1036,6 +1040,7 @@ void sfx(const char *appl, int argc, char *argv[])
     const char *slow = NULL;
     const char *enter_custom = NULL;
     const char *exit_custom = NULL;
+    const char *sys_epilogue = NULL;
     char flags_arr[64];
     int c;
     int infilec;
@@ -1145,7 +1150,7 @@ void sfx(const char *appl, int argc, char *argv[])
     while(0);
 
     LOG(LOG_DUMP, ("flagind %d\n", flagind));
-    sprintf(flags_arr, "nD:t:x:X:s:f:%s", CRUNCH_FLAGS);
+    sprintf(flags_arr, "nD:t:x:X:s:f:y:%s", CRUNCH_FLAGS);
     while ((c = getflag(argc, argv, flags_arr)) != -1)
     {
         char *p;
@@ -1180,6 +1185,9 @@ void sfx(const char *appl, int argc, char *argv[])
             break;
         case 'f':
             exit_custom = flagarg;
+            break;
+        case 'y':
+            sys_epilogue = flagarg;
             break;
         case 'D':
             p = strrchr(flagarg, '=');
@@ -1255,6 +1263,12 @@ void sfx(const char *appl, int argc, char *argv[])
         set_initial_symbol("i_exit_custom", 1);
         buf_append(new_initial_named_buffer("exit_custom"),
                    exit_custom, strlen(exit_custom));
+    }
+    if(sys_epilogue != NULL)
+    {
+        set_initial_symbol("i_sys_epilogue", 1);
+        buf_append(new_initial_named_buffer("sys_epilogue"),
+                   sys_epilogue, strlen(sys_epilogue));
     }
 
     buf_init(&buf1);

@@ -83,6 +83,7 @@ struct vec strdupped[1];
 \.res		return RES;
 \.word		return WORD;
 \.byte		return BYTE;
+\.text		return TEXT;
 
 \"		BEGIN(QUOTED_STRING);
 \;		BEGIN(SKIP_LINE);

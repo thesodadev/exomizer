@@ -107,6 +107,7 @@ struct atom *new_exprs(struct expr *arg);
 struct atom *exprs_add(struct atom *atom, struct expr *arg);
 struct atom *exprs_to_byte_exprs(struct atom *atom);
 struct atom *exprs_to_word_exprs(struct atom *atom);
+struct atom *text_to_byte_exprs(const char *text);
 
 struct atom *new_res(struct expr *len, struct expr *value);
 struct atom *new_incbin(const char *name,

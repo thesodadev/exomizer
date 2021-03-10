@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.7.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,6 +31,10 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
+
 #ifndef YY_YY_ASM_TAB_H_INCLUDED
 # define YY_YY_ASM_TAB_H_INCLUDED
 /* Debug traces.  */
@@ -40,123 +45,128 @@
 extern int yydebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    INCLUDE = 258,
-    IF = 259,
-    DEFINED = 260,
-    MACRO = 261,
-    MACRO_STRING = 262,
-    ORG = 263,
-    ERROR = 264,
-    ECHO1 = 265,
-    INCBIN = 266,
-    INCLEN = 267,
-    INCWORD = 268,
-    RES = 269,
-    WORD = 270,
-    BYTE = 271,
-    LDA = 272,
-    LDX = 273,
-    LDY = 274,
-    STA = 275,
-    STX = 276,
-    STY = 277,
-    AND = 278,
-    ORA = 279,
-    EOR = 280,
-    ADC = 281,
-    SBC = 282,
-    CMP = 283,
-    CPX = 284,
-    CPY = 285,
-    TSX = 286,
-    TXS = 287,
-    PHA = 288,
-    PLA = 289,
-    PHP = 290,
-    PLP = 291,
-    SEI = 292,
-    CLI = 293,
-    NOP = 294,
-    TYA = 295,
-    TAY = 296,
-    TXA = 297,
-    TAX = 298,
-    CLC = 299,
-    SEC = 300,
-    RTS = 301,
-    CLV = 302,
-    CLD = 303,
-    SED = 304,
-    JSR = 305,
-    JMP = 306,
-    BEQ = 307,
-    BNE = 308,
-    BCC = 309,
-    BCS = 310,
-    BPL = 311,
-    BMI = 312,
-    BVC = 313,
-    BVS = 314,
-    INX = 315,
-    DEX = 316,
-    INY = 317,
-    DEY = 318,
-    INC = 319,
-    DEC = 320,
-    LSR = 321,
-    ASL = 322,
-    ROR = 323,
-    ROL = 324,
-    BIT = 325,
-    SYMBOL = 326,
-    STRING = 327,
-    LAND = 328,
-    LOR = 329,
-    LNOT = 330,
-    LPAREN = 331,
-    RPAREN = 332,
-    COMMA = 333,
-    COLON = 334,
-    X = 335,
-    Y = 336,
-    HASH = 337,
-    PLUS = 338,
-    MINUS = 339,
-    MULT = 340,
-    DIV = 341,
-    MOD = 342,
-    LT = 343,
-    GT = 344,
-    EQ = 345,
-    NEQ = 346,
-    ASSIGN = 347,
-    GUESS = 348,
-    NUMBER = 349,
-    vNEG = 350,
-    LABEL = 351
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    INCLUDE = 258,                 /* INCLUDE  */
+    IF = 259,                      /* IF  */
+    DEFINED = 260,                 /* DEFINED  */
+    MACRO = 261,                   /* MACRO  */
+    MACRO_STRING = 262,            /* MACRO_STRING  */
+    ORG = 263,                     /* ORG  */
+    ERROR = 264,                   /* ERROR  */
+    ECHO1 = 265,                   /* ECHO1  */
+    INCBIN = 266,                  /* INCBIN  */
+    INCLEN = 267,                  /* INCLEN  */
+    INCWORD = 268,                 /* INCWORD  */
+    RES = 269,                     /* RES  */
+    WORD = 270,                    /* WORD  */
+    BYTE = 271,                    /* BYTE  */
+    TEXT = 272,                    /* TEXT  */
+    LDA = 273,                     /* LDA  */
+    LDX = 274,                     /* LDX  */
+    LDY = 275,                     /* LDY  */
+    STA = 276,                     /* STA  */
+    STX = 277,                     /* STX  */
+    STY = 278,                     /* STY  */
+    AND = 279,                     /* AND  */
+    ORA = 280,                     /* ORA  */
+    EOR = 281,                     /* EOR  */
+    ADC = 282,                     /* ADC  */
+    SBC = 283,                     /* SBC  */
+    CMP = 284,                     /* CMP  */
+    CPX = 285,                     /* CPX  */
+    CPY = 286,                     /* CPY  */
+    TSX = 287,                     /* TSX  */
+    TXS = 288,                     /* TXS  */
+    PHA = 289,                     /* PHA  */
+    PLA = 290,                     /* PLA  */
+    PHP = 291,                     /* PHP  */
+    PLP = 292,                     /* PLP  */
+    SEI = 293,                     /* SEI  */
+    CLI = 294,                     /* CLI  */
+    NOP = 295,                     /* NOP  */
+    TYA = 296,                     /* TYA  */
+    TAY = 297,                     /* TAY  */
+    TXA = 298,                     /* TXA  */
+    TAX = 299,                     /* TAX  */
+    CLC = 300,                     /* CLC  */
+    SEC = 301,                     /* SEC  */
+    RTS = 302,                     /* RTS  */
+    CLV = 303,                     /* CLV  */
+    CLD = 304,                     /* CLD  */
+    SED = 305,                     /* SED  */
+    JSR = 306,                     /* JSR  */
+    JMP = 307,                     /* JMP  */
+    BEQ = 308,                     /* BEQ  */
+    BNE = 309,                     /* BNE  */
+    BCC = 310,                     /* BCC  */
+    BCS = 311,                     /* BCS  */
+    BPL = 312,                     /* BPL  */
+    BMI = 313,                     /* BMI  */
+    BVC = 314,                     /* BVC  */
+    BVS = 315,                     /* BVS  */
+    INX = 316,                     /* INX  */
+    DEX = 317,                     /* DEX  */
+    INY = 318,                     /* INY  */
+    DEY = 319,                     /* DEY  */
+    INC = 320,                     /* INC  */
+    DEC = 321,                     /* DEC  */
+    LSR = 322,                     /* LSR  */
+    ASL = 323,                     /* ASL  */
+    ROR = 324,                     /* ROR  */
+    ROL = 325,                     /* ROL  */
+    BIT = 326,                     /* BIT  */
+    SYMBOL = 327,                  /* SYMBOL  */
+    STRING = 328,                  /* STRING  */
+    LAND = 329,                    /* LAND  */
+    LOR = 330,                     /* LOR  */
+    LNOT = 331,                    /* LNOT  */
+    LPAREN = 332,                  /* LPAREN  */
+    RPAREN = 333,                  /* RPAREN  */
+    COMMA = 334,                   /* COMMA  */
+    COLON = 335,                   /* COLON  */
+    X = 336,                       /* X  */
+    Y = 337,                       /* Y  */
+    HASH = 338,                    /* HASH  */
+    PLUS = 339,                    /* PLUS  */
+    MINUS = 340,                   /* MINUS  */
+    MULT = 341,                    /* MULT  */
+    DIV = 342,                     /* DIV  */
+    MOD = 343,                     /* MOD  */
+    LT = 344,                      /* LT  */
+    GT = 345,                      /* GT  */
+    EQ = 346,                      /* EQ  */
+    NEQ = 347,                     /* NEQ  */
+    ASSIGN = 348,                  /* ASSIGN  */
+    GUESS = 349,                   /* GUESS  */
+    NUMBER = 350,                  /* NUMBER  */
+    vNEG = 351,                    /* vNEG  */
+    LABEL = 352                    /* LABEL  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-
 union YYSTYPE
 {
-#line 148 "asm.y" /* yacc.c:1909  */
+#line 149 "asm.y"
 
     i32 num;
     char *str;
     struct atom *atom;
     struct expr *expr;
 
-#line 158 "asm.tab.h" /* yacc.c:1909  */
-};
+#line 168 "asm.tab.h"
 
+};
 typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

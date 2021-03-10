@@ -58,6 +58,7 @@ void yyerror(const char *s);
 %token RES
 %token WORD
 %token BYTE
+%token TEXT
 
 %token LDA
 %token LDX
@@ -200,7 +201,8 @@ atom:	op { $$ = $1; } |
         RES LPAREN expr COMMA expr RPAREN { $$ = new_res($3, $5); } |
         WORD LPAREN exprs RPAREN { $$ = exprs_to_word_exprs($3); } |
         BYTE LPAREN exprs RPAREN { $$ = exprs_to_byte_exprs($3); } |
-	INCBIN LPAREN STRING RPAREN {
+        TEXT LPAREN STRING RPAREN { $$ = text_to_byte_exprs($3); } |
+        INCBIN LPAREN STRING RPAREN {
             $$ = new_incbin($3, NULL, NULL); } |
         INCBIN LPAREN STRING COMMA expr RPAREN {
             $$ = new_incbin($3, $5, NULL); } |

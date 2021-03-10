@@ -532,6 +532,26 @@ struct atom *exprs_to_word_exprs(struct atom *atom)
     return atom;
 }
 
+struct atom *text_to_byte_exprs(const char *text)
+{
+    struct atom *atom;
+    int c;
+
+    atom = chunkpool_malloc(&s.atom_pool);
+    atom->type = ATOM_TYPE_BYTE_EXPRS;
+    atom->u.exprs = chunkpool_malloc(&s.vec_pool);
+    vec_init(atom->u.exprs, sizeof(struct expr*));
+
+    while ((c = *text++) != '\0')
+    {
+        struct expr *expr = new_expr_number(c & 255);
+        vec_push(atom->u.exprs, &expr);
+    }
+
+    pc_add(vec_size(atom->u.exprs));
+    return atom;
+}
+
 struct atom *new_res(struct expr *len, struct expr *value)
 {
     struct atom *atom;
@@ -604,7 +624,6 @@ struct atom *new_incbin(const char *name,
     }
     return atom;
 }
-
 
 void asm_error(const char *msg)
 {
