@@ -1025,6 +1025,17 @@ static void do_effect(const char *appl, int no_effect, const char *fast,
     }
 }
 
+static void sfx_fragment_glue(struct output_ctx *out,
+                              const struct io_bufs *prev,
+                              const struct io_bufs *next)
+{
+    int ws = prev->write_start;
+    output_bits(out, 16, ws - 1);
+    output_gamma_code(out, 17);
+    output_bits(out, 1, 0);
+}
+
+
 static
 void sfx(const char *appl, int argc, char *argv[])
 {
@@ -1223,6 +1234,7 @@ void sfx(const char *appl, int argc, char *argv[])
         case 'a':
             vec_push(&fragment_names, &flagarg);
             options.merge_multi = 1;
+            options.glue_f = sfx_fragment_glue;
             break;
         default:
             handle_crunch_flags(c, flagarg, print_sfx_usage, appl, &flags);

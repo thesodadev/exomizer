@@ -36,6 +36,7 @@ extern "C" {
 #include "search.h"
 #include "optimal.h"
 #include "flags.h"
+#include "output.h"
 
 #define DECRUNCH_OPTIONS_DEFAULT {NULL, PFLAG_BITS_ORDER_BE |    \
                                   PFLAG_BITS_COPY_GT_7 | \
@@ -48,7 +49,7 @@ extern "C" {
                                 PFLAG_BITS_COPY_GT_7 |           \
                                 PFLAG_IMPL_1LITERAL |            \
                                 PFLAG_REUSE_OFFSET,              \
-                                0, 0, 0, 0, NULL}
+                                0, 0, 0, 0, NULL, NULL}
 
 struct common_flags
 {
@@ -89,6 +90,18 @@ void handle_base_flags(int flag_char, /* IN */
                        const char *appl, /* IN */
                        const char **default_outfilep); /* OUT */
 
+struct io_bufs
+{
+    struct buf in;
+    int in_off;
+    struct buf out;
+    int write_start;
+    struct crunch_info info;
+};
+
+typedef void cb_output_glue(struct output_ctx *ctx,
+                            const struct io_bufs *prev,
+                            const struct io_bufs *next);
 struct crunch_options
 {
     const char *imported_encoding;
@@ -104,18 +117,10 @@ struct crunch_options
     int write_reverse;
     int merge_multi;
     const char *noread_filename;
+    cb_output_glue *glue_f;
 };
 
 void print_license(void);
-
-struct io_bufs
-{
-    struct buf in;
-    int in_off;
-    struct buf out;
-    int write_start;
-    struct crunch_info info;
-};
 
 void io_bufs_free(void *a);
 

@@ -108,13 +108,11 @@ void do_output_backwards(struct match_ctx *ctx_arr,
                 struct match_ctx *ctx = ctx_arr + i;
                 struct search_node *snp = snp_arr[i];
 
-                if (i > 0)
+                if (i > 0 && options->glue_f != NULL)
                 {
                     /* output glue */
-                    int ws = io_bufs_arr[i - 1].write_start;
-                    output_bits(&out, 16, ws - 1);
-                    output_gamma_code(&out, 17);
-                    output_bits(&out, 1, 0);
+                    options->glue_f(&out, &io_bufs_arr[i - 1],
+                                    &io_bufs_arr[i]);
                 }
 
                 while (snp != NULL)
