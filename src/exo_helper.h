@@ -99,6 +99,10 @@ struct io_bufs
     struct crunch_info info;
 };
 
+/*
+ * Called before (prev == NULL), between and after (next == NULL)
+ * the io_bufs are output.
+ */
 typedef void cb_output_glue(struct output_ctx *ctx,
                             const struct io_bufs *prev,
                             const struct io_bufs *next);

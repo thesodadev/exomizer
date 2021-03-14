@@ -89,6 +89,7 @@ void do_output_backwards(struct match_ctx *ctx_arr,
 
         if (snp_arr != NULL)
         {
+            const struct io_bufs *prev;
             LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
 
             output_gamma_code(&out, 16);
@@ -103,16 +104,18 @@ void do_output_backwards(struct match_ctx *ctx_arr,
             LOG(LOG_DUMP, ("pos $%04X\n", out.pos));
             LOG(LOG_DUMP, ("------------\n"));
 
+            prev = NULL;
             for (i = 0; i < arr_len; ++i)
             {
                 struct match_ctx *ctx = ctx_arr + i;
                 struct search_node *snp = snp_arr[i];
 
-                if (i > 0 && options->glue_f != NULL)
+                if (options->glue_f != NULL)
                 {
+                    const struct io_bufs *next = &io_bufs_arr[i];
                     /* output glue */
-                    options->glue_f(&out, &io_bufs_arr[i - 1],
-                                    &io_bufs_arr[i]);
+                    options->glue_f(&out, prev, next);
+                    prev = next;
                 }
 
                 while (snp != NULL)
@@ -213,6 +216,11 @@ void do_output_backwards(struct match_ctx *ctx_arr,
                     LOG(LOG_DUMP, ("------------\n"));
                     snp = snp->prev;
                 }
+            }
+            if (prev != NULL && options->glue_f != NULL)
+            {
+                /* output final glue */
+                options->glue_f(&out, prev, NULL);
             }
         }
 

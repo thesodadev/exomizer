@@ -1029,10 +1029,14 @@ static void sfx_fragment_glue(struct output_ctx *out,
                               const struct io_bufs *prev,
                               const struct io_bufs *next)
 {
-    int ws = prev->write_start;
-    output_bits(out, 16, ws - 1);
-    output_gamma_code(out, 17);
-    output_bits(out, 1, 0);
+        /* only between io_bufs */
+    if (prev != NULL && next != NULL)
+    {
+        int ws = prev->write_start;
+        output_bits(out, 16, ws - 1);
+        output_gamma_code(out, 17);
+        output_bits(out, 1, 0);
+    }
 }
 
 
