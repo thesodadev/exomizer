@@ -1,3 +1,9 @@
++ Added -y to add assembly fragment at the end of the sys line for the purpose
+  of adding a short text using the .BYTE() and/or .TEXT() assembler directive.
+  (This fragment will not be run as code).
++ Added a .TEXT("string") assembler directive to the sfx assembler. No encoding
+  mapping is done. The byte values from the command line will be used directly.
+
 2020-12-22
 Release of 3.1.0 source code and Win32 binaries.
 + Fixed bug in the sfxdecr.s affecting c128 reported by Fredrik Ramsberg.
