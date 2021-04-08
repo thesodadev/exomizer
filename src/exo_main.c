@@ -400,14 +400,14 @@ void print_sfx_usage(const char *appl, enum log_level level,
     LOG(level,
         ("  the <jmpaddress> start argument will jmp to the given address.\n"
          "  -t<target>    sets the decruncher target, must be one of 1, 20, 23, 52, 55\n"
-         "                16, 4, 64, 128, 162 or 168, default is 64\n"
+         "                16, 4, 64, 65, 128, 162 or 168, default is 64\n"
          "  -X<custom slow effect assembler fragment>\n"
          "  -x[1-3]|<custom fast effect assembler fragment>\n"
          "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
-         "                or carry) or 1 - 3 for different fast border flash effects\n"
-         "  -n            no effect, can't be combined with -X or -x\n"));
+         "                or carry) or 1 - 3 for different fast border flash effects\n"));
     LOG(level,
-        ("  -D<symbol>=<value>\n"
+        ("  -n            no effect, can't be combined with -X or -x\n"
+         "  -D<symbol>=<value>\n"
          "                predefines symbols for the sfx assembler\n"
          "  -s<custom enter assembler fragment>\n"
          "                assembler fragment to execute when the decruncher starts.\n"
@@ -936,6 +936,7 @@ get_target_info(int target)
             {16,  0x9e, 0x1001, 0x4000,  "C16", "prg"},
             {4,   0x9e, 0x1001, 0xfd00,  "plus4", "prg"},
             {64,  0x9e, 0x0801, 0x10000, "C64", "prg"},
+            {65,  0x9e, 0x2001, 0x10000, "C65", "prg"},
             {128, 0x9e, 0x1c01, 0xff00,  "C128", "prg"},
             {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "AppleSingle"},
             {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},

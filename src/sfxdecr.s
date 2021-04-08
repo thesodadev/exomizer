@@ -99,7 +99,7 @@
   c_ram_nmi_value = 0
   c_default_table = $b800
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
-      r_target == 64 || r_target == 128 || r_target == 4032)
+      r_target == 64 || r_target == 65 || r_target == 128 || r_target == 4032)
   zp_len_lo = $9e
   zp_len_hi = $9f
   zp_src_lo = $ae
@@ -162,6 +162,17 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0334
+  .ELIF(r_target == 65)
+  c_basic_start    = $2001
+  c_end_of_mem_rom = $d000
+  c_effect_char    = $0fcf
+  c_effect_color   = $dfcf
+  c_border_color   = $d020
+  c_rom_config_value = 255      ; value of $01 + unmapped
+  c_ram_config_value = 0        ; value of $01 + unmapped
+  c_rom_nmi_value = 0
+  c_ram_nmi_value = 0
+  c_default_table = $043a	; temp area $043a-$05ff
   .ELIF(r_target == 128)
   c_basic_start    = $1c01
   c_end_of_mem_rom = $4000
@@ -320,6 +331,12 @@ transfer_len ?= 0
     .IF(!.DEFINED(i_irq_exit))
       i_irq_exit = 0
     .ENDIF
+  .ELIF(r_target == 65)
+        ;; Since we isue BANK0 from basic, we need to disable IRQs
+    i_irq_during = 0
+    .IF(!.DEFINED(i_irq_exit))
+      i_irq_exit = 0
+    .ENDIF
   .ENDIF
 .ENDIF
 
@@ -352,7 +369,7 @@ transfer_len ?= 0
 .ENDIF
 
 .IF(!.DEFINED(i_line_number))
-  i_line_number = 31
+  i_line_number = 311
 .ENDIF
 
 .IF(.DEFINED(i_fourth_offset_table))
@@ -524,6 +541,8 @@ exit_hook = 1
       .ENDIF
     .ELIF(r_target == $a8)
         .ERROR("Atari target can't handle basic start.")
+    .ELIF(r_target == 65)
+        .ERROR("c65 target can't handle basic start.")
     .ELIF(r_target == $bbcb)
         .ERROR("BBC Micro B target can't handle basic start.")
     .ELIF(r_target == 1)
@@ -784,6 +803,52 @@ oric_ROM11:
   .ENDMACRO
   .MACRO("d2r_nmi")
   .ENDMACRO
+.ELIF(r_target == 65)
+; -------------------------------------------------------------------
+; -- The ram/rom switch macros for c65 ------------------------------
+; -------------------------------------------------------------------
+  .MACRO("b2d_nmi")
+  .ENDMACRO
+  .MACRO("b2d_ram")
+        ;; unmap RAM to be able to access IO
+        ldx #0
+        .BYTE ($a3, $00)        ; LDZ #$00
+        .BYTE ($5c)             ; MAP
+        nop                     ; EOM
+    .IF(!.DEFINED(i_effect_custom) && i_effect2 == 0)
+	inc $d030		;cram @dc00, BANK0 state assumed
+    .ENDIF
+    .IF(i_ram_during == (i_ram_enter + 1) % 256)
+        inc <$01
+    .ELIF(i_ram_during == (i_ram_enter - 1) % 256)
+        dec <$01
+    .ELSE
+        lda #i_ram_during
+        sta <$01
+    .ENDIF
+  .ENDMACRO
+  .MACRO("d2io")
+    .IF(i_ram_during == 0)
+        dec <$01
+    .ENDIF
+  .ENDMACRO
+  .MACRO("io2d")
+    .IF(i_ram_during == 0)
+        inc <$01
+    .ENDIF
+  .ENDMACRO
+  .MACRO("d2r_ram")
+    .IF(i_ram_exit == (i_ram_during + 1) % 256)
+        inc <$01
+    .ELIF(i_ram_exit == (i_ram_during - 1) % 256)
+        dec <$01
+    .ELSE
+        lda #i_ram_exit
+        sta <$01
+    .ENDIF
+  .ENDMACRO
+  .MACRO("d2r_nmi")
+  .ENDMACRO
 .ELIF(r_target == 128)
 ; -------------------------------------------------------------------
 ; -- The ram/rom switch macros for c128 -----------------------------
@@ -954,9 +1019,9 @@ lowest_addr_out:
         .WORD(basic_end, i_line_number)
         .BYTE($bf, o1_start / 1000 % 10 + 48, o1_start / 100 % 10 + 48)
         .BYTE(o1_start / 10 % 10 + 48, o1_start % 10 + 48)
-      .IF(.DEFINED(i_sys_epilogue))
-	.INCLUDE("sys_epilogue")
-      .ENDIF
+    .IF(.DEFINED(i_sys_epilogue))
+        .INCLUDE("sys_epilogue")
+    .ENDIF
         .BYTE(0)
 basic_end:
         .BYTE(0,0)
@@ -977,7 +1042,7 @@ lowest_addr_out:
 o1_start:
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
       r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128 ||
-      r_target == 4032)
+      r_target == 4032 || r_target == 65)
 ; -------------------------------------------------------------------
 ; -- Commodore file header stuff ------------------------------------
 ; -------------------------------------------------------------------
@@ -994,15 +1059,18 @@ lowest_addr_out:
         .ORG(c_basic_start)
 lowest_addr_out:
         .WORD(basic_end, i_line_number)
+    .IF(r_target == 65)
+        .BYTE($fe,$02,$30,$3a)          ; BANK0: to disable ROM before SYS
+    .ENDIF
         .BYTE($9e, cbm_start / 1000 % 10 + 48, cbm_start / 100 % 10 + 48)
         .BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48)
       .IF(.DEFINED(i_sys_epilogue))
-	.INCLUDE("sys_epilogue")
+        .INCLUDE("sys_epilogue")
       .ENDIF
         .BYTE(0)
 basic_end:
 trqwrk ?= 2
-    .IF(r_target == 16 || r_target == 4 ||
+    .IF(r_target == 16 || r_target == 4 || r_target == 65 ||
         r_target == 128 || (transfer_len - trqwrk) % 256 != 0)
         .BYTE(0,0)
 trqwrk = 2
@@ -1083,7 +1151,7 @@ a2_load:
         .BYTE($8c, a2_start / 1000 % 10 + 48, a2_start / 100 % 10 + 48)
         .BYTE(a2_start / 10 % 10 + 48, a2_start % 10 + 48)
       .IF(.DEFINED(i_sys_epilogue))
-	.INCLUDE("sys_epilogue")
+        .INCLUDE("sys_epilogue")
       .ENDIF
         .BYTE(0)
 basic_end:
@@ -2309,7 +2377,7 @@ highest_addr_out:
 o1_end:
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
       r_target == 16 || r_target == 4 || r_target == 64 || r_target == 128 ||
-      r_target == 4032)
+      r_target == 4032 || r_target == 65)
 ; -------------------------------------------------------------------
 ; -- Start of Commodore file footer stuff ---------------------------
 ; -------------------------------------------------------------------
