@@ -164,7 +164,7 @@
   c_default_table = $0334
   .ELIF(r_target == 65)
   c_basic_start    = $2001
-  c_end_of_mem_rom = $d000
+  c_end_of_mem_rom = $2000
   c_effect_char    = $0fcf
   c_effect_color   = $dfcf
   c_border_color   = $d020
@@ -172,7 +172,7 @@
   c_ram_config_value = 0        ; value of $01 + unmapped
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
-  c_default_table = $043a	; temp area $043a-$05ff
+  c_default_table = $043a       ; temp area $043a-$05ff
   .ELIF(r_target == 128)
   c_basic_start    = $1c01
   c_end_of_mem_rom = $4000
@@ -332,9 +332,13 @@ transfer_len ?= 0
       i_irq_exit = 0
     .ENDIF
   .ELIF(r_target == 65)
-        ;; Since we isue BANK0 from basic, we need to disable IRQs
+    ;; Since we isue BANK0 from basic, we need to disable IRQs
     i_irq_during = 0
-    .IF(!.DEFINED(i_irq_exit))
+    .IF(!.DEFINED(i_irq_exit) &&
+        (r_in_load < c_default_table ||
+         v_safety_addr < c_default_table ||
+         i_table_addr < c_default_table))
+      ;; must disable irq on exit to access mem < c_default_table
       i_irq_exit = 0
     .ENDIF
   .ENDIF
@@ -541,8 +545,6 @@ exit_hook = 1
       .ENDIF
     .ELIF(r_target == $a8)
         .ERROR("Atari target can't handle basic start.")
-    .ELIF(r_target == 65)
-        .ERROR("c65 target can't handle basic start.")
     .ELIF(r_target == $bbcb)
         .ERROR("BBC Micro B target can't handle basic start.")
     .ELIF(r_target == 1)
@@ -583,6 +585,25 @@ exit_hook = 1
         lda #i_basic_highest_addr / 256
         sta $1213
       .ENDIF
+    .ELIF(r_target == 65)
+      .IF(.DEFINED(i_basic_txt_start))
+        lda #i_basic_txt_start % 256
+        sta <$2d
+        lda #i_basic_txt_start / 256
+        sta <$2e
+      .ENDIF
+      .IF(.DEFINED(i_basic_var_start))
+        lda #i_basic_var_start % 256
+        sta <$2f
+        lda #i_basic_var_start / 256
+        sta <$30
+      .ENDIF
+      .IF(.DEFINED(i_basic_highest_addr))
+        lda #i_basic_highest_addr % 256
+        sta <$39
+        lda #i_basic_highest_addr / 256
+        sta <$3a
+      .ENDIF
     .ELSE
       .IF(.DEFINED(i_basic_txt_start))
         lda #i_basic_txt_start % 256
@@ -621,6 +642,8 @@ exit_hook = 1
         jsr $a659               ; init
         jsr $a533               ; regenerate line links
         jmp $a7ae               ; start
+    .ELIF(r_target == 65)
+        jmp $7f8d               ; combo function run basic prg
     .ELIF(r_target == 128)
         jsr $5ab5               ; init
         jsr $4f4f               ; regenerate line links and set $1210/$1211
@@ -810,17 +833,19 @@ oric_ROM11:
   .MACRO("b2d_nmi")
   .ENDMACRO
   .MACRO("b2d_ram")
+    .IF(i_ram_during != $ff)
         ;; unmap RAM to be able to access IO
         ldx #0
         .BYTE ($a3, $00)        ; LDZ #$00
         .BYTE ($5c)             ; MAP
         nop                     ; EOM
+    .ENDIF
     .IF(!.DEFINED(i_effect_custom) && i_effect2 == 0)
-	inc $d030		;cram @dc00, BANK0 state assumed
+        inc $d030               ;cram @dc00, BANK0 state assumed
     .ENDIF
     .IF(i_ram_during == (i_ram_enter + 1) % 256)
         inc <$01
-    .ELIF(i_ram_during == (i_ram_enter - 1) % 256)
+    .ELIF((i_ram_during + 1) % 256 == i_ram_enter)
         dec <$01
     .ELSE
         lda #i_ram_during
@@ -840,11 +865,15 @@ oric_ROM11:
   .MACRO("d2r_ram")
     .IF(i_ram_exit == (i_ram_during + 1) % 256)
         inc <$01
-    .ELIF(i_ram_exit == (i_ram_during - 1) % 256)
+    .ELIF((i_ram_exit + 1) % 256 == i_ram_during)
         dec <$01
     .ELSE
         lda #i_ram_exit
         sta <$01
+    .ENDIF
+    .IF(i_ram_exit == $ff)
+        jsr $cfb1               ; c65 default mem config, bring in the ROMs
+        nop                     ; EOM for the MAP instruction called by the jsr
     .ENDIF
   .ENDMACRO
   .MACRO("d2r_nmi")

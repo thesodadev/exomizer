@@ -1653,7 +1653,8 @@ void sfx(const char *appl, int argc, char *argv[])
             }
             LOG(LOG_NORMAL, ("Decruncher:  |Enter |During|Exit  |\n"));
             if (decr_target == 1 || decr_target == 64 || decr_target == 128 ||
-                decr_target == 4 || decr_target == 16 || decr_target == 168)
+                decr_target == 4 || decr_target == 16 || decr_target == 168 ||
+                decr_target == 65)
             {
                 resolve_symbol("i_ram_enter", NULL, &i_ram_enter);
                 resolve_symbol("i_ram_during", NULL, &i_ram_during);
