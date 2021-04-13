@@ -184,6 +184,25 @@ struct target_info
     const char *outformat;
 };
 
+static const struct target_info sfx_targets[] =
+{
+    {1,   0xbf, 0x0501, 0x10000, "Oric", "tap"},
+    {20,  0x9e, 0x1001, 0x2000,  "Vic20", "prg"},
+    {23,  0x9e, 0x0401, 0x2000,  "Vic20+3kB", "prg"},
+    {52,  0x9e, 0x1201, 0x8000,  "Vic20+32kB", "prg"},
+    {55,  0x9e, 0x1201, 0x8000,  "Vic20+3kB+32kB", "prg"},
+    {16,  0x9e, 0x1001, 0x4000,  "C16", "prg"},
+    {4,   0x9e, 0x1001, 0xfd00,  "plus4", "prg"},
+    {64,  0x9e, 0x0801, 0x10000, "C64", "prg"},
+    {65,  0x9e, 0x2001, 0x10000, "C65", "prg"},
+    {128, 0x9e, 0x1c01, 0xff00,  "C128", "prg"},
+    {162, 0x8c, 0x0801, 0xc000,  "Apple ][+ and //e", "AppleSingle"},
+    {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},
+    {4032, 0x9e, 0x0401, 0x8000,  "CBM PET 4032", "prg"},
+    {0xbbcb, -1, 0x1902, 0x8000,  "BBC Micro B", "BBCIm/BBCXfer inf"},
+    {0,   -1,   -1,     -1,  NULL, NULL}
+};
+
 static
 int
 do_loads(int filec, char *filev[], struct buf *mem,
@@ -387,6 +406,7 @@ static
 void print_sfx_usage(const char *appl, enum log_level level,
                      const char *default_outfile)
 {
+    const struct target_info *targetp;
     /* done */
     LOG(level,
         ("usage: %s sfx basic[,<start>[,<end>[,<high>]]]|sys[trim][,<start>]|bin|<jmpaddress> [option]... infile[,<address>]...\n"
@@ -399,9 +419,13 @@ void print_sfx_usage(const char *appl, enum log_level level,
          , appl));
     LOG(level,
         ("  the <jmpaddress> start argument will jmp to the given address.\n"
-         "  -t<target>    sets the decruncher target, must be one of 1, 20, 23, 52, 55\n"
-         "                16, 4, 64, 65, 128, 162 or 168, default is 64\n"
-         "  -X<custom slow effect assembler fragment>\n"
+         "  -t<target>    sets the decruncher target, default is 64, must be one of:\n"));
+    for(targetp = sfx_targets; targetp->id != 0; ++targetp)
+    {
+         LOG(level, ("                %i - %s\n", targetp->id, targetp->model));
+    }
+    LOG(level,
+        ("  -X<custom slow effect assembler fragment>\n"
          "  -x[1-3]|<custom fast effect assembler fragment>\n"
          "                decrunch effect, assembler fragment (don't change X-reg, Y-reg\n"
          "                or carry) or 1 - 3 for different fast border flash effects\n"));
@@ -926,26 +950,8 @@ static
 const struct target_info *
 get_target_info(int target)
 {
-    static const struct target_info targets[] =
-        {
-            {1,   0xbf, 0x0501, 0x10000, "Oric", "tap"},
-            {20,  0x9e, 0x1001, 0x2000,  "Vic20", "prg"},
-            {23,  0x9e, 0x0401, 0x2000,  "Vic20+3kB", "prg"},
-            {52,  0x9e, 0x1201, 0x8000,  "Vic20+32kB", "prg"},
-            {55,  0x9e, 0x1201, 0x8000,  "Vic20+3kB+32kB", "prg"},
-            {16,  0x9e, 0x1001, 0x4000,  "C16", "prg"},
-            {4,   0x9e, 0x1001, 0xfd00,  "plus4", "prg"},
-            {64,  0x9e, 0x0801, 0x10000, "C64", "prg"},
-            {65,  0x9e, 0x2001, 0x10000, "C65", "prg"},
-            {128, 0x9e, 0x1c01, 0xff00,  "C128", "prg"},
-            {162, 0x8c, 0x0801, 0xc000,  "Apple ][+", "AppleSingle"},
-            {168, -1,   0x2000, 0xd000,  "Atari 400/800 XL/XE", "xex"},
-            {4032, 0x9e, 0x0401, 0x8000,  "PET CBM 4032", "prg"},
-            {0xbbcb, -1, 0x1902, 0x8000,  "BBC Micro B", "BBCIm/BBCXfer inf"},
-            {0,   -1,   -1,     -1,  NULL, NULL}
-        };
     const struct target_info *targetp;
-    for(targetp = targets; targetp->id != 0; ++targetp)
+    for(targetp = sfx_targets; targetp->id != 0; ++targetp)
     {
         if(target == targetp->id)
         {
@@ -1162,11 +1168,19 @@ void sfx(const char *appl, int argc, char *argv[])
             if (str_to_int(flagarg, &decr_target, NULL) != 0 ||
                 get_target_info(decr_target) == NULL)
             {
-                LOG(LOG_ERROR,
-                    ("error: invalid value, %d, for -t option, must be one of "
-                     "1, 20, 23, 52, 55, 16, 4, 64, 128, 162, 168, 4032 or "
-                     "48075.\n",
-                     decr_target));
+                struct buf errmsg = STATIC_BUF_INIT;
+                const struct target_info *targetp;
+                const char *glue = "";
+                buf_printf(&errmsg, "error: invalid value (%d) for -t option, must be one of: ", decr_target);
+                for(targetp = sfx_targets; targetp->id != 0; ++targetp)
+                {
+                    buf_printf(&errmsg, glue);
+                    buf_printf(&errmsg, "%i", targetp->id);
+                    glue = ", ";
+                }
+                buf_printf(&errmsg, ".");
+                LOG(LOG_ERROR, ("%s\n", (char*)buf_data(&errmsg)));
+                buf_free(&errmsg);
                 print_sfx_usage(appl, LOG_NORMAL, DEFAULT_OUTFILE);
                 exit(1);
             }
