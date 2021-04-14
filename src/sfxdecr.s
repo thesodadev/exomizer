@@ -594,9 +594,9 @@ exit_hook = 1
       .ENDIF
       .IF(.DEFINED(i_basic_var_start))
         lda #i_basic_var_start % 256
-        sta <$2f
+        sta <$82
         lda #i_basic_var_start / 256
-        sta <$30
+        sta <$83
       .ENDIF
       .IF(.DEFINED(i_basic_highest_addr))
         lda #i_basic_highest_addr % 256
@@ -643,7 +643,8 @@ exit_hook = 1
         jsr $a533               ; regenerate line links
         jmp $a7ae               ; start
     .ELIF(r_target == 65)
-        jmp $7f8d               ; combo function run basic prg
+        jsr $f072               ; repair data at $0110-$0138
+        jmp $7f8d               ; combo function clr/relink/run basic
     .ELIF(r_target == 128)
         jsr $5ab5               ; init
         jsr $4f4f               ; regenerate line links and set $1210/$1211
