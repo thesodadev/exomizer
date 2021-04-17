@@ -842,8 +842,9 @@ oric_ROM11:
         nop                     ; EOM
     .ENDIF
     .IF(!.DEFINED(i_effect_custom) && i_effect2 == 0)
-        inc $d030               ;cram @dc00, BANK0 state assumed
+        inx                     ;cram @dc00 for right lower corner effect
     .ENDIF
+        stx $d030               ;no C65 ROMs please, BANK0 state assumed
     .IF(i_ram_during == (i_ram_enter + 1) % 256)
         inc <$01
     .ELIF((i_ram_during + 1) % 256 == i_ram_enter)
@@ -873,10 +874,12 @@ oric_ROM11:
         sta <$01
     .ENDIF
     .IF(i_ram_exit == $ff)
-        jsr $cfb1               ; c65 default mem config, bring in the ROMs
-        nop                     ; EOM for the MAP instruction called by the jsr
+	lda #$64
+	sta $d030		; enable default C65 ROMs again
         lda #$80
         sta $02d1               ; switch BASIC10 back to BANK128
+        jsr $cfb1               ; c65 default mem config, bring in the ROMs
+        nop                     ; EOM for the MAP instruction called by the jsr
     .ENDIF
   .ENDMACRO
   .MACRO("d2r_nmi")
