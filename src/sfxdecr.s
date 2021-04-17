@@ -1,5 +1,5 @@
 ;
-; Copyright (c) 2002 - 2018 Magnus Lind.
+; Copyright (c) 2002 - 2021 Magnus Lind.
 ;
 ; This software is provided 'as-is', without any express or implied warranty.
 ; In no event will the authors be held liable for any damages arising from
@@ -172,7 +172,7 @@
   c_ram_config_value = 0        ; value of $01 + unmapped
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
-  c_default_table = $043a       ; temp area $043a-$05ff
+  c_default_table = $0200       ; $0200-$02a1 line input buffer
   .ELIF(r_target == 128)
   c_basic_start    = $1c01
   c_end_of_mem_rom = $4000
@@ -875,6 +875,8 @@ oric_ROM11:
     .IF(i_ram_exit == $ff)
         jsr $cfb1               ; c65 default mem config, bring in the ROMs
         nop                     ; EOM for the MAP instruction called by the jsr
+        lda #$80
+        sta $02d1               ; switch BASIC10 back to BANK128
     .ENDIF
   .ENDMACRO
   .MACRO("d2r_nmi")
