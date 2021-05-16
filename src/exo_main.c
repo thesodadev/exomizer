@@ -1583,7 +1583,7 @@ void sfx(const char *appl, int argc, char *argv[])
             i32 i_ram_enter, i_ram_during, i_ram_exit;
             i32 i_irq_enter, i_irq_during, i_irq_exit;
             i32 i_nmi_enter, i_nmi_during, i_nmi_exit;
-            i32 c_effect_color;
+            i32 c_effect_color, c_page0location;
 
             if (options.flags_proto & PFLAG_4_OFFSET_TABLES)
             {
@@ -1609,7 +1609,8 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("i_irq_during", NULL, &i_irq_during);
             resolve_symbol("i_irq_exit", NULL, &i_irq_exit);
 
-            if (stage3end > 0x1f2)
+            resolve_symbol("c_page0location", NULL, &c_page0location);
+            if (stage3end > c_page0location + 0x1f2)
             {
                 LOG(LOG_ERROR,
                     ("ERROR: The generated decruncher is too b"
@@ -1630,8 +1631,8 @@ void sfx(const char *appl, int argc, char *argv[])
                  in_load, in_load + in_len));
             LOG(LOG_NORMAL, (" Decrunch table  | $%04X| $%04X|\n",
                              i_table_addr, i_table_addr + table_size));
-            LOG(LOG_NORMAL, (" Decruncher      | $00FD| $%04X| and ",
-                             stage3end));
+            LOG(LOG_NORMAL, (" Decruncher      | $%04X| $%04X| and ",
+                             c_page0location + 0xfd, stage3end));
             if (options.flags_proto & PFLAG_REUSE_OFFSET)
             {
                 LOG(LOG_NORMAL,

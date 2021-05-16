@@ -172,7 +172,12 @@
   c_ram_config_value = 0        ; value of $01 + unmapped
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
-  c_default_table = $0200       ; $0200-$02a1 line input buffer
+    .IF(r_start_addr == -2)
+    c_default_table = $1802     ; BASIC start, don't disturb stuff
+    c_page0location = $1800     ; move page zero here (and decr to $1900)
+    .ELSE
+    c_default_table = $0200       ; $0200-$02a1 line input buffer
+    .ENDIF
   .ELIF(r_target == 128)
   c_basic_start    = $1c01
   c_end_of_mem_rom = $4000
@@ -278,6 +283,9 @@
   c_default_table = $0a34
 .ELSE
   .ERROR("Symbol r_target_addr has an invalid value.")
+.ENDIF
+.IF (!.DEFINED(c_page0location))
+  c_page0location = $0000
 .ENDIF
 
 v_safety_addr = .INCWORD("crunched_data", 0)
@@ -643,7 +651,8 @@ exit_hook = 1
         jsr $a533               ; regenerate line links
         jmp $a7ae               ; start
     .ELIF(r_target == 65)
-        jsr $f072               ; repair data at $0110-$0138
+        lda #$80
+        sta $02d1               ; switch BASIC10 back to BANK128
         jmp $7f8d               ; combo function clr/relink/run basic
     .ELIF(r_target == 128)
         jsr $5ab5               ; init
@@ -853,18 +862,34 @@ oric_ROM11:
         lda #i_ram_during
         sta <$01
     .ENDIF
+    .IF(c_page0location != $0000)
+        lda #c_page0location / 256
+        .BYTE($5b)              ; TAB, set base page
+    .ENDIF
   .ENDMACRO
   .MACRO("d2io")
     .IF(i_ram_during == 0)
+      .IF(c_page0location == $0000)
         dec <$01
+      .ELSE
+        dec $0001
+      .ENDIF
     .ENDIF
   .ENDMACRO
   .MACRO("io2d")
     .IF(i_ram_during == 0)
+      .IF(c_page0location == $0000)
         inc <$01
+      .ELSE
+        inc $0001
+      .ENDIF
     .ENDIF
   .ENDMACRO
   .MACRO("d2r_ram")
+    .IF(c_page0location != $0000)
+        lda #0
+        .BYTE($5b)              ; TAB, restore base page to zero
+    .ENDIF
     .IF(i_ram_exit == (i_ram_during + 1) % 256)
         inc <$01
     .ELIF((i_ram_exit + 1) % 256 == i_ram_during)
@@ -874,10 +899,8 @@ oric_ROM11:
         sta <$01
     .ENDIF
     .IF(i_ram_exit == $ff)
-	lda #$64
-	sta $d030		; enable default C65 ROMs again
-        lda #$80
-        sta $02d1               ; switch BASIC10 back to BANK128
+        lda #$64
+        sta $d030               ; enable default C65 ROMs again
         jsr $cfb1               ; c65 default mem config, bring in the ROMs
         nop                     ; EOM for the MAP instruction called by the jsr
     .ENDIF
@@ -1099,19 +1122,11 @@ lowest_addr_out:
     .ENDIF
         .BYTE($9e, cbm_start / 1000 % 10 + 48, cbm_start / 100 % 10 + 48)
         .BYTE(cbm_start / 10 % 10 + 48, cbm_start % 10 + 48)
-      .IF(.DEFINED(i_sys_epilogue))
+    .IF(.DEFINED(i_sys_epilogue))
         .INCLUDE("sys_epilogue")
-      .ENDIF
-        .BYTE(0)
-basic_end:
-trqwrk ?= 2
-    .IF(r_target == 16 || r_target == 4 || r_target == 65 ||
-        r_target == 128 || (transfer_len - trqwrk) % 256 != 0)
-        .BYTE(0,0)
-trqwrk = 2
-    .ELSE
-trqwrk = 0
     .ENDIF
+        .BYTE(0,0,0)
+basic_end:
 ; -------------------------------------------------------------------
 cbm_start:
   .ENDIF
@@ -1253,19 +1268,23 @@ zp_dest_hi = zp_bitbuf + 2      ; dest addr hi
 ; -- start of stage 1 -----------------------------------------------
 ; -------------------------------------------------------------------
 max_transfer_len = .INCLEN("crunched_data") - 5
-        ldy #transfer_len % 256
         .IF(.DEFINED(enter_hook))
           .INCLUDE("enter_hook")
         .ENDIF
+        .IF (c_page0location != $0000)
+        ldx #stage3end - (stage3start - 4)
+        .ELSE
         tsx
+        .ENDIF
 cploop:
         lda stage2end - 4,x
-        sta $0100 - 4,x
+        sta c_page0location + $0100 - 4,x
         dex
         bne cploop
 .IF(transfer_len > 256)
         ldx #transfer_len / 256 + 1
 .ENDIF
+        ldy #transfer_len % 256
 .IF(transfer_len != max_transfer_len)
         jmp stage2start
 .ENDIF
@@ -1398,7 +1417,7 @@ no_fixup_lohi:
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
         .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
-        .ORG($0100)
+        .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
 ; -- start of stage 3 -----------------------------------------------
 ; -------------------------------------------------------------------
@@ -1619,7 +1638,7 @@ tabl_bit:
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
         .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
-        .ORG($0100)
+        .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
 ; -- start of stage 3 -----------------------------------------------
 ; -------------------------------------------------------------------
@@ -1861,7 +1880,7 @@ tabl_bit:
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
         .WORD((((v_highest_addr - 1) % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
-        .ORG($0100)
+        .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
 ; -- start of stage 3 -----------------------------------------------
 ; -------------------------------------------------------------------
@@ -2112,7 +2131,7 @@ tabl_bit:
         .INCBIN("crunched_data", max_transfer_len + 2, 1) ; => zp_bitbuf
         .WORD(((v_highest_addr % 65536) / 256) * 256) ; => zp_dest_lo/hi
 stage2end:
-        .ORG($0100)
+        .ORG(c_page0location + $0100)
 ; -------------------------------------------------------------------
 ; -- start of stage 3 -----------------------------------------------
 ; -------------------------------------------------------------------

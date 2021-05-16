@@ -353,6 +353,7 @@ can't decrunch into banked memory.
           16: Commodore c16
            4: Commodore plus4
           64: Commodore c64 (The default target)
+          65: Commodore c65
          128: Commodore c128
         4032: Commodore PET 4032
         0xa2: Apple ][+ and //e
