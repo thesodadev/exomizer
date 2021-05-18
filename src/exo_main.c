@@ -1610,14 +1610,29 @@ void sfx(const char *appl, int argc, char *argv[])
             resolve_symbol("i_irq_exit", NULL, &i_irq_exit);
 
             resolve_symbol("c_page0location", NULL, &c_page0location);
-            if (stage3end > c_page0location + 0x1f2)
+            if (c_page0location == 0)
             {
-                LOG(LOG_ERROR,
-                    ("ERROR: The generated decruncher is too b"
-                     "ig. It will be overwritten by its own\n"
-                     "stack usage. Please use options or disab"
-                     "le features to make it smaller.\n."));
-                exit(1);
+                if (stage3end > 0x1f2)
+                {
+                    LOG(LOG_ERROR,
+                        ("ERROR: The generated decruncher is too b"
+                         "ig. It will be overwritten by its own\n"
+                         "stack usage. Please use options or disab"
+                         "le features to make it smaller.\n."));
+                    exit(1);
+                }
+            }
+            else
+            {
+                if (stage3end > c_page0location + 0x1ff)
+                {
+                    LOG(LOG_ERROR,
+                        ("ERROR: The generated decruncher is too b"
+                         "ig. It is larger than 255 bytes.\n"
+                         "Please use options or disable features t"
+                         "o make it smaller.\n."));
+                    exit(1);
+                }
             }
             LOG(LOG_BRIEF, (" Writing \"%s\" as %s, saving from "
                             "$%04X to $%04X.\n", flags.outfile,

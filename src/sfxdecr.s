@@ -901,8 +901,12 @@ oric_ROM11:
     .IF(i_ram_exit == $ff)
         lda #$64
         sta $d030               ; enable default C65 ROMs again
-        jsr $cfb1               ; c65 default mem config, bring in the ROMs
-        nop                     ; EOM for the MAP instruction called by the jsr
+        lda #0                  ; restore default ROM mapping
+        ldx #$e3
+        tay
+        .BYTE ($a3, $b3)        ; LDZ #$b3
+        .BYTE ($5c)             ; MAP
+        nop                     ; EOM
     .ENDIF
   .ENDMACRO
   .MACRO("d2r_nmi")
