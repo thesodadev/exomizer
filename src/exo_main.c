@@ -1174,7 +1174,7 @@ void sfx(const char *appl, int argc, char *argv[])
                 buf_printf(&errmsg, "error: invalid value (%d) for -t option, must be one of: ", decr_target);
                 for(targetp = sfx_targets; targetp->id != 0; ++targetp)
                 {
-                    buf_printf(&errmsg, glue);
+                    buf_printf(&errmsg, "%s", glue);
                     buf_printf(&errmsg, "%i", targetp->id);
                     glue = ", ";
                 }

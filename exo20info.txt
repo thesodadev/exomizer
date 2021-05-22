@@ -93,7 +93,7 @@ data. They share the following option flags:
         multiple files. Please note that there is no direct support for
         decrunching these files yet apart from the raw -d command and in the
         6502 decruncher exodecrs/exodecrunch.s (when enabled). It changes the
-	behavior of exomizer in the following ways:
+        behavior of exomizer in the following ways:
         1) It won't include the encoding in the compressed files.
         2) The compressed files will be named as the outfile (-o) with an
            appended number. ".00" for the first file, ".01" for the second and
@@ -289,7 +289,16 @@ program after decrunch. This is not yet implemented for the Atari target.
 The Oric target support BASIC start for the Oric 1 and Atmos computers but not
 for the Telestrat.
 
- The run BASIC mode takes up to three optional addresses. They are in order:
+The c65 computer stores a lot of data used by BASIC 10 on the hardware stack.
+Because of this, if the run address is the string basic then the c65 target
+will not overwrite the stack nor any zeropage. The decruncher, zero page and
+decrunch table will instead be moved to $1800- $19ff during decrunch. If the
+run address is not basic then the decruncher will be placed at $0100 and the
+table at $0200. The program is then expected to not be dependent on the stack
+data being correct when run but can instead be decrunched to $02a0-$ffff if
+-Di_ram_exit=0.
+
+The run BASIC mode takes up to three optional addresses. They are in order:
 start of BASIC program, end of BASIC program  and highest address used by
 BASIC.
 
@@ -394,7 +403,14 @@ can't decrunch into banked memory.
         intended for things like restoring a c128 to 1MHz or disabling 'Skip
         internal cycles' and burst mode on a DTV2. The fragment syntax is the
         same as for the -X and -x options.
-
+-y<custom sys epilogue assembler fragment>
+        Specifies an optional assembler fragment that will located directly
+        after the BASIC SYS statement. the fragment will never be called but
+        can be used to add some extra characters to the BASIC line using the
+        .BYTE() or the new .TEXT() assembler directives like:
+        '.BYTE($45,$58,$4f)' or '.TEXT("EXO")' Please note that no character
+        reencoding is done and the byte values will be shown using the target
+        character set (PETSCII for the Commodore family).
 -------------------------------------------------------------------------------
 -- The desfx sub command ------------------------------------------------------
 -------------------------------------------------------------------------------
@@ -586,9 +602,10 @@ decruncher size.
 
 For the c64 and the c128 target the value of the above symbols will be stored
 into $ff00 (c128) or $01 (c64) to set the mem configuration. For the c16/+4
-target the possible values are 0=ROM and 1=RAM. For the Atari the value will be
-stored in $d301. The Oric target supports 0=ROM and 1=RAM where 1 will enable
-decrunching into the top 16kB RAM supplied by the microdisc controller.
+target the possible values are 0=ROM and 1=RAM. The C65 use 0 for all RAM and
+$FF for ROM. For the Atari the value will be stored in $d301. The Oric target
+supports 0=ROM and 1=RAM where 1 will enable decrunching into the top 16kB RAM
+supplied by the microdisc controller.
 
 Default is $37 for the c64, $00 for the c128, 0 for the c16/+4 and Oric and $ff
 for the Atari.

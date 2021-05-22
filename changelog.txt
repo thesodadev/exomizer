@@ -1,3 +1,5 @@
+2021-05-22
+Release of 3.1.1 source code and win32 binaries.
 + Added c65 as a new experimental target as -t65, suggested by Detlef Hastik.
 + Improve help messages for available targets. Patch by Dirk Jagdmann.
 + Added -y to add assembly fragment at the end of the sys line for the purpose

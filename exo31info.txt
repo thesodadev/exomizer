@@ -3,6 +3,16 @@ This document only mentions what has changed since exomizer 2.0. For
 more general exomizer info please read the exo20info.txt file which also
 might contain updated information about previously existing features.
 
+Exomizer 3.1.1
+--------------
+
+New features since 3.0
+----------------------
+o New -y option to the sfx command to add text to the end of the generated
+  SYS-line (or CALL).
+o new target, -t 65, for the Commodore c65 and the MEGA65 computer.
+
+
 Exomizer 3.1
 ------------
 
