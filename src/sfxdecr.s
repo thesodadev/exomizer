@@ -1129,8 +1129,9 @@ lowest_addr_out:
     .IF(.DEFINED(i_sys_epilogue))
         .INCLUDE("sys_epilogue")
     .ENDIF
-        .BYTE(0,0,0)
+        .BYTE(0)
 basic_end:
+        .BYTE(0,0)
 ; -------------------------------------------------------------------
 cbm_start:
   .ENDIF
@@ -1209,9 +1210,7 @@ a2_load:
       .ENDIF
         .BYTE(0)
 basic_end:
-    .IF(transfer_len % 256 != 0)
         .BYTE(0,0)
-    .ENDIF
   .ENDIF
 ; -------------------------------------------------------------------
 a2_start:
