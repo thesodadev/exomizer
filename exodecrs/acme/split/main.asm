@@ -1,5 +1,5 @@
 ; -------------------------------------------------------------------
-; this file is intended to be assembled and linked with the cc65 toolchain.
+; this file is intended to be assembled with ACME.
 ; It has not been tested with any other assemblers or linkers.
 ; -------------------------------------------------------------------
 ; -------------------------------------------------------------------

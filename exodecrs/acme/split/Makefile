@@ -45,7 +45,7 @@ testrun.test%.prg: ../../testrun test%.prg data%.prg
 	@cmp -i0:2 data$(call variant, $@).prg.out ../../data.bin && $(RM) data$(call variant, $@).prg.out
 
 ../../testrun: ../../testrun.o $(TEST_OBJS)
-	@$(CC) $(LDFLAGS) -o $@ ../testrun.o $(TEST_OBJS)
+	@$(CC) $(LDFLAGS) -o $@ ../../testrun.o $(TEST_OBJS)
 
 test%.prg: main.asm ../exodecrunch.asm
 	@echo "building $@"

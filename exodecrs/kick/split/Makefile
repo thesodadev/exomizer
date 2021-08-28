@@ -4,7 +4,7 @@
 WFLAGS = -std=c89 -Wall -Wstrict-prototypes -D_XOPEN_SOURCE=600 -pedantic
 CFLAGS = $(WFLAGS) -O3 -ffast-math -fomit-frame-pointer
 LDFLAGS = -s
-DASM = dasm
+KICK = java -jar ../KickAss.jar
 
 #CFLAGS = -g $(WFLAGS)
 #LDFLAGS = -g
@@ -17,13 +17,13 @@ permutate = $(if $(strip $(1)), $(call permutate2, $(firstword $(1)), $(wordlist
 
 VARIANTS = $(call permutate, i M c 4 o f)
 
-VARIANT_OPT = c^-DLITERAL_SEQUENCES_NOT_USED=1^-c M^-DMAX_SEQUENCE_LENGTH_256=1^-M256 i^-DINLINE_GET_BITS=1^ o^-DDONT_REUSE_OFFSET=1^-P-32 4^-DEXTRA_TABLE_ENTRY_FOR_LENGTH_THREE=1^-P+16 f^-DDECRUNCH_FORWARDS=1^-f
+VARIANT_OPT = c^-define%LITERAL_SEQUENCES_NOT_USED^-c M^-define%MAX_SEQUENCE_LENGTH_256^-M256 i^-define%INLINE_GET_BITS^ o^-define%DONT_REUSE_OFFSET^-P-32 4^-define%EXTRA_TABLE_ENTRY_FOR_LENGTH_THREE^-P+16 f^-define%DECRUNCH_FORWARDS^-f
 
 echo = $(or $(info $(1) $(2)), $(2))
 
 variant = $(suffix $(basename $(1)))
 
-asmopt = -DENABLE_SPLIT_ENCODING=1 $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 2, $(subst ^, , $(opt))))))
+asmopt = -define%ENABLE_SPLIT_ENCODING $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 2, $(subst ^, , $(opt))))))
 
 exoopt = $(filter-out , $(foreach opt, $(VARIANT_OPT), $(if $(findstring $(word 1, $(subst ^, , $(opt))), $(1)), $(word 3, $(subst ^, , $(opt))))))
 
@@ -47,20 +47,20 @@ testrun.test%.prg: ../../testrun test%.prg data%.prg
 ../../testrun: ../../testrun.o $(TEST_OBJS)
 	@$(CC) $(LDFLAGS) -o $@ ../../testrun.o $(TEST_OBJS)
 
-test%.prg: main.s ../exodecrunch.s
+test%.prg: main.asm ../exodecrunch.asm
 	@echo "building $@"
-	@$(DASM) $< $(call asmopt, $(call variant, $@)) -o$@
+	@$(KICK) -o $@ $(subst %, ,$(call asmopt, $(call variant, $@))) main.asm
 
 clean:
 	@$(RM) testrun.o *.prg *.out *.os *.exo* testrun
 
-data%.prg: data%.s
-	@$(DASM) $< $(call asmopt, $(call variant, $@)) -o$@
+data%.prg: data%.asm
+	@$(KICK) -o $@ $(subst %, ,$(call asmopt, $(call variant, $@))) $<
 
 %.exo %.exo.00 %.exo.01: ../../$$(basename $$(basename $$@)).bin
 	@../../../src/exomizer mem $(call exoopt, $(call variant, $@)) -q -E $<,0x3000,0,0xb00 $<,0x3b00,0xb00 -o $*.exo
 
-data%.s: data.s.template data%.exo data%.exo.00 data%.exo.01
+data%.asm: data.asm.template data%.exo data%.exo.00 data%.exo.01
 	@sed 's/PLACEHOLDER/data$*.exo/' $< > $@
 
 %.o:	%.c
