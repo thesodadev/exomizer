@@ -99,7 +99,7 @@
   c_ram_nmi_value = 0
   c_default_table = $b800
 .ELIF(r_target == 20 || r_target == 23 || r_target == 52 || r_target == 55 ||
-      r_target == 64 || r_target == 65 || r_target == 128 || r_target == 4032)
+      r_target == 64 || r_target == 65 || r_target == 128)
   zp_len_lo = $9e
   zp_len_hi = $9f
   zp_src_lo = $ae
@@ -189,15 +189,24 @@
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $0b00
-  .ELIF(r_target == 4032)
+  .ENDIF
+.ELIF(r_target == 4032)
+  zp_len_lo = $16
+  zp_len_hi = $17
+  zp_src_lo = $18
+  zp_src_hi = zp_src_lo + 1
+  zp_bits_hi = $1a
+  zp_ro_state = $1b
+
   c_basic_start = $0401
   c_end_of_mem_rom = $8000
+  c_effect_color   = $83e7
+  c_border_color   = $83e7
   c_rom_config_value = 0
   c_ram_config_value = 0
   c_rom_nmi_value = 0
   c_ram_nmi_value = 0
   c_default_table = $027a
-  .ENDIF
 .ELIF(r_target == 16 || r_target == 4)
   zp_len_lo = $d8
   zp_len_hi = $d9
@@ -611,6 +620,25 @@ exit_hook = 1
         sta <$39
         lda #i_basic_highest_addr / 256
         sta <$3a
+      .ENDIF
+    .ELIF(r_target == 4032)
+      .IF(.DEFINED(i_basic_txt_start))
+        lda #i_basic_txt_start % 256
+        sta <$28
+        lda #i_basic_txt_start / 256
+        sta <$29
+      .ENDIF
+      .IF(.DEFINED(i_basic_var_start))
+        lda #i_basic_var_start % 256
+        sta <$2a
+        lda #i_basic_var_start / 256
+        sta <$2b
+      .ENDIF
+      .IF(.DEFINED(i_basic_highest_addr))
+        lda #i_basic_highest_addr % 256
+        sta <$34
+        lda #i_basic_highest_addr / 256
+        sta <$35
       .ENDIF
     .ELSE
       .IF(.DEFINED(i_basic_txt_start))
